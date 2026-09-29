@@ -21,12 +21,14 @@ export const FormField: React.FC<FormFieldProps> = ({
   htmlFor,
 }) => {
   return (
-    <div className={cn('form-field', className)}>
+    <div className={cn('form-field min-w-0', className)}>
       <label htmlFor={htmlFor} className="form-label">
         {label}
         {required && <span className="form-label-required">*</span>}
       </label>
-      {children}
+      <div className="relative w-full min-w-0 [&>[data-slot=input]]:w-full [&>[data-slot=input]]:h-10 [&>[data-slot=input]]:rounded-md [&>[data-slot=select]]:w-full [&>[data-slot=select]>[data-slot=select-trigger]]:w-full [&>[data-slot=select]>[data-slot=select-trigger]]:h-10 [&>[data-slot=select]>[data-slot=select-trigger]]:rounded-md [&>[data-slot=date-picker]]:w-full [&>[data-slot=date-picker]>[data-slot=date-input-group]]:w-full [&>[data-slot=autocomplete]]:w-full [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:w-full [&>[data-slot=autocomplete]_[data-slot=input]]:w-full [&>[data-slot=autocomplete]_[data-slot=input]]:h-10 [&>[data-slot=autocomplete]_[data-slot=input]]:rounded-md [&>[data-slot=textarea]]:w-full [&>[data-slot=textarea]]:rounded-md [&>[data-slot=textarea]]:min-h-20 [&>textarea]:w-full">
+        {children}
+      </div>
       {error && (
         <div className="form-error">
           <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">

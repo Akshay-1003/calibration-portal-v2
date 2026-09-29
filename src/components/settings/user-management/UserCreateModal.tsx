@@ -1,4 +1,4 @@
-import { Modal, ModalBody, ModalContent, ModalHeader } from '@heroui-v2/react';
+import { Modal } from '@heroui/react';
 import { UserForm } from './UserForm';
 import type { ManagedUserFormValues } from './userManagementSchema';
 
@@ -21,19 +21,25 @@ export const UserCreateModal = ({
   userType = 'laboratory',
   organizationOptions = [],
 }: UserCreateModalProps) => (
-  <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="5xl" scrollBehavior="inside">
-    <ModalContent>
-      <ModalHeader>Create New User</ModalHeader>
-      <ModalBody className="pb-6">
-        <UserForm
-          mode="create"
-          onSubmit={onSubmit}
-          onClose={onClose}
-          isLoading={isLoading}
-          userType={userType}
-          organizationOptions={organizationOptions}
-        />
-      </ModalBody>
-    </ModalContent>
-  </Modal>
+  <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onOpenChange(); }}>
+    <Modal.Backdrop>
+      <Modal.Container size="lg" scroll="inside">
+        <Modal.Dialog>
+          <Modal.Header>
+            <Modal.Heading>Create New User</Modal.Heading>
+          </Modal.Header>
+          <Modal.Body className="pb-6">
+            <UserForm
+              mode="create"
+              onSubmit={onSubmit}
+              onClose={onClose}
+              isLoading={isLoading}
+              userType={userType}
+              organizationOptions={organizationOptions}
+            />
+          </Modal.Body>
+        </Modal.Dialog>
+      </Modal.Container>
+    </Modal.Backdrop>
+  </Modal.Root>
 );

@@ -24,7 +24,7 @@ export function useSurfacePlateReferenceStandardsListQuery(
   options?: { enabled?: boolean }
 ) {
   return useQuery({
-    queryKey: queryKeys.surfacePlateReferenceStandards.list(filters),
+    queryKey: queryKeys.surfacePlateReferenceStandards.list({ ...filters } as Record<string, unknown>),
     queryFn: (): Promise<SurfacePlateReferenceStandardsListResult> =>
       listSurfacePlateReferenceStandards(filters),
     enabled: options?.enabled ?? true,

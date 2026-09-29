@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import {
-  Card,
-  CardHeader,
-  CardBody,
-  Switch,
-  Divider,
-  Button,
-  Spinner,
-} from "@heroui-v2/react";
+import { Card as V3Card } from '@heroui/react';
+import { Button, Separator, Spinner, Switch as V3Switch } from '@heroui/react';
 import {
   BellAlertIcon,
   BuildingOffice2Icon,
@@ -101,8 +94,8 @@ export const SettingsNotifications = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="border border-gray-200 shadow-sm">
-        <CardHeader className="border-b border-gray-200 px-6 py-5">
+      <V3Card className="border border-gray-200 shadow-sm">
+        <V3Card.Header className="border-b border-gray-200 px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-primary-50 p-2 dark:bg-primary-900/20">
@@ -139,12 +132,12 @@ export const SettingsNotifications = () => {
               </select>
             </div>
           </div>
-        </CardHeader>
+        </V3Card.Header>
 
-        <CardBody className="p-6">
+        <V3Card.Content className="p-6">
           {organizationsQuery.isLoading || settingsQuery.isLoading || !draft ? (
             <div className="flex h-48 items-center justify-center">
-              <Spinner label="Loading notification settings" />
+              <Spinner aria-label="Loading notification settings" />
             </div>
           ) : (
             <div className="space-y-6">
@@ -186,7 +179,7 @@ export const SettingsNotifications = () => {
                 />
               </div>
 
-              <Divider />
+              <Separator />
 
               <div className="grid gap-6 xl:grid-cols-[1fr_1.2fr]">
                 <section className="space-y-3">
@@ -202,11 +195,13 @@ export const SettingsNotifications = () => {
                         <span className="text-sm font-medium text-gray-800">
                           {option.label}
                         </span>
-                        <Switch
+                        <V3Switch
                           size="sm"
                           isSelected={draft.reminder_timing[option.key]}
-                          onValueChange={(value) => updateReminderTiming(option.key, value)}
-                        />
+                          onChange={(value) => updateReminderTiming(option.key, value)}
+                        >
+                          <V3Switch.Control><V3Switch.Thumb /></V3Switch.Control>
+                        </V3Switch>
                       </label>
                     ))}
                   </div>
@@ -230,8 +225,8 @@ export const SettingsNotifications = () => {
 
               <div className="flex justify-end border-t border-gray-200 pt-5">
                 <Button
-                  color="primary"
-                  isLoading={updateSettings.isPending}
+                  variant="primary"
+                  isDisabled={updateSettings.isPending}
                   onPress={handleSave}
                 >
                   Save Settings
@@ -239,8 +234,8 @@ export const SettingsNotifications = () => {
               </div>
             </div>
           )}
-        </CardBody>
-      </Card>
+        </V3Card.Content>
+      </V3Card>
     </div>
   );
 };
@@ -268,7 +263,9 @@ function ChannelSwitch({
             <p className="mt-1 text-xs text-gray-500">{description}</p>
           </div>
         </div>
-        <Switch size="sm" isSelected={enabled} onValueChange={onChange} />
+        <V3Switch size="sm" isSelected={enabled} onChange={onChange}>
+          <V3Switch.Control><V3Switch.Thumb /></V3Switch.Control>
+        </V3Switch>
       </div>
       <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-semibold text-gray-600">
         {enabled ? "Enabled" : "Disabled"}

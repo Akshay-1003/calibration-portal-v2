@@ -2,13 +2,9 @@
 
 import React, { useMemo } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
-} from "@heroui-v2/react";
+  Modal,
+} from "@heroui/react";
 import { PrinterIcon, XMarkIcon, ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { StickerPreviewRenderer } from "./StickerPreviewRenderer";
 import { DEFAULT_LAYOUTS, type StickerTemplateData } from "./stickerLayout";
@@ -153,20 +149,11 @@ export function StickerPreviewModal({
   const dimensions = { width: layout.width, height: layout.height };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size="full"
-      scrollBehavior="inside"
-      classNames={{
-        base: "max-w-[95vw] sm:max-w-6xl lg:max-w-7xl",
-        body: "overflow-y-auto max-h-[70vh]",
-      }}
-    >
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1 pb-3 border-b">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="full" scroll="inside" className="max-w-[95vw] sm:max-w-6xl lg:max-w-7xl">
+          <Modal.Dialog>
+            <Modal.Header className="flex flex-col gap-1 pb-3 border-b">
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
                   <PrinterIcon className="h-6 w-6 text-primary" />
@@ -174,7 +161,7 @@ export function StickerPreviewModal({
                 </div>
                 <Button
                   isIconOnly
-                  variant="light"
+                  variant="ghost"
                   size="sm"
                   onPress={onClose}
                   className="text-gray-500 hover:text-gray-700"
@@ -185,9 +172,9 @@ export function StickerPreviewModal({
               <p className="text-sm font-normal text-gray-500 mt-1">
                 Preview of {previewData.length} sticker{previewData.length > 1 ? "s" : ""} - Size: {dimensions.width} x {dimensions.height} mm
               </p>
-            </ModalHeader>
+            </Modal.Header>
             
-            <ModalBody className="py-6">
+            <Modal.Body className="py-6 overflow-y-auto max-h-[70vh]">
               <div className="space-y-6">
                 {/* Settings Summary Card */}
                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 shadow-sm">
@@ -257,30 +244,30 @@ export function StickerPreviewModal({
                   </p>
                 </div>
               </div>
-            </ModalBody>
+            </Modal.Body>
             
-            <ModalFooter className="border-t pt-4">
+            <Modal.Footer className="border-t pt-4">
               <Button 
-                variant="light" 
+                variant="ghost" 
                 onPress={onClose} 
                 isDisabled={loading}
-                startContent={<ArrowLeftIcon className="h-4 w-4" />}
               >
+                <ArrowLeftIcon className="h-4 w-4" />
                 Back
               </Button>
               <Button
-                color="primary"
+                variant="primary"
                 onPress={onPrint}
-                isLoading={loading}
-                startContent={!loading && <PrinterIcon className="h-5 w-5" />}
+                isDisabled={loading}
                 className="font-semibold"
               >
+                {!loading && <PrinterIcon className="h-5 w-5" />}
                 {loading ? "Printing..." : `Print ${previewData.length} Sticker${previewData.length > 1 ? "s" : ""}`}
               </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 }

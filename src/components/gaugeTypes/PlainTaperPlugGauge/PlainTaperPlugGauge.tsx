@@ -253,20 +253,20 @@ const PlainTaperPlugGauge: React.FC<PlainTaperPlugGaugeProps> = ({
           name="specifications.taper_angle"
           control={control}
           render={({ field }) => (
-            <Input
-              type="text"
-              placeholder="e.g., 45° or 30° 15' 20' or 1/2 14 NPTF"
-              label="Specifications / Taper Angle (Included Angle)"
-              labelPlacement="outside"
-              value={field.value ?? ''}
-              onChange={(e) => field.onChange(e.target.value)}
-              onBlur={field.onBlur}
-              disabled={isSubmitting}
-              classNames={{
-                inputWrapper:
-                  "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-              }}
-            />
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium text-gray-700">
+                Specifications / Taper Angle (Included Angle)
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g., 45° or 30° 15' 20' or 1/2 14 NPTF"
+                value={field.value ?? ''}
+                onChange={(e) => field.onChange(e.target.value)}
+                onBlur={field.onBlur}
+                disabled={isSubmitting}
+                className="bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none"
+              />
+            </div>
           )}
         />
       </div>
@@ -275,8 +275,7 @@ const PlainTaperPlugGauge: React.FC<PlainTaperPlugGaugeProps> = ({
       {!showGoNoGo && (
         <div className="flex justify-center">
           <Button
-            color="primary"
-            variant="flat"
+            variant="secondary"
             onPress={() => setShowGoNoGo(true)}
             className="font-medium"
           >
@@ -301,11 +300,9 @@ const PlainTaperPlugGauge: React.FC<PlainTaperPlugGaugeProps> = ({
                     setValue("specifications.inputs.go", e.target.value);
                   }}
                   disabled={isSubmitting || loading}
-                  classNames={{
-                    inputWrapper: inputErrors.go
+                  className={inputErrors.go
                       ? "bg-white border border-red-500 hover:border-red-600 focus:border-red-600 shadow-none"
-                      : "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                  }}
+                      : "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none"}
                 />
                 {inputErrors.go && <div className="text-xs text-red-600 mt-1">{inputErrors.go}</div>}
               </div>
@@ -320,11 +317,9 @@ const PlainTaperPlugGauge: React.FC<PlainTaperPlugGaugeProps> = ({
                     setValue("specifications.inputs.no_go", e.target.value);
                   }}
                   disabled={isSubmitting || loading}
-                  classNames={{
-                    inputWrapper: inputErrors.noGo
+                  className={inputErrors.noGo
                       ? "bg-white border border-red-500 hover:border-red-600 focus:border-red-600 shadow-none"
-                      : "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                  }}
+                      : "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none"}
                 />
                 {inputErrors.noGo && <div className="text-xs text-red-600 mt-1">{inputErrors.noGo}</div>}
               </div>

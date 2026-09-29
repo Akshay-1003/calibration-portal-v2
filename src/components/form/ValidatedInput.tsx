@@ -13,11 +13,13 @@ interface ValidatedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputEl
     minLength?: number;
     maxLength?: number;
     pattern?: RegExp;
-    custom?: (value: any) => string | null;
+    custom?: (value: string) => string | null;
     message?: string;
   };
   onValidationChange?: (isValid: boolean, errors: string[]) => void;
 }
+
+type ValidationRules = NonNullable<ValidatedInputProps['validationRules']>;
 
 const ValidatedInput = forwardRef<HTMLInputElement, ValidatedInputProps>(
   ({
@@ -107,7 +109,7 @@ const ValidatedInput = forwardRef<HTMLInputElement, ValidatedInputProps>(
 ValidatedInput.displayName = 'ValidatedInput';
 
 // Validation function (simplified version for this component)
-const validateField = (value: any, rules: any): string[] => {
+const validateField = (value: string, rules: ValidationRules): string[] => {
   const errors: string[] = [];
   
   if (rules.required && (!value || value.toString().trim() === '')) {

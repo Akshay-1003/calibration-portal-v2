@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardBody, Tabs, Tab } from '@heroui-v2/react';
+import { Card, Tabs } from '@heroui/react';
 import {
   UserCircleIcon,
   LockClosedIcon,
@@ -59,119 +59,85 @@ const SettingsPage = () => {
   }
 
   return (
-    <div className="w-full  space-y-4">
+    <div className="w-full space-y-4">
       <Card className="shadow-sm">
-        <CardBody className="p-0">
+        <Card.Content className="p-0">
           <Tabs
-            aria-label="Settings tabs"
             selectedKey={activeTab}
             onSelectionChange={handleTabChange}
-            color='primary'
-            variant='light'
-            classNames={{
-              base: "w-full",
-              tabList: "border-b border-gray-200 px-6 pt-4",
-              tab: "h-10",
-              tabContent: "text-sm font-medium",
-              panel: "p-2",
-            }}
+            variant="secondary"
+            className="w-full"
           >
-            {/* Common Settings */}
-            <Tab
-              key="profile"
-              title={
-                <div className="flex items-center gap-2">
-                  <UserCircleIcon className="h-5 w-5" />
-                  <span>Profile</span>
-                </div>
-              }
-            >
-              <SettingsProfile />
-            </Tab>
-
-            <Tab
-              key="change-password"
-              title={
-                <div className="flex items-center gap-2">
-                  <LockClosedIcon className="h-5 w-5" />
-                  <span>Change Password</span>
-                </div>
-              }
-            >
-              <SettingsChangePassword />
-            </Tab>
-
-            <Tab
-              key="notifications"
-              title={
-                <div className="flex items-center gap-2">
-                  <BellIcon className="h-5 w-5" />
-                  <span>Notifications</span>
-                </div>
-              }
-            >
-              <SettingsNotifications />
-            </Tab>
-
-
-            {/* Admin Settings */}
-            {hasSettingsAdministrationAccess && (
-                <Tab
-                  key="users"
-                  title={
+            <Tabs.ListContainer>
+              <Tabs.List aria-label="Settings tabs" className="border-b border-gray-200 px-6 pt-4">
+                <Tabs.Tab id="profile" className="h-10">
+                  <div className="flex items-center gap-2">
+                    <UserCircleIcon className="h-5 w-5" />
+                    <span>Profile</span>
+                  </div>
+                </Tabs.Tab>
+                <Tabs.Tab id="change-password" className="h-10">
+                  <div className="flex items-center gap-2">
+                    <LockClosedIcon className="h-5 w-5" />
+                    <span>Change Password</span>
+                  </div>
+                </Tabs.Tab>
+                <Tabs.Tab id="notifications" className="h-10">
+                  <div className="flex items-center gap-2">
+                    <BellIcon className="h-5 w-5" />
+                    <span>Notifications</span>
+                  </div>
+                </Tabs.Tab>
+                {hasSettingsAdministrationAccess && (
+                  <Tabs.Tab id="users" className="h-10">
                     <div className="flex items-center gap-2">
                       <UsersIcon className="h-5 w-5" />
                       <span>Users</span>
                     </div>
-                  }
-                >
-                  <SettingsUsers />
-                </Tab>
-            )}
-
-            {hasSettingsAdministrationAccess && (
-              <>
-                <Tab
-                  key="accounts"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <BuildingLibraryIcon className="h-5 w-5" />
-                      <span>Accounts</span>
-                    </div>
-                  }
-                >
-                  <SettingsAccounts />
-                </Tab>
-
-                {(hasRole('super_admin') || hasRole('superadmin')) && (
-                  <Tab
-                    key="laboratories"
-                    title={
+                  </Tabs.Tab>
+                )}
+                {hasSettingsAdministrationAccess && (
+                  <>
+                    <Tabs.Tab id="accounts" className="h-10">
                       <div className="flex items-center gap-2">
                         <BuildingLibraryIcon className="h-5 w-5" />
-                        <span>Laboratories</span>
+                        <span>Accounts</span>
                       </div>
-                    }
-                  >
-                    <SettingsLaboratories />
-                  </Tab>
+                    </Tabs.Tab>
+                    {(hasRole('super_admin') || hasRole('superadmin')) && (
+                      <Tabs.Tab id="laboratories" className="h-10">
+                        <div className="flex items-center gap-2">
+                          <BuildingLibraryIcon className="h-5 w-5" />
+                          <span>Laboratories</span>
+                        </div>
+                      </Tabs.Tab>
+                    )}
+                    <Tabs.Tab id="roles-permissions" className="h-10">
+                      <div className="flex items-center gap-2">
+                        <ShieldCheckIcon className="h-5 w-5" />
+                        <span>Roles &amp; Permissions</span>
+                      </div>
+                    </Tabs.Tab>
+                  </>
                 )}
+              </Tabs.List>
+            </Tabs.ListContainer>
 
-                <Tab
-                  key="roles-permissions"
-                  title={
-                    <div className="flex items-center gap-2">
-                      <ShieldCheckIcon className="h-5 w-5" />
-                      <span>Roles & Permissions</span>
-                    </div>
-                  }
-                >
-                  <SettingsRolesPermissions />
-                </Tab>
+            <Tabs.Panel id="profile" className="p-2"><SettingsProfile /></Tabs.Panel>
+            <Tabs.Panel id="change-password" className="p-2"><SettingsChangePassword /></Tabs.Panel>
+            <Tabs.Panel id="notifications" className="p-2"><SettingsNotifications /></Tabs.Panel>
+            {hasSettingsAdministrationAccess && (
+              <>
+                <Tabs.Panel id="users" className="p-2"><SettingsUsers /></Tabs.Panel>
+                <Tabs.Panel id="accounts" className="p-2"><SettingsAccounts /></Tabs.Panel>
+                {(hasRole('super_admin') || hasRole('superadmin')) && (
+                  <Tabs.Panel id="laboratories" className="p-2"><SettingsLaboratories /></Tabs.Panel>
+                )}
+                <Tabs.Panel id="roles-permissions" className="p-2"><SettingsRolesPermissions /></Tabs.Panel>
               </>
             )}
           </Tabs>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

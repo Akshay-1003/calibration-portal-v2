@@ -91,14 +91,7 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
           <Input
             {...register("specifications.specification")}
             placeholder="Enter specification"
-            size="md"
-            radius="sm"
-            labelPlacement="outside"
-            classNames={{
-              inputWrapper:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-            }}
-            className="w-full"
+            className="w-full border border-gray-300 bg-white shadow-none"
           />
         </div>
 
@@ -125,13 +118,7 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
                   <Input
                     {...register("specifications.numberOfSplines")}
                     placeholder="0"
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      inputWrapper:
-                        "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                    }}
-                    className="w-full"
+                    className="w-full border border-gray-300 bg-white shadow-none"
                   />
                 </td>
               </tr>
@@ -146,25 +133,13 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
                     <Input
                       {...register("specifications.majorDiameterMin")}
                       placeholder="0"
-                      size="sm"
-                      radius="sm"
-                      classNames={{
-                        inputWrapper:
-                          "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                      }}
-                      className="flex-1"
+                      className="flex-1 border border-gray-300 bg-white shadow-none"
                     />
                     <span className="text-gray-500">/</span>
                     <Input
                       {...register("specifications.majorDiameterMax")}
                       placeholder="0"
-                      size="sm"
-                      radius="sm"
-                      classNames={{
-                        inputWrapper:
-                          "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                      }}
-                      className="flex-1"
+                      className="flex-1 border border-gray-300 bg-white shadow-none"
                     />
                   </div>
                 </td>
@@ -180,25 +155,13 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
                     <Input
                       {...register("specifications.dimensionOverPinMin")}
                       placeholder="0"
-                      size="sm"
-                      radius="sm"
-                      classNames={{
-                        inputWrapper:
-                          "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                      }}
-                      className="flex-1"
+                      className="flex-1 border border-gray-300 bg-white shadow-none"
                     />
                     <span className="text-gray-500">/</span>
                     <Input
                       {...register("specifications.dimensionOverPinMax")}
                       placeholder="0"
-                      size="sm"
-                      radius="sm"
-                      classNames={{
-                        inputWrapper:
-                          "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                      }}
-                      className="flex-1"
+                      className="flex-1 border border-gray-300 bg-white shadow-none"
                     />
                   </div>
                 </td>
@@ -213,13 +176,7 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
                   <Input
                     {...register("specifications.pinDiameter")}
                     placeholder="0"
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      inputWrapper:
-                        "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                    }}
-                    className="w-full"
+                    className="w-full border border-gray-300 bg-white shadow-none"
                   />
                 </td>
               </tr>
@@ -233,13 +190,7 @@ export default function SplineTypeGauge({ readOnly = false, initialData }: Splin
                   <Input
                     {...register("specifications.diameterBetweenPin")}
                     placeholder="0"
-                    size="sm"
-                    radius="sm"
-                    classNames={{
-                      inputWrapper:
-                        "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                    }}
-                    className="w-full"
+                    className="w-full border border-gray-300 bg-white shadow-none"
                   />
                 </td>
               </tr>

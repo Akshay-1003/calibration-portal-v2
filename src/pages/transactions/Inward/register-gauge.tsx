@@ -7,16 +7,12 @@ import { toast } from "sonner";
 import { GaugeData as ExistingGaugeType } from "../../../types/types";
 import {
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
-  useDisclosure,
-} from "@heroui-v2/react";
+  Tabs,
+  Card,
+} from "@heroui/react";
 import { useMasterDataStore } from "../../../store/useStore";
 import { type GaugeRegistrationFormData } from "../../../lib/validations";
-import { Tabs, Tab, Card, CardBody } from "@heroui-v2/react";
 import type { StickerPrintData } from "../../../utils/stickerPrint";
 import { apiClient } from "../../../services/api";
 import { StickerSettingsSimpleModal, type SimpleStickerSettings } from "../../../components/sticker/StickerSettingsSimpleModal";
@@ -27,6 +23,16 @@ import { useDebounce } from "../../../hooks/useDebounce";
 
 type GaugeFlowType = "calibration" | "data_save";
 type PrefilledGaugeSource = "existing" | "data_save";
+
+const useDisclosure = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  return {
+    isOpen,
+    onOpen: () => setIsOpen(true),
+    onClose: () => setIsOpen(false),
+    onOpenChange: setIsOpen,
+  };
+};
 
 const ExistingGaugesTable = lazy(() =>
   import("../../../components/Tables/ExistingGaugesTable").then((module) => ({
@@ -64,7 +70,7 @@ export default function RegisterGaugePage() {
   const { inwardId, clientId, inward_no,clientName, inwardDate } = useParams();
   const navigate = useNavigate();
   const backTo =  "/transactions/inward";
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { isOpen, onOpen, onClose, onOpenChange } = useDisclosure();
 
   const {
     currentInwardPendingById,
@@ -414,7 +420,7 @@ export default function RegisterGaugePage() {
       try {
         setIsEditing(true);
 
-        const gauge = await fetchInwardGaugeRecord(inwardId, gaugeId);
+        const gauge = await fetchInwardGaugeRecord(inwardId ?? "", gaugeId);
         if (!gauge) {
           toast.error("Gauge not found");
           return;
@@ -435,9 +441,9 @@ export default function RegisterGaugePage() {
           unit: (gauge.unit || "mm") as "mm" | "inch" | "µm" | "kg/cm2" | "bar" | "Pa" | "degree",
           calibration_location_type: (gauge.calibration_location_type || "permanent_facility") as "permanent_facility" | "mobile_facility" | "customer_site",
           // calibration_location: gauge.calibration_location || "",
-          calibration_done_under: (gauge.calibration_done_under ),
+          calibration_done_under: gauge.calibration_done_under === "non_nabl" ? "non_nabl" : "nabl",
           gauge_condition: gauge.gauge_condition || "",
-          specifications: gauge.specifications,
+          specifications: Object.fromEntries(Object.entries(gauge.specifications ?? {})),
         };
         setEditingFormData(formData);
         // setActiveTab("new");
@@ -582,7 +588,7 @@ export default function RegisterGaugePage() {
         calibration_location_type: (existingGauge.calibration_location_type || "permanent_facility") as "permanent_facility" | "mobile_facility" | "customer_site",
         calibration_done_under: (existingGauge.calibration_done_under || "nabl") as "nabl" | "non_nabl",
         gauge_condition: existingGauge.gauge_condition || "",
-        specifications: existingGauge.specifications || {},
+        specifications: Object.fromEntries(Object.entries(existingGauge.specifications || {})),
       };
 
       setIsEditing(false);
@@ -810,7 +816,7 @@ export default function RegisterGaugePage() {
         )}
         {/* Tab Navigation */}
         <div className="flex w-full flex-col bg-white border border-gray-200 rounded-md shadow-sm p-2">
-          <Tabs aria-label="Options" variant="solid" color="primary" className="border-b border-gray-200" radius="sm" selectedKey={selectedKey} onSelectionChange={(key) => {
+          <Tabs aria-label="Options" variant="secondary" selectedKey={selectedKey} onSelectionChange={(key) => {
             // Save form data before switching tabs
             if (selectedKey === "addNewGauge" && formRef.current) {
               const currentFormData = formRef.current.saveFormData();
@@ -820,9 +826,14 @@ export default function RegisterGaugePage() {
             }
             setSelectedKey(key as "addNewGauge" | "addExistingGauges" | "addDataSaveGauges");
           }}>
-            <Tab key="addNewGauge" title="Add New Gauge" >
+            <Tabs.ListContainer><Tabs.List aria-label="Gauge registration options">
+              <Tabs.Tab id="addNewGauge">Add New Gauge</Tabs.Tab>
+              <Tabs.Tab id="addExistingGauges">Add Existing Gauges</Tabs.Tab>
+              <Tabs.Tab id="addDataSaveGauges">Add Data Save Gauges</Tabs.Tab>
+            </Tabs.List></Tabs.ListContainer>
+            <Tabs.Panel id="addNewGauge">
               <Card>
-                <CardBody className="p-0">
+                <Card.Content className="p-0">
                   {/* Form Header */}
                   <div
                     className={`p-3 border-b border-gray-200 rounded-t-md ${isEditing ? "bg-orange-600" : "bg-blue-600"
@@ -874,26 +885,12 @@ export default function RegisterGaugePage() {
                       }
                     }}
                   />
-                </CardBody>
+                </Card.Content>
               </Card>
-            </Tab>
-            <Tab 
-              key="addExistingGauges" 
-              title={
-                <div className="flex items-center gap-1.5">
-                  <span>Add Existing Gauges</span>
-                  {foundInExistingGauges && (
-                    <span 
-                      className="inline-flex items-center justify-center w-2 h-2 rounded-md bg-success-500"
-                      aria-label="Gauge found in existing gauges"
-                      title="Gauge found in existing gauges"
-                    />
-                  )}
-                </div>
-              }
-            >
+            </Tabs.Panel>
+            <Tabs.Panel id="addExistingGauges">
               <Card>
-                <CardBody className="p-0">
+                <Card.Content className="p-0">
                   <div className="mb-4">
                     <div className="p-3 border-b border-gray-200 rounded-t-md bg-blue-600 text-white">
                       <h3 className="text-lg font-semibold">Existing Gauges</h3>
@@ -916,12 +913,12 @@ export default function RegisterGaugePage() {
                       />
                     </Suspense>
                   </div>
-                </CardBody>
+                </Card.Content>
               </Card>
-            </Tab>
-            <Tab key="addDataSaveGauges" title="Add Data Save Gauges">
+            </Tabs.Panel>
+            <Tabs.Panel id="addDataSaveGauges">
               <Card>
-                <CardBody className="p-0">
+                <Card.Content className="p-0">
                   <div className="mb-4">
                     <div
                       className="p-3 border-b border-gray-200 rounded-t-md bg-blue-600 text-white"
@@ -941,9 +938,9 @@ export default function RegisterGaugePage() {
                     </Suspense>
 
                   </div>
-                </CardBody>
+                </Card.Content>
               </Card>
-            </Tab>
+            </Tabs.Panel>
           </Tabs>
           {inwardId && (
             <div className="w-full">
@@ -973,28 +970,28 @@ export default function RegisterGaugePage() {
 
         {/* Delete Confirmation Dialog */}
         <Modal isOpen={isOpen} onOpenChange={onOpenChange}>
-          <ModalContent>
-            {(onClose) => (
-              <>
-                <ModalHeader className="flex flex-col gap-1">Delete Gauge</ModalHeader>
-                <ModalBody>
+          <Modal.Backdrop>
+            <Modal.Container size="sm">
+              <Modal.Dialog>
+                <Modal.Heading>Delete Gauge</Modal.Heading>
+                <Modal.Body>
                   Are you sure you want to delete this gauge? This action cannot be undone.
-                </ModalBody>
-                <ModalFooter>
-                  <Button color="danger" variant="light" onPress={onClose}>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onPress={onClose}>
                     Close
                   </Button>
-                  <Button color="primary" onPress={() => {
+                  <Button variant="danger" onPress={() => {
                     onClose();
                     confirmDeleteGauge();
                     setGaugeIdToDelete(null);
                   }}>
                     Delete
                   </Button>
-                </ModalFooter>
-              </>
-            )}
-          </ModalContent>
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
         </Modal>
 
         {/* Sticker Settings Modal */}

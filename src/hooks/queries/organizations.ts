@@ -46,27 +46,24 @@ const normalizeOrganization = (raw: unknown): Organization => {
     gst: String(record.gst ?? record.gstNo ?? ''),
     gst_type: String(record.gst_type ?? record.gstType ?? ''),
     contacts: Array.isArray(record.contacts) ? (record.contacts as Organization['contacts']) : [],
-    address: isRecord(record.address)
-      ? (record.address as Organization['address'])
-      : {
-          address_line_1: '',
-          address_line_2: '',
-          city: '',
-          state: '',
-          zip_code: '',
-          country: '',
-        },
+    address: {
+      address_line_1: String(isRecord(record.address) ? record.address.address_line_1 ?? '' : ''),
+      address_line_2: String(isRecord(record.address) ? record.address.address_line_2 ?? '' : ''),
+      city: String(isRecord(record.address) ? record.address.city ?? '' : ''),
+      state: String(isRecord(record.address) ? record.address.state ?? '' : ''),
+      zip_code: String(isRecord(record.address) ? record.address.zip_code ?? '' : ''),
+      country: String(isRecord(record.address) ? record.address.country ?? '' : ''),
+    },
     contract: contract
-      ? ({
-          ...(contract as Organization['contract']),
-          conformity_statement:
-            Boolean(contract.conformity_statement ?? contract.conformity_statement),
-          conformity_accepted:
-            Boolean(contract.conformity_accepted ?? contract.conformity_accepted),
-        } as Organization['contract'] & {
-          conformity_statement?: boolean;
-          conformity_accepted?: boolean;
-        })
+      ? {
+          calibration_method: String(contract.calibration_method ?? ''),
+          reporting_method: String(contract.reporting_method ?? ''),
+          collection_mode: String(contract.collection_mode ?? ''),
+          dispatch_mode: String(contract.dispatch_mode ?? ''),
+          conformity_statement: Boolean(contract.conformity_statement),
+          conformity_accepted: Boolean(contract.conformity_accepted),
+          specific_requirements: String(contract.specific_requirements ?? ''),
+        }
       : undefined,
   };
 };

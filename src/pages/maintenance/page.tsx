@@ -191,7 +191,8 @@ const RepairPage = () => {
           <h1 className="text-2xl font-bold text-gray-900">Repair Management</h1>
           <p className="text-gray-600">Manage instrument repairs and maintenance</p>
         </div>
-        <Button color="primary" endContent={<PlusIcon className="h-4 w-4" />} onPress={handleCreateRepair}>
+        <Button variant="primary" onPress={handleCreateRepair}>
+          <PlusIcon className="h-4 w-4" />
           Create Repair
         </Button>
       </div>

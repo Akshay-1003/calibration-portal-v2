@@ -39,7 +39,7 @@ export interface Organization {
     dispatch_mode: string;
     conformity_statement: boolean;
     conformity_accepted: boolean;
-    specific_requirements?: string;
+    specific_requirements: string;
   } | null;
   created_at: string;
   updated_at: string;
@@ -47,8 +47,8 @@ export interface Organization {
 
 export interface OrganizationFormData {
   name: string;
-  description: string;
-  parent_id: string;
+  description?: string;
+  parent_id?: string;
   gst?: string;
   gst_type?: string;
   org_type?: 'customer' | 'laboratory' | string | null;
@@ -56,9 +56,9 @@ export interface OrganizationFormData {
   lab_type?: 'NABL Lab' | 'Non-NABL Lab' | string | null;
   lab_certificate_number?: string | null;
   contacts: Array<{
-    name: string;
-    email: string;
-    phone: string;
+    name?: string;
+    email?: string;
+    phone?: string;
   }>;
   address: {
     address_line_1: string;
@@ -352,7 +352,7 @@ export const useOrganizationStore = create<OrganizationState>()(
       getOrganizationsByType: (type) => {
         const state = get();
         return state.organizations.filter(org => 
-          org.contract.calibration_method === type
+          org.contract?.calibration_method === type
         );
       },
 

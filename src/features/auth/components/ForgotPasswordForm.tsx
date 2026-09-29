@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from 'react-router';
-import { Input, Button } from '@heroui/react';
+import { Button, Input, Label } from '@heroui/react';
 import { forgotPasswordSchema, type ForgotPasswordFormData } from '../../../lib/validations/schemas';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
@@ -116,21 +116,18 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSucces
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Email Field */}
+        <div className="space-y-1">
+        <Label htmlFor="forgot-email">Email Address</Label>
         <Input
+          id="forgot-email"
           type="email"
-          label="Email Address"
           placeholder="Enter your email"
           {...register('email')}
-          isInvalid={!!errors.email}
-          errorMessage={errors.email?.message}
           autoComplete="email"
           autoFocus
-          variant="bordered"
-          classNames={{
-            input: 'text-gray-900 dark:text-gray-100',
-            label: 'text-gray-700 dark:text-gray-300',
-          }}
         />
+        {errors.email?.message && <p className="text-xs text-danger">{errors.email.message}</p>}
+        </div>
 
         {/* Error Message */}
         {errors.root && (
@@ -146,9 +143,8 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSucces
         {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-          isLoading={isSubmitting}
-          disabled={isSubmitting}
+          className="w-full h-10 rounded-md text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+          isDisabled={isSubmitting}
           size="lg"
         >
           {isSubmitting ? 'Sending...' : 'Send Reset Link'}
@@ -167,4 +163,3 @@ export const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onSucces
     </motion.div>
   );
 };
-

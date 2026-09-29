@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { useFormContext } from "react-hook-form";
-import { Input, Select, SelectItem } from "@heroui-v2/react";
+import { Input, Label, ListBox, Select } from "@heroui/react";
 import SpecificationReadOnlyField from "../../specifications/SpecificationReadOnlyField";
 import { getFieldError } from "../../../lib/validations";
 import { useSurfacePlateReferenceStandardsListQuery } from "../../../hooks/queries/surfacePlateReferenceStandards";
@@ -170,34 +170,23 @@ export default function SurfacePlateType({ readOnly = false, initialData }: Surf
       <div className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 sm:px-5 sm:py-4">
         <div className="mb-5 grid grid-cols-1 gap-4 md:max-w-sm">
           <Select
-            size="md"
-            label="Surface Material"
-            labelPlacement="outside"
             placeholder="Select Surface Material"
-            selectedKeys={surface_material ? [surface_material] : []}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string;
+            selectedKey={surface_material || null}
+            onSelectionChange={(key) => {
+              const value = key as string;
               setValue("specifications.surface_material", value || "");
-            }}
-            isInvalid={!!getFieldError(errors, "specifications.surface_material")}
-            errorMessage={getFieldError(errors, "specifications.surface_material")}
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-              trigger:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
             }}
             className="w-full"
           >
-            <SelectItem key="granite">
-              Granite
-            </SelectItem>
-            <SelectItem key="cast_iron">
-              Cast Iron
-            </SelectItem>
-            <SelectItem key="steel">
-              Steel
-            </SelectItem>
+            <Label>Surface Material</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>
+              <ListBox.Item id="granite" textValue="Granite">Granite<ListBox.ItemIndicator /></ListBox.Item>
+              <ListBox.Item id="cast_iron" textValue="Cast Iron">Cast Iron<ListBox.ItemIndicator /></ListBox.Item>
+              <ListBox.Item id="steel" textValue="Steel">Steel<ListBox.ItemIndicator /></ListBox.Item>
+            </ListBox></Select.Popover>
             </Select>
+          {getFieldError(errors, "specifications.surface_material") ? <span className="text-sm text-red-600">{getFieldError(errors, "specifications.surface_material")}</span> : null}
         </div>
 
         <input type="hidden" {...register("specifications.surface_plate_ref_id")} />
@@ -206,14 +195,11 @@ export default function SurfacePlateType({ readOnly = false, initialData }: Surf
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Select
-            size="md"
-            label="Select Size"
-            labelPlacement="outside"
-            placeholder="Select Size"
-            selectedKeys={surfacePlateRefId ? [String(surfacePlateRefId)] : []}
-            isLoading={referenceStandardsLoading}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string | undefined;
+            placeholder={referenceStandardsLoading ? "Loading sizes..." : "Select Size"}
+            selectedKey={surfacePlateRefId ? String(surfacePlateRefId) : null}
+            isDisabled={referenceStandardsLoading}
+            onSelectionChange={(key) => {
+              const value = key as string | undefined;
               const selectedOption = referenceOptions.find((option) => option.id === value);
 
               setValue("specifications.surface_plate_ref_id", value || "", {
@@ -232,21 +218,23 @@ export default function SurfacePlateType({ readOnly = false, initialData }: Surf
                 });
               }
             }}
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-              trigger:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-            }}
             className="w-full"
           >
+            <Label>Select Size</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>
             {referenceOptions.map((option) => (
-              <SelectItem key={option.id}>
+              <ListBox.Item key={option.id} id={option.id} textValue={option.label}>
                 {option.label}
-              </SelectItem>
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
             ))}
+            </ListBox></Select.Popover>
           </Select>
 
-          <Input
+          <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+            Block Size
+            <Input
             {...register("specifications.block_size", {
               validate: (inputValue: unknown) => {
                 const normalizedValue = String(inputValue ?? "").trim();
@@ -257,52 +245,35 @@ export default function SurfacePlateType({ readOnly = false, initialData }: Surf
               },
             })}
             placeholder="0"
-            size="md"
-            radius="sm"
-            label="Block Size"
-            labelPlacement="outside"
             inputMode="decimal"
-            isInvalid={!!getFieldError(errors, "specifications.block_size")}
-            errorMessage={getFieldError(errors, "specifications.block_size")}
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-              inputWrapper:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-            }}
-            className="w-full"
-          />
+            aria-invalid={!!getFieldError(errors, "specifications.block_size")}
+            className="w-full border border-gray-300 bg-white shadow-none"
+            />
+            {getFieldError(errors, "specifications.block_size") ? <span className="font-normal normal-case text-red-600">{getFieldError(errors, "specifications.block_size")}</span> : null}
+          </label>
 
           <Select
-            size="md"
-            label="Method"
-            labelPlacement="outside"
             placeholder="Select Method"
-            selectedKeys={method ? [method] : []}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string;
+            selectedKey={method || null}
+            onSelectionChange={(key) => {
+              const value = key as string;
               setValue("specifications.method", value || "");
-            }}
-            isInvalid={!!getFieldError(errors, "specifications.method")}
-            errorMessage={getFieldError(errors, "specifications.method")}
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-              trigger:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
             }}
             className="w-full"
           >
-            <SelectItem key="division">
-              Division
-            </SelectItem>
-            <SelectItem key="micron_per_block">
-              μm / block size
-            </SelectItem>
-            <SelectItem key="micron_per_meter">
-              μm / meter
-            </SelectItem>
+            <Label>Method</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>
+              <ListBox.Item id="division" textValue="Division">Division<ListBox.ItemIndicator /></ListBox.Item>
+              <ListBox.Item id="micron_per_block" textValue="μm / block size">μm / block size<ListBox.ItemIndicator /></ListBox.Item>
+              <ListBox.Item id="micron_per_meter" textValue="μm / meter">μm / meter<ListBox.ItemIndicator /></ListBox.Item>
+            </ListBox></Select.Popover>
           </Select>
+          {getFieldError(errors, "specifications.method") ? <span className="text-sm text-red-600">{getFieldError(errors, "specifications.method")}</span> : null}
 
-          <Input
+          <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+            LC
+            <Input
             {...register("specifications.lc", {
               validate: (inputValue: unknown) => {
                 const normalizedValue = String(inputValue ?? "").trim();
@@ -313,20 +284,12 @@ export default function SurfacePlateType({ readOnly = false, initialData }: Surf
               },
             })}
             placeholder="0"
-            size="md"
-            radius="sm"
-            label="LC"
-            labelPlacement="outside"
             inputMode="decimal"
-            isInvalid={!!getFieldError(errors, "specifications.lc")}
-            errorMessage={getFieldError(errors, "specifications.lc")}
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-              inputWrapper:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-            }}
-            className="w-full"
-          />
+            aria-invalid={!!getFieldError(errors, "specifications.lc")}
+            className="w-full border border-gray-300 bg-white shadow-none"
+            />
+            {getFieldError(errors, "specifications.lc") ? <span className="font-normal normal-case text-red-600">{getFieldError(errors, "specifications.lc")}</span> : null}
+          </label>
         </div>
       </div>
     </>

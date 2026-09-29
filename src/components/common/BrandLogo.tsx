@@ -1,9 +1,11 @@
 import React from "react";
+import logoUrl from "../../images/logo/logo.svg";
 
 type BrandLogoProps = {
   className?: string;
   width?: number;
   height?: number;
+  sizes?: string;
   priority?: boolean;
 };
 
@@ -13,12 +15,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   height = 50,
   priority = true,
 }) => {
-  const src = "/images/logo/logo.svg";
-
   return (
     <img
       className={className}
-      src={src}
+      src={logoUrl}
       width={width}
       height={height}
       alt="Logo"

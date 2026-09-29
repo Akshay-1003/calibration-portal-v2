@@ -185,6 +185,9 @@ export interface InvoiceItemData {
     hsnName: string;
     rate: string;
     quantity: number;
+    discountValue?: string;
+    discountType?: 'flat' | 'percentage' | 'none';
+    description?: string;
   }>;
 }
 

@@ -1,6 +1,6 @@
 import { memo, useEffect } from "react"
 import { Controller, useWatch, Control, useFormContext } from "react-hook-form"
-import { TableRow, TableCell, Input } from "@heroui/react"
+import { Input } from "@heroui/react"
 
 interface RowProps {
   index: number
@@ -48,50 +48,48 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
   }, [index, row, setValue])
 
   return (
-    <TableRow>
+    <tr>
       {/* Turn */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.turn`}
           render={({ field }) => (
             <Input
-              size="sm"
               type="number"
               value={field.value ?? ""}
-              onValueChange={field.onChange}
+              onChange={(event) => field.onChange(event.target.value)}
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Range */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.range`}
           render={({ field }) => (
             <Input
-              size="sm"
               type="number"
               value={field.value ?? ""}
-              onValueChange={field.onChange}
+              onChange={(event) => field.onChange(event.target.value)}
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Value */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.value`}
           render={({ field }) => (
             <Input
-              size="sm"
               type="number"
               value={field.value ?? ""}
-              onValueChange={(nextValue: string) => {
+              onChange={(event) => {
+                const nextValue = event.target.value;
                 field.onChange(nextValue)
                 setValue(
                   `observations.readings.${index}.upward_reading.observed_error`,
@@ -107,20 +105,20 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Upward Actual */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.upward_reading.actual_reading`}
           render={({ field }) => (
             <Input
-              size="sm"
               inputMode="decimal"
               className="bg-yellow-100"
               value={field.value ?? ""}
-              onValueChange={(nextActual: string) => {
+              onChange={(event) => {
+                const nextActual = event.target.value;
                 field.onChange(nextActual)
                 setValue(
                   `observations.readings.${index}.upward_reading.observed_error`,
@@ -131,18 +129,17 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Upward Error (derived, read-only) */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.upward_reading.observed_error`}
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
-              isReadOnly
+              disabled
               className="bg-yellow-100"
               value={
                 field.value ??
@@ -151,20 +148,20 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Downward Actual */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.downward_reading.actual_reading`}
           render={({ field }) => (
             <Input
-              size="sm"
               inputMode="decimal"
               className="bg-pink-100"
               value={field.value ?? ""}
-              onValueChange={(nextActual: string) => {
+              onChange={(event) => {
+                const nextActual = event.target.value;
                 field.onChange(nextActual)
                 setValue(
                   `observations.readings.${index}.downward_reading.observed_error`,
@@ -175,18 +172,17 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
             />
           )}
         />
-      </TableCell>
+      </td>
 
       {/* Downward Error */}
-      <TableCell>
+      <td>
         <Controller
           control={control}
           name={`observations.readings.${index}.downward_reading.observed_error`}
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
-              isReadOnly
+              disabled
               className="bg-pink-100"
               value={
                 field.value ??
@@ -195,7 +191,7 @@ export const DialCalibrationRow = memo(({ index, control }: RowProps) => {
             />
           )}
         />
-      </TableCell>
-    </TableRow>
+      </td>
+    </tr>
   )
 })

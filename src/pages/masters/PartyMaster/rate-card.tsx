@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { RateCardForm } from '../../../components/rate-card/RateCardForm';
 import { RateCardTable } from '../../../components/Tables/RateCardTable';
 import { Button } from '../../../components/ui/button';
-import { Card, CardBody, CardHeader } from '@heroui-v2/react';
+import { Card } from '@heroui/react';
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
@@ -336,7 +336,7 @@ const RateCardPage = () => {
     <div className="max-w-7xl mx-auto space-y-4 p-2">
       <PageMeta title="Rate Card" />
       <Card className="border border-slate-200 shadow-none">
-        <CardHeader className="border-b border-gray-200 bg-blue-600 text-white">
+        <Card.Header className="border-b border-gray-200 bg-blue-600 text-white">
           <div className="flex items-center gap-3">
             <div className="rounded-lg bg-blue-600 p-2">
               <ClipboardDocumentListIcon className="h-6 w-6 text-white" />
@@ -345,9 +345,9 @@ const RateCardPage = () => {
               <h1 className="text-xl font-semibold text-white">Rate Card</h1>
             </div>
           </div>
-        </CardHeader>
+        </Card.Header>
 
-        <CardBody className="p-2 lg:p-2">
+        <Card.Content className="p-2 lg:p-2">
           <RateCardForm
             entry={selectedEntry}
             onSave={handleSaveEntry}
@@ -509,7 +509,7 @@ const RateCardPage = () => {
               loading={isLoading}
             />
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

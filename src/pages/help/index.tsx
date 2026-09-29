@@ -1,4 +1,4 @@
-import { Card, CardHeader, CardBody } from '@heroui-v2/react';
+import { Card } from '@heroui/react';
 import {
   QuestionMarkCircleIcon,
   BookOpenIcon,
@@ -19,15 +19,15 @@ const HelpPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Getting Started */}
         <Card className="border border-border">
-          <CardHeader className="pb-4 border-b border-border">
+          <Card.Header className="pb-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                 <BookOpenIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">Getting Started</h2>
             </div>
-          </CardHeader>
-          <CardBody className="pt-6">
+          </Card.Header>
+          <Card.Content className="pt-6">
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">Quick Start Guide</h3>
@@ -42,20 +42,20 @@ const HelpPage = () => {
                 </p>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
 
         {/* Frequently Asked Questions */}
         <Card className="border border-border">
-          <CardHeader className="pb-4 border-b border-border">
+          <Card.Header className="pb-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                 <QuestionMarkCircleIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">FAQs</h2>
             </div>
-          </CardHeader>
-          <CardBody className="pt-6">
+          </Card.Header>
+          <Card.Content className="pt-6">
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">Common Questions</h3>
@@ -70,20 +70,20 @@ const HelpPage = () => {
                 </p>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
 
         {/* Contact Support */}
         <Card className="border border-border">
-          <CardHeader className="pb-4 border-b border-border">
+          <Card.Header className="pb-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                 <ChatBubbleLeftRightIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">Contact Support</h2>
             </div>
-          </CardHeader>
-          <CardBody className="pt-6">
+          </Card.Header>
+          <Card.Content className="pt-6">
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">Live Chat</h3>
@@ -98,20 +98,20 @@ const HelpPage = () => {
                 </p>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
 
         {/* Email Support */}
         <Card className="border border-border">
-          <CardHeader className="pb-4 border-b border-border">
+          <Card.Header className="pb-4 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary-50 dark:bg-primary-900/20 rounded-lg">
                 <EnvelopeIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
               </div>
               <h2 className="text-xl font-semibold text-foreground">Email Support</h2>
             </div>
-          </CardHeader>
-          <CardBody className="pt-6">
+          </Card.Header>
+          <Card.Content className="pt-6">
             <div className="space-y-4">
               <div>
                 <h3 className="text-sm font-semibold text-foreground mb-2">Email Us</h3>
@@ -132,16 +132,16 @@ const HelpPage = () => {
                 </p>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
 
       {/* Additional Resources */}
       <Card className="border border-border">
-        <CardHeader className="pb-4 border-b border-border">
+        <Card.Header className="pb-4 border-b border-border">
           <h2 className="text-xl font-semibold text-foreground">Additional Resources</h2>
-        </CardHeader>
-        <CardBody className="pt-6">
+        </Card.Header>
+        <Card.Content className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 bg-muted rounded-lg">
               <h3 className="text-sm font-semibold text-foreground mb-2">Video Tutorials</h3>
@@ -162,15 +162,13 @@ const HelpPage = () => {
               </p>
             </div>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );
 };
 
 export default HelpPage;
-
-
 
 
 

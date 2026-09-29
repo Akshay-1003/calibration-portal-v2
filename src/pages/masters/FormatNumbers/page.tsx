@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Input, Button, Select, SelectItem, Checkbox, Autocomplete, AutocompleteItem } from "@heroui-v2/react";
+import { Autocomplete, Button, Checkbox, Input, Label, ListBox, Select } from "@heroui/react";
 import { TablePageWrapper } from "../../../components/layout/TablePageWrapper";
 import FormatNumberListTable from "../../../components/Tables/FormatNumberListTable";
 import { useFormatNumbers } from "../../../hooks/useFormatNumbers";
@@ -62,50 +62,57 @@ const FormatNumbersPage = () => {
       filters={
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Input
-              label="Format Number"
-              labelPlacement="outside"
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              Format Number
+              <Input
               placeholder="Enter format number"
               value={formatNumber}
-              onValueChange={setFormatNumber}
-              isRequired
-            />
+              onChange={(event) => setFormatNumber(event.target.value)}
+              required
+              />
+            </label>
             <Select
-              label="Format Type"
-              labelPlacement="outside"
-              selectedKeys={[formatType]}
-              onSelectionChange={(keys) => {
-                const value = Array.from(keys)[0] as FormatNumberType | undefined;
+              selectedKey={formatType}
+              onSelectionChange={(key) => {
+                const value = key as FormatNumberType | undefined;
                 if (value) setFormatType(value);
               }}
             >
+              <Label>Format Type</Label>
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover><ListBox>
               {FORMAT_TYPES.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
+                <ListBox.Item key={type.value} id={type.value} textValue={type.label}>
                   {type.label}
-                </SelectItem>
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
               ))}
+              </ListBox></Select.Popover>
             </Select>
             <Autocomplete
-              label="Client Organization (Optional)"
-              labelPlacement="outside"
-              placeholder="Select organization"
               selectedKey={clientOrgId || null}
               onSelectionChange={(key) => {
                 setClientOrgId((key as string) || null);
               }}
-              allowsCustomValue={false}
-              isLoading={orgLoading}
             >
+              <Label>Client Organization (Optional)</Label>
+              <Autocomplete.Trigger>
+                <Autocomplete.Filter><Input placeholder={orgLoading ? "Loading organizations..." : "Select organization"} /></Autocomplete.Filter>
+                <Autocomplete.Indicator />
+              </Autocomplete.Trigger>
+              <Autocomplete.Popover><ListBox>
               {organizations.map((org) => (
-                <AutocompleteItem key={org.id} textValue={org.name}>
+                <ListBox.Item key={org.id} id={org.id} textValue={org.name}>
                   {org.name}
-                </AutocompleteItem>
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
               ))}
+              </ListBox></Autocomplete.Popover>
             </Autocomplete>
             <div className="flex items-end">
               <Checkbox
                 isSelected={isActive}
-                onValueChange={setIsActive}
+                onChange={setIsActive}
                 className="mt-2"
               >
                 Active
@@ -114,12 +121,11 @@ const FormatNumbersPage = () => {
           </div>
           <div className="flex justify-end">
             <Button
-              color="primary"
+              variant="primary"
               onPress={handleSubmit}
               isDisabled={!formatNumber.trim() || isCreating}
-              isLoading={isCreating}
             >
-              Add Format Number
+              {isCreating ? "Adding..." : "Add Format Number"}
             </Button>
           </div>
         </div>

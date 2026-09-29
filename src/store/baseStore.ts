@@ -3,7 +3,7 @@
  * Provides common functionality for all Zustand stores
  */
 
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { StoreCache, InFlightManager } from '../utils/storeCache';
@@ -41,8 +41,7 @@ export function createBaseStore<T extends BaseStoreState>(
   const cache = new StoreCache({ ttl: config.cacheTTL });
   const inFlight = new InFlightManager();
 
-  const store = create<T>()(
-    config.enableDevtools !== false
+  const storeCreator = config.enableDevtools !== false
       ? devtools(
           immer((set, get) => ({
             // Base functionality
@@ -81,7 +80,14 @@ export function createBaseStore<T extends BaseStoreState>(
           },
 
           ...storeImplementation(set, get, cache, inFlight)
-        } as T))
+        } as T));
+
+  const store = create<T>()(
+    storeCreator as unknown as StateCreator<
+      T,
+      [],
+      [["zustand/devtools", never], ["zustand/immer", never]]
+    >
   );
 
   return store;

@@ -3,26 +3,20 @@ import React from "react";
 import type { Key } from "@react-types/shared";
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  DropdownTrigger,
-  Dropdown,
-  DropdownMenu,
-  Selection,
-  SortDescriptor,
-  DropdownItem,
+  Label,
+  ListBox,
+  Popover,
   Pagination,
   Select,
-  SelectItem,
-} from "@heroui-v2/react";
+} from "@heroui/react";
+import type { Selection, SortDescriptor } from "@react-types/shared";
 import { GaugeData as ExistingGaugeType } from "../../types/types";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { SpecificationChips } from "../gaugeTypes/SpecificationChips";
+import { getTableColumnKey } from './tableColumnKey';
+import "../../styles/industrial-table.css";
 
 type TableColumnKey =
   | "master_gauge"
@@ -141,12 +135,12 @@ console.log('data', data)
 
   // Clear selection after bulk add completes successfully
   React.useEffect(() => {
-    if (prevBulkAddLoading.current && !bulkAddLoading && selectedKeys.size > 0) {
+    if (prevBulkAddLoading.current && !bulkAddLoading && selectedKeys !== "all" && selectedKeys.size > 0) {
       // Bulk add just completed, clear selection
       setSelectedKeys(new Set());
     }
     prevBulkAddLoading.current = bulkAddLoading;
-  }, [bulkAddLoading, selectedKeys.size]);
+  }, [bulkAddLoading, selectedKeys]);
 
   const headerColumns = React.useMemo(() => {
     if (visibleColumns === "all") return columns;
@@ -271,7 +265,7 @@ console.log('data', data)
               onPress={() => onAddGauge(gauge)}
               size="sm"
               className="bg-blue-600 hover:bg-blue-700 text-white h-7 px-3 text-xs"
-              title="Add this gauge into the form"
+              aria-label="Add this gauge into the form"
             >
               Add
             </Button>
@@ -327,61 +321,37 @@ console.log('data', data)
         {/* Single search box for identification, name, and serial number */}
         <div className="flex gap-3">
           <Input
-            isClearable
-            size="sm"
             placeholder="Search by identification number, name, or serial number..."
             value={searchValue}
-            onClear={onClearSearch}
-            onValueChange={onSearchChange}
-            startContent={<MagnifyingGlassIcon className="w-4 h-4 text-default-400" />}
+            onChange={(event) => onSearchChange(event.target.value)}
             className="flex-1 max-w-md"
-            classNames={{
-              input: "text-sm",
-              inputWrapper: "h-9",
-            }}
           />
+          {searchValue ? <Button type="button" variant="ghost" aria-label="Clear gauge search" onPress={onClearSearch}><MagnifyingGlassIcon className="w-4 h-4 text-default-400" /></Button> : null}
         
         {/* Action buttons and controls */}
         <div className="flex justify-end gap-3 items-center">
             {onBulkAddGauges && selectedGauges.length > 0 && (
               <Button
-                color="primary"
+                variant="primary"
                 onPress={() => {
                   onBulkAddGauges(selectedGauges);
                 }}
-                isLoading={bulkAddLoading}
-                disabled={bulkAddLoading}
+                isDisabled={bulkAddLoading}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
                 size="sm"
               >
                 {bulkAddLoading ? "Adding..." : `Bulk Add (${selectedGauges.length})`}
               </Button>
             )}
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button 
-                  endContent={<ChevronDownIcon className="text-small" />} 
-                  variant="flat"
-                  size="sm"
-                >
+            <Popover>
+              <Popover.Trigger>
+                <Button variant="secondary" size="sm" className="hidden sm:flex">
                   Columns
+                  <ChevronDownIcon className="text-small" />
                 </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+              </Popover.Trigger>
+              <Popover.Content className="w-64 p-1"><Popover.Dialog><ListBox aria-label="Table Columns" selectedKeys={visibleColumns} selectionMode="multiple" onSelectionChange={setVisibleColumns}>{columns.map((column) => <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>{capitalize(column.name)}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Popover.Dialog></Popover.Content>
+            </Popover>
           </div>
         </div>
       </div>
@@ -411,37 +381,26 @@ console.log('data', data)
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            showShadow
-            page={page}
-            total={pages}
-            onChange={(nextPage) => {
+          <Pagination>
+            <Pagination.Content>
+            <Pagination.Previous isDisabled={page <= 1} onPress={() => {
               if (controlledOnPageChange) {
-                controlledOnPageChange(nextPage);
+                controlledOnPageChange(Math.max(1, page - 1));
               } else {
-                setLocalPage(nextPage);
+                setLocalPage(Math.max(1, page - 1));
               }
-            }}
-          />
+            }}><Pagination.PreviousIcon /></Pagination.Previous>
+            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
+            <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         {/* RIGHT - Rows per page */}
         <div className="flex-1 flex justify-end w-10">
-          <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
-            onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
-            className="w-[160px]"
-          >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+          <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="w-[160px]">
+            <Label>Rows per page</Label><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>{['10', '20', '50', '100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
           </Select>
         </div>
 
@@ -461,45 +420,27 @@ console.log('data', data)
   ]);
 
   return (
-    <Table
-      aria-label="Example table with custom cells, pagination and sorting"
-      isHeaderSticky
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      classNames={{
-        wrapper: "max-h-[calc(100vh-320px)] p-0",
-      }}
-      selectedKeys={selectedKeys}
-      selectionMode="multiple"
-      sortDescriptor={sortDescriptor}
-      topContent={topContent}
-      topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
-      onSortChange={setSortDescriptor}
-    >
-      <TableHeader columns={headerColumns}>
+    <div className="industrial-table-wrapper">
+    <div className="mb-4">{topContent}</div>
+    <Table aria-label="Existing gauges table" className="min-w-full">
+      <Table.ScrollContainer className="max-h-[calc(100vh-320px)]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
+      <Table.Header columns={headerColumns}>
             {(column) => (
-              <TableColumn
-                key={column.uid}
-                align={column.uid === "actions" ? "center" : "start"}
-                allowsSorting={column.sortable}
-              >
+            <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === headerColumns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-      <TableBody
-        emptyContent={"No gauges found"}
+          </Table.Header>
+      <Table.Body
         items={sortedItems}
-        isLoading={loading}
-        loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}
+        renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? "Loading..." : "No gauges found"}</div>}
       >
         {(item) => (
-          <TableRow key={item.id}>
-            {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-          </TableRow>
+          <Table.Row id={item.id} columns={headerColumns}>{(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>}</Table.Row>
         )}
-      </TableBody>
+      </Table.Body></Table.Content></Table.ScrollContainer>
     </Table>
+    {bottomContent}
+    </div>
   );
 }

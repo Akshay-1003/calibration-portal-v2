@@ -1,26 +1,22 @@
 "use client";
 
 import React from "react";
-import type { Selection } from "@react-types/shared";
+import type { Key } from "@react-types/shared";
 import {
   Autocomplete,
-  AutocompleteItem,
   Button,
+  Label,
+  ListBox,
   Input,
   Pagination,
   Select,
-  SelectItem,
   Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
 import { formatSpecificationForPrint } from "../../utils/specificationPrintFormatter";
 import { useGaugeMastersWithQuery } from "../../hooks/useGaugeMastersWithQuery";
+import { getTableColumnKey } from '../Tables/tableColumnKey';
 import {
   INVOICE_HSN_OPTIONS,
   getInvoiceHsnName,
@@ -97,25 +93,6 @@ const columns: { name: string; uid: TableColumnKey }[] = [
   { name: "ACTION", uid: "actions" },
 ];
 
-const CELL_INPUT_CLASSNAMES = {
-  input: "text-sm text-slate-700",
-  inputWrapper:
-    "min-h-9 h-9 rounded-md border border-slate-200 bg-white shadow-none group-data-[focus=true]:border-slate-400",
-};
-
-const COLUMN_LAYOUT: Record<TableColumnKey, string> = {
-  sr_no: "min-w-[50px]",
-  gauge_name: "min-w-[200px]",
-  identification: "min-w-[150px]",
-  specifications: "min-w-[225px]",
-  hsn: "min-w-[115px]",
-  rate: "min-w-[140px]",
-  qty: "min-w-[20px]",
-  discount: "min-w-[190px]",
-  amount: "min-w-[150px]",
-  actions: "min-w-[96px]",
-};
-
 const CURRENT_GAUGE_FALLBACK_KEY_PREFIX = "__current_invoice_gauge__";
 
 function HsnCodeCombobox({
@@ -132,47 +109,10 @@ function HsnCodeCombobox({
 
   return (
     <div className="w-full min-w-0">
-      <Select
-        aria-label="HSN code"
-        disallowEmptySelection
-        selectedKeys={selectedKey ? new Set([selectedKey]) : new Set()}
-        placeholder="Select HSN"
-        size="sm"
-        isDisabled={isDisabled}
-        onSelectionChange={(key) => {
-          const nextCode = Array.from(key)[0] as string | undefined;
-          if (!nextCode) {
-            return;
-          }
-          onChange(nextCode, getInvoiceHsnName(nextCode));
-        }}
-        classNames={{
-          base: "w-full",
-          listboxWrapper: "max-h-56",
-          trigger:
-            "min-h-9 h-9 rounded-lg border border-slate-200 bg-white px-2 shadow-none data-[hover=true]:border-slate-300",
-          value: "text-xs font-medium text-slate-700 [font-variant-numeric:tabular-nums]",
-          selectorIcon: "hidden",
-        }}
-        renderValue={(items) => (
-          <span className="truncate text-xs font-medium text-slate-700 [font-variant-numeric:tabular-nums]">
-            {items[0]?.key ? String(items[0].key) : entry.hsnCode}
-          </span>
-        )}
-      >
-        {INVOICE_HSN_OPTIONS.map((option) => (
-          <SelectItem
-            key={option.code}
-            textValue={`${option.code} ${option.name}`}
-          >
-            <div className="flex flex-col py-0.5 leading-tight">
-              <span className="text-xs font-medium text-slate-700 [font-variant-numeric:tabular-nums]">
-                {option.code}
-              </span>
-              <span className="text-[11px] text-slate-500">{option.name}</span>
-            </div>
-          </SelectItem>
-        ))}
+      <Select selectedKey={selectedKey} onSelectionChange={(key) => key && onChange(String(key), getInvoiceHsnName(String(key)))} isDisabled={isDisabled} className="w-full">
+        <Label>HSN code</Label>
+        <Select.Trigger className="min-h-9 h-9 rounded-lg border border-slate-200 bg-white px-2 shadow-none"><Select.Value /><Select.Indicator /></Select.Trigger>
+        <Select.Popover><ListBox>{INVOICE_HSN_OPTIONS.map((option) => <ListBox.Item key={option.code} id={option.code} textValue={`${option.code} ${option.name}`}><div className="flex flex-col py-0.5 leading-tight"><span className="text-xs font-medium text-slate-700">{option.code}</span><span className="text-[11px] text-slate-500">{option.name}</span></div><ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
       </Select>
       <div className="mt-1 whitespace-normal break-words text-[11px] leading-4 text-slate-500">
         {currentLabel}
@@ -204,8 +144,8 @@ export default function InvoiceItemsBillingTable({
   const { gaugeMasterList, loading: gaugeMasterLoading, error: gaugeMasterError } = useGaugeMastersWithQuery();
 
   const onRowsChange = React.useCallback(
-    (keys: Selection) => {
-      const value = Number(Array.from(keys)[0] as string);
+    (key: Key | null) => {
+      const value = Number(key);
       onRowsPerPageChange(value);
     },
     [onRowsPerPageChange],
@@ -260,16 +200,7 @@ export default function InvoiceItemsBillingTable({
               : gaugeMasterList;
 
             return (
-              <Autocomplete
-                selectedKey={currentGaugeKey}
-                aria-label="Manual gauge name"
-                placeholder={gaugeMasterLoading && !currentGaugeName ? "Loading gauges..." : "Search or select gauge name"}
-                isDisabled={isReadOnly}
-                isLoading={gaugeMasterLoading}
-                allowsCustomValue={false}
-                size="sm"
-                disableAnimation
-                onSelectionChange={(key) => {
+              <Autocomplete selectedKey={currentGaugeKey} aria-label="Manual gauge name" isDisabled={isReadOnly} onSelectionChange={(key) => {
                   const selectedGaugeId = key as string | null;
                   if (!selectedGaugeId || selectedGaugeId.startsWith(CURRENT_GAUGE_FALLBACK_KEY_PREFIX)) {
                     return;
@@ -281,28 +212,12 @@ export default function InvoiceItemsBillingTable({
                   }
 
                   onManualGaugeSelect(gaugeIndex, selectedGauge.id, selectedGauge.name);
-                }}
-                inputProps={{
-                  classNames: CELL_INPUT_CLASSNAMES,
-                }}
-                listboxProps={{
-                  emptyContent: gaugeMasterLoading
-                    ? "Loading gauges..."
-                    : gaugeMasterError
-                      ? "Unable to load gauges"
-                      : "No gauges found",
-                }}
-                popoverProps={{
-                  shouldBlockScroll: false,
-                  placement: "bottom-start",
-                  offset: 4,
-                }}
-              >
-                {gaugeOptions.map((gauge) => (
-                  <AutocompleteItem key={gauge.id} textValue={gauge.name}>
-                    {gauge.name}
-                  </AutocompleteItem>
-                ))}
+                }}>
+                <Autocomplete.Trigger className="text-sm text-slate-700">
+                  <Autocomplete.Filter><Input aria-label="Search or select gauge name" placeholder={gaugeMasterLoading && !currentGaugeName ? "Loading gauges..." : "Search or select gauge name"} /></Autocomplete.Filter>
+                  <Autocomplete.Indicator />
+                </Autocomplete.Trigger>
+                <Autocomplete.Popover><ListBox>{gaugeMasterLoading ? <ListBox.Item id="loading-gauges" isDisabled>Loading gauges...</ListBox.Item> : gaugeMasterError ? <ListBox.Item id="gauge-error" isDisabled>Unable to load gauges</ListBox.Item> : gaugeOptions.map((gauge) => <ListBox.Item key={gauge.id} id={gauge.id} textValue={gauge.name}>{gauge.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Popover>
               </Autocomplete>
             );
           }
@@ -324,9 +239,7 @@ export default function InvoiceItemsBillingTable({
                   onGaugeFieldChange(gaugeIndex, "identification_number", event.target.value)
                 }
                 placeholder="Identification"
-                isReadOnly={isReadOnly}
-                size="sm"
-                classNames={CELL_INPUT_CLASSNAMES}
+                disabled={isReadOnly}
               />
               <Input
                 aria-label="Lab ID"
@@ -335,9 +248,7 @@ export default function InvoiceItemsBillingTable({
                   onGaugeFieldChange(gaugeIndex, "inward_gauge_lab_id", event.target.value)
                 }
                 placeholder="Lab ID"
-                isReadOnly={isReadOnly}
-                size="sm"
-                classNames={CELL_INPUT_CLASSNAMES}
+                disabled={isReadOnly}
               />
             </div>
           ) : (
@@ -356,9 +267,7 @@ export default function InvoiceItemsBillingTable({
                 onGaugeFieldChange(gaugeIndex, "specification", event.target.value)
               }
               placeholder="Specification"
-              isReadOnly={isReadOnly}
-              size="sm"
-              classNames={CELL_INPUT_CLASSNAMES}
+              disabled={isReadOnly}
             />
           ) : (
             <div className="max-w-full whitespace-pre-wrap break-words text-sm leading-[1.35] text-slate-600">
@@ -388,17 +297,10 @@ export default function InvoiceItemsBillingTable({
                 type="number"
                 value={hsnEntry.rate}
                 onChange={(event) => onRateChange(gaugeIndex, hsnEntry.id, event.target.value)}
-                isReadOnly={isReadOnly}
+                disabled={isReadOnly}
                 min="0"
                 step="0.01"
-                size="sm"
-                startContent={<span className="text-[11px] text-slate-400">₹</span>}
                 className="w-full"
-                classNames={{
-                  ...CELL_INPUT_CLASSNAMES,
-                  input:
-                    "text-right text-sm text-slate-700 whitespace-nowrap [font-variant-numeric:tabular-nums]",
-                }}
               />
               <div className="mt-1 whitespace-nowrap text-right text-[11px] text-slate-500 [font-variant-numeric:tabular-nums]">
                 {formatCurrency(hsnEntry.rate || 0)}
@@ -418,26 +320,20 @@ export default function InvoiceItemsBillingTable({
                   parseInt(event.target.value, 10) || 1,
                 )
               }
-              isReadOnly={isReadOnly}
+              disabled={isReadOnly}
               min="1"
-              size="sm"
               className="w-full "
-              classNames={{
-                ...CELL_INPUT_CLASSNAMES,
-                input:
-                  "text-center text-sm text-slate-700 whitespace-nowrap [font-variant-numeric:tabular-nums]",
-              }}
             />
           );
         case "discount":
           return (
             <div className="flex min-w-[150px] gap-1">
-              <Select aria-label="Discount type" size="sm" selectedKeys={[hsnEntry.discountType || "none"]} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(keys) => onDiscountChange?.(gaugeIndex, hsnEntry.id, String(Array.from(keys)[0]) as 'none' | 'percentage' | 'flat', hsnEntry.discountValue || '')}>
-                <SelectItem key="none">None</SelectItem>
-                <SelectItem key="percentage">%</SelectItem>
-                <SelectItem key="flat">₹</SelectItem>
+              <Select aria-label="Discount type" selectedKey={hsnEntry.discountType || "none"} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(key) => key && onDiscountChange?.(gaugeIndex, hsnEntry.id, String(key) as 'none' | 'percentage' | 'flat', hsnEntry.discountValue || '')}>
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>
+                  <ListBox.Item id="none" textValue="None">None<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="percentage" textValue="%">%<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="flat" textValue="₹">₹<ListBox.ItemIndicator /></ListBox.Item>
+                </ListBox></Select.Popover>
               </Select>
-              <Input aria-label="Discount value" type="number" size="sm" min="0" value={hsnEntry.discountValue || ""} isReadOnly={isReadOnly || !onDiscountChange} onChange={(event) => onDiscountChange?.(gaugeIndex, hsnEntry.id, hsnEntry.discountType || 'none', event.target.value)} />
+              <Input aria-label="Discount value" type="number" min="0" value={hsnEntry.discountValue || ""} disabled={isReadOnly || !onDiscountChange} onChange={(event) => onDiscountChange?.(gaugeIndex, hsnEntry.id, hsnEntry.discountType || 'none', event.target.value)} />
             </div>
           );
         case "amount":
@@ -452,7 +348,7 @@ export default function InvoiceItemsBillingTable({
               <Button
                 type="button"
                 size="sm"
-                variant="light"
+                variant="ghost"
                 isIconOnly
                 aria-label="Remove HSN"
                 onPress={() => onRemoveHsn(gaugeIndex, hsnEntry.id)}
@@ -464,7 +360,7 @@ export default function InvoiceItemsBillingTable({
               <Button
                 type="button"
                 size="sm"
-                variant="light"
+                variant="ghost"
                 isIconOnly
                 aria-label="Add HSN"
                 onPress={() => onAddHsn(gaugeIndex)}
@@ -503,7 +399,7 @@ export default function InvoiceItemsBillingTable({
           <Button
             type="button"
             onPress={onAddItem}
-            color="primary"
+            variant="primary"
             className="h-9 rounded-xl px-4 text-sm font-semibold text-white"
           >
             Add Item
@@ -512,57 +408,27 @@ export default function InvoiceItemsBillingTable({
       </div>
 
       <div className="industrial-table-wrapper overflow-x-auto px-0 pb-0 pt-0">
-        <Table
-          aria-label="Invoice billing items table"
-          isHeaderSticky
-          removeWrapper
-          classNames={{
-            base: "min-w-full",
-            table: "min-w-[980px] w-full table-auto",
-          }}
-        >
-          <TableHeader columns={tableColumns}>
+        <Table aria-label="Invoice billing items table" className="min-w-full">
+          <Table.ScrollContainer className="min-w-[980px] w-full overflow-x-auto"><Table.Content>
+          <Table.Header columns={tableColumns}>
             {(column) => (
-              <TableColumn
-                key={column.uid}
-                align={column.uid === "actions" || column.uid === "sr_no" || column.uid === "amount" ? "center" : "start"}
-                className={`${COLUMN_LAYOUT[column.uid]} bg-slate-100 px-3 py-3 text-[11px] font-semibold tracking-[0.08em] text-slate-600`}
-              >
+              <Table.Column id={column.uid} isRowHeader={column.uid === tableColumns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
+          </Table.Header>
+          <Table.Body
             items={tableRows}
-            isLoading={loading}
-            emptyContent={
-              <div className="flex flex-col items-center gap-3 py-10">
-                <span className="text-sm text-slate-500">No invoice items added yet</span>
-                <Button
-                  type="button"
-                  onPress={onAddItem}
-                  variant="flat"
-                  className="rounded-2xl bg-slate-100 text-slate-700"
-                  isDisabled={isReadOnly}
-                >
-                  Add Manual Item
-                </Button>
-              </div>
-            }
-            loadingContent={
-              <div className="py-8 text-center text-sm text-slate-500">Loading invoice items...</div>
-            }
+            renderEmptyState={() => loading ? <div className="py-8 text-center text-sm text-slate-500">Loading invoice items...</div> : <div className="flex flex-col items-center gap-3 py-10"><span className="text-sm text-slate-500">No invoice items added yet</span><Button type="button" onPress={onAddItem} variant="secondary" className="rounded-2xl bg-slate-100 text-slate-700" isDisabled={isReadOnly}>Add Manual Item</Button></div>}
           >
             {(row) => (
-              <TableRow key={`${row.gaugeIndex}-${row.hsnEntry.id}`}>
+              <Table.Row id={`${row.gaugeIndex}-${row.hsnEntry.id}`} columns={tableColumns}>
                 {(columnKey) => (
-                  <TableCell className={`px-1 py-2.5 align-top ${COLUMN_LAYOUT[columnKey as TableColumnKey]}`}>
-                    {renderCell(row, columnKey as TableColumnKey)}
-                  </TableCell>
+                  <Table.Cell>{renderCell(row, getTableColumnKey(columnKey) as TableColumnKey)}</Table.Cell>
                 )}
-              </TableRow>
+              </Table.Row>
             )}
-          </TableBody>
+          </Table.Body></Table.Content></Table.ScrollContainer>
         </Table>
       </div>
 
@@ -577,38 +443,14 @@ export default function InvoiceItemsBillingTable({
               <span className="text-[12px] uppercase tracking-[0.12em] text-slate-400">
                 Rows
               </span>
-              <Select
-                aria-label="Rows per page"
-                selectedKeys={new Set([String(rowsPerPage)])}
-                onSelectionChange={onRowsChange}
-                size="sm"
-                className="w-[88px]"
-                classNames={{
-                  trigger:
-                    "min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none",
-                }}
-              >
-                <SelectItem key="25">25</SelectItem>
-                <SelectItem key="50">50</SelectItem>
-                <SelectItem key="100">100</SelectItem>
-                <SelectItem key="200">200</SelectItem>
-                <SelectItem key="500">500</SelectItem>
-              </Select>
+              <Select aria-label="Rows per page" selectedKey={String(rowsPerPage)} onSelectionChange={onRowsChange} className="w-[88px]"><Select.Trigger className="min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>{['25','50','100','200','500'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover></Select>
             </div>
 
-            <Pagination
-              aria-label="Invoice item pagination"
-              total={Math.max(totalPages, 1)}
-              page={page}
-              onChange={onPageChange}
-              size="sm"
-              showControls
-              classNames={{
-                wrapper: "gap-0",
-                item: "h-8 w-8 border border-slate-200 bg-white text-[12px] text-slate-600",
-                cursor: "bg-slate-900 text-white shadow-sm",
-              }}
-            />
+            <Pagination aria-label="Invoice item pagination"><Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+              {Array.from({ length: Math.max(totalPages, 1) }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
+              <Pagination.Next isDisabled={page >= Math.max(totalPages, 1)} onPress={() => onPageChange(Math.min(Math.max(totalPages, 1), page + 1))}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content></Pagination>
           </div>
         </div>
       )}

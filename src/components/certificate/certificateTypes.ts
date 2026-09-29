@@ -4,6 +4,7 @@ import type { CertificateGaugeData, Observations, Specifications } from '../../t
  * Certificate data structure for rendering
  */
 export interface CertificateData {
+  location?: string;
   // Header Information
   company_name: string;
   company_address: string;
@@ -171,7 +172,7 @@ export const transformGaugeDataToCertificateData = (
 
     // Observations & Specifications
     observations: gaugeData.observations || {},
-    specifications: gaugeData.specifications || {} as Specifications,
+    specifications: (gaugeData.specifications || {}) as Specifications,
 
     // Equipment & Masters (empty for now)
     equipment_masters: [],
@@ -184,4 +185,3 @@ export const transformGaugeDataToCertificateData = (
     approved_by: undefined,
   };
 };
-

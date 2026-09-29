@@ -5,25 +5,18 @@ import type { Key } from "@react-types/shared";
 import { PencilIcon, TrashIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 import {
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
+  Label,
+  ListBox,
+  Popover,
   Pagination,
   Input,
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Select,
-  SelectItem,
-} from "@heroui-v2/react";
+} from "@heroui/react";
+import type { Selection, SortDescriptor } from "@react-types/shared";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getTableColumnKey } from './tableColumnKey';
 import type { Organization } from "../../hooks/useOrganizations";
 import { useOrganizationsWithQuery } from "../../hooks/useOrganizationsWithQuery";
 import type { OrganizationDirectory } from "../../hooks/queries/organizations";
@@ -140,31 +133,20 @@ const ActionsCell = memo(({ item, onEdit, onSettings, onDelete }: {
     onClick={(event) => event.stopPropagation()}
     onPointerDown={(event) => event.stopPropagation()}
   >
-    <Dropdown>
-      <DropdownTrigger>
-        <Button isIconOnly size="sm" variant="light" aria-label={`Actions for ${item.name}`}>
+    <Popover>
+      <Popover.Trigger>
+        <Button isIconOnly size="sm" variant="ghost" aria-label={`Actions for ${item.name}`}>
           <Cog6ToothIcon className="h-4 w-4" />
         </Button>
-      </DropdownTrigger>
-      <DropdownMenu>
-        <DropdownItem key="edit" startContent={<PencilIcon className="h-4 w-4" />} onPress={() => onEdit(item.id)}>
-          Edit
-        </DropdownItem>
-        {onSettings && (
-          <DropdownItem key="settings" startContent={<Cog6ToothIcon className="h-4 w-4" />} onPress={() => onSettings(item.id)}>
-            Rate Card
-          </DropdownItem>
-        )}
-        <DropdownItem
-          key="delete"
-          startContent={<TrashIcon className="h-4 w-4" />}
-          className="text-danger"
-          onPress={() => onDelete(item)}
-        >
-          Delete
-        </DropdownItem>
-      </DropdownMenu>
-    </Dropdown>
+      </Popover.Trigger>
+      <Popover.Content className="w-40 p-1"><Popover.Dialog>
+        <ListBox aria-label={`Actions for ${item.name}`}>
+          <ListBox.Item id="edit" textValue="Edit" onAction={() => onEdit(item.id)}><PencilIcon className="h-4 w-4" />Edit</ListBox.Item>
+          {onSettings ? <ListBox.Item id="settings" textValue="Rate Card" onAction={() => onSettings(item.id)}><Cog6ToothIcon className="h-4 w-4" />Rate Card</ListBox.Item> : null}
+          <ListBox.Item id="delete" textValue="Delete" onAction={() => onDelete(item)}><TrashIcon className="h-4 w-4" />Delete</ListBox.Item>
+        </ListBox>
+      </Popover.Dialog></Popover.Content>
+    </Popover>
   </div>
 ));
 
@@ -411,7 +393,7 @@ export const CustomerTable = memo(({
         <div className="flex flex-col items-center gap-2 text-center">
           <p className="text-sm font-semibold text-red-500">Unable to load {entityLabel.toLowerCase()}s</p>
           <p className="text-xs text-default-500">{error}</p>
-          <Button size="sm" variant="bordered" onPress={() => refreshOrganizations()}>
+          <Button size="sm" variant="secondary" onPress={() => refreshOrganizations()}>
             Try Again
           </Button>
         </div>
@@ -424,42 +406,26 @@ export const CustomerTable = memo(({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <Input
-          isClearable
           className="w-full sm:max-w-[44%]"
           placeholder={
             directory === 'laboratories'
               ? 'Search by laboratory, lab type, certificate number...'
               : `Search by ${entityLabel.toLowerCase()}, address, phone, GST, email...`
           }
-          startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
           value={filterValue}
-          onClear={onClear}
-          onValueChange={onSearchChange}
+          onChange={(event) => onSearchChange(event.target.value)}
         />
+        {filterValue ? <Button type="button" variant="ghost" aria-label="Clear organization search" onPress={onClear}><MagnifyingGlassIcon className="w-4 h-4" /></Button> : null}
         <div className="flex gap-3">
-          <Dropdown>
-            <DropdownTrigger className="hidden sm:flex">
-              <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
+          <Popover>
+            <Popover.Trigger>
+              <Button className="hidden sm:flex" variant="secondary">
                 Columns
+                <ChevronDownIcon className="text-small" />
               </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="Table Columns"
-              closeOnSelect={false}
-              disallowEmptySelection
-              selectedKeys={visibleColumns}
-              selectionMode="multiple"
-              onSelectionChange={setVisibleColumns}
-            >
-              {columns
-                .filter((column) => column.uid !== 'sr_no' && column.uid !== 'actions')
-                .map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-            </DropdownMenu>
-          </Dropdown>
+            </Popover.Trigger>
+            <Popover.Content className="w-64 p-1"><Popover.Dialog><ListBox aria-label="Table Columns" selectedKeys={visibleColumns} selectionMode="multiple" onSelectionChange={setVisibleColumns}>{columns.filter((column) => column.uid !== 'sr_no' && column.uid !== 'actions').map((column) => <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>{capitalize(column.name)}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Popover.Dialog></Popover.Content>
+          </Popover>
         </div>
       </div>
     </div>
@@ -475,31 +441,16 @@ export const CustomerTable = memo(({
         </span>
       </div>
       <div className="flex-1 flex justify-center">
-        <Pagination
-          color="primary"
-          isCompact
-          showControls
-          showShadow
-          page={page}
-          total={pages}
-          onChange={setPage}
-        />
+        <Pagination><Pagination.Content>
+          <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
+          <Pagination.Next isDisabled={page >= pages} onPress={() => setPage(Math.min(pages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
+        </Pagination.Content></Pagination>
       </div>
       <div className="flex-1 flex justify-end">
-        <Select
-          label="Rows per page"
-          selectionMode="single"
-          disallowEmptySelection
-          selectedKeys={new Set([String(rowsPerPage)])}
-          onSelectionChange={onRowsPerPageChange}
-          labelPlacement="outside-left"
-          size="sm"
-          className="w-[170px]"
-        >
-          <SelectItem key="10">10</SelectItem>
-          <SelectItem key="25">25</SelectItem>
-          <SelectItem key="50">50</SelectItem>
-          <SelectItem key="100">100</SelectItem>
+        <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="w-[170px]">
+          <Label>Rows per page</Label><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+          <Select.Popover><ListBox>{['10', '25', '50', '100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
         </Select>
       </div>
     </div>
@@ -509,54 +460,33 @@ export const CustomerTable = memo(({
     <div className="flex flex-col gap-4">
       <div className="p-2">
         <div className="industrial-table-wrapper">
-          <Table
-            aria-label={`${entityLabel} table`}
-            isHeaderSticky
-            topContent={topContent}
-            topContentPlacement="outside"
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: "max-h-[600px] p-0",
-              base: "min-w-full",
-            }}
-            selectedKeys={selectedKeys}
-            selectionMode="multiple"
-            sortDescriptor={sortDescriptor}
-            onSelectionChange={setSelectedKeys}
-            onSortChange={setSortDescriptor}
-          >
-            <TableHeader columns={headerColumns}>
+          <div className="mb-4">{topContent}</div>
+          <Table aria-label={`${entityLabel} table`} className="min-w-full">
+            <Table.ScrollContainer className="max-h-[600px]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
+            <Table.Header columns={headerColumns}>
               {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.uid === "actions" || column.uid === "sr_no" ? "center" : "start"}
-                  allowsSorting={column.sortable}
-                >
+                <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
                   {column.name}
-                </TableColumn>
+                </Table.Column>
               )}
-            </TableHeader>
-            <TableBody
-              emptyContent={emptyContent}
+            </Table.Header>
+            <Table.Body
               items={sortedItems}
-              isLoading={loading}
-              loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500">Loading...</div>}
+              renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? "Loading..." : emptyContent}</div>}
             >
               {(item) => {
                 const index = sortedItems.findIndex((row) => row.id === item.id);
                 return (
-                  <TableRow key={item.id}>
+                  <Table.Row id={item.id} columns={columns}>
                     {(columnKey) => (
-                      <TableCell>
-                        {renderCell(item, columnKey as TableColumnKey, index)}
-                      </TableCell>
+                      <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}</Table.Cell>
                     )}
-                  </TableRow>
+                  </Table.Row>
                 );
               }}
-            </TableBody>
+            </Table.Body></Table.Content></Table.ScrollContainer>
           </Table>
+          {bottomContent}
         </div>
       </div>
       <DeleteConfirmModal

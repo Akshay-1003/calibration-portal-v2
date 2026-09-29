@@ -1,13 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  Button,
-} from "@heroui-v2/react";
+import { Button, Modal } from "@heroui/react";
 import { ArrowDownTrayIcon, PrinterIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import { Loader } from "../ui/loader";
 import { toast } from "sonner";
@@ -213,23 +207,13 @@ export const CertificatePreviewModal: React.FC<
   }, [buildFreshUrl, certificateUrl, pdfFileName]);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      size="5xl"
-      scrollBehavior="inside"
-      hideCloseButton
-      classNames={{
-        base: "max-h-[95vh]",
-        wrapper: "overflow-hidden",
-      }}
-    >
-      <ModalContent>
-        {() => (
-          <>
-            <ModalHeader className="flex justify-between items-center border-b bg-white px-6 py-4">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="full" scroll="inside" className="overflow-hidden">
+          <Modal.Dialog className="max-h-[95vh]">
+            <Modal.Header className="flex justify-between items-center border-b bg-white px-6 py-4">
               <div className="flex items-center gap-2">
-                <span className="font-semibold text-lg">Certificate Preview</span>
+                <Modal.Heading className="font-semibold text-lg">Certificate Preview</Modal.Heading>
               </div>
 
               <div className="flex items-center gap-3">
@@ -239,50 +223,49 @@ export const CertificatePreviewModal: React.FC<
                   <>
                     <Button
                       size="sm"
-                      variant="flat"
+                      variant="primary"
                       onPress={handleDownload}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                      startContent={<ArrowDownTrayIcon className="w-4 h-4" />}
                     >
+                      <ArrowDownTrayIcon className="w-4 h-4" />
                       Download PDF
                     </Button>
                     <Button
                       size="sm"
-                      variant="flat"
+                      variant="primary"
                       onPress={handlePrint}
-                      disabled={isPrinting}
+                      isDisabled={isPrinting}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                      startContent={<PrinterIcon className="w-4 h-4" />}
                     >
+                      <PrinterIcon className="w-4 h-4" />
                       {isPrinting ? 'Printing...' : 'Print'}
                     </Button>
                     <Button
                       size="sm"
-                      variant="flat"
+                      variant="primary"
                       onPress={handlePrintWithHeader}
-                      disabled={isPrinting}
+                      isDisabled={isPrinting}
                       className="bg-blue-600 hover:bg-blue-700 text-white font-medium"
-                      startContent={<PrinterIcon className="w-4 h-4" />}
                     >
-                      {isPrinting ? 'Printing...' : ' Full Page Print'}
+                      <PrinterIcon className="w-4 h-4" />
+                      {isPrinting ? 'Printing...' : 'Full Page Print'}
                     </Button>
                   </>
                 )}
 
-                {/* Close Button */}
                 <Button
                   size="sm"
-                  variant="flat"
+                  variant="secondary"
                   onPress={onClose}
                   className="font-medium"
-                  startContent={<XMarkIcon className="w-4 h-4" />}
                 >
+                  <XMarkIcon className="w-4 h-4" />
                   Cancel
                 </Button>
               </div>
-            </ModalHeader>
+            </Modal.Header>
 
-            <ModalBody className="bg-gray-50 p-0 overflow-hidden">
+            <Modal.Body className="bg-gray-50 p-0 overflow-hidden">
               {isLoading ? (
                 <div className="min-h-[600px] flex items-center justify-center bg-white">
                   <Loader text={loadingText} />
@@ -313,10 +296,10 @@ export const CertificatePreviewModal: React.FC<
                   <p className="text-lg">No certificate available</p>
                 </div>
               )}
-            </ModalBody>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 };

@@ -232,9 +232,7 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
               <h3 className="text-sm font-semibold uppercase tracking-wide">Measurements</h3>
               {!isReadOnly && (
                 <Button
-                  size="sm"
-                  color="primary"
-                  variant="solid"
+                  variant="primary"
                   className="text-white"
                   onPress={handleAddCustomMeasurement}
                 >
@@ -297,11 +295,8 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                       {!isReadOnly && (
                         <td className="px-2  text-center">
                           <Button
-                            size="sm"
-                            color="danger"
-                            variant="solid"
+                            variant="danger"
                             className="text-white"
-                            isIconOnly
                             onPress={() => handleRemoveMeasurement(index)}
                           >
                             <TrashIcon className="h-4 w-4"></TrashIcon>
@@ -323,8 +318,7 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                   {removedMeasurements.map((measurement) => (
                     <Button
                       key={measurement.id}
-                      size="sm"
-                      variant="bordered"
+                      variant="outline"
                       onPress={() => handleAddMeasurement(measurement)}
                     >
                       + {measurement.parameter}
@@ -341,9 +335,7 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
               <h3 className="text-sm font-semibold uppercase tracking-wide">Steps</h3>
               {!isReadOnly && (
                 <Button
-                  size="sm"
-                  color="primary"
-                  variant="solid"
+                  variant="primary"
                   className="text-white"
                   onPress={() => appendStep({ term: '', observed_value: '' })}
                 >
@@ -392,11 +384,8 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                       {!isReadOnly && (
                         <td className="text-center">
                           <Button
-                            color="danger"
                             className="text-white"
                             type="button"
-                            isIconOnly
-                            size="sm"
                             onPress={() => removeStep(index)}
                           >
                             <TrashIcon className="h-4 w-4"></TrashIcon>
@@ -444,34 +433,25 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.go?.specification_limit_max ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.go?.specification_limit_max ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.go?.specification_limit_min ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.go?.specification_limit_min ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.go?.wear_limit ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.go?.wear_limit ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
@@ -487,22 +467,17 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                   </td>
                   <td className="px-3 py-2">
                     <HeroInput
-                      isReadOnly
+                      readOnly
                       value={goRemark}
-                      classNames={{
-                        input:
-                          goRemark === "Out of Specification Limit"
-                            ? "text-red-600 font-semibold"
-                            : goRemark === "Within Wear Limit"
-                              ? "text-green-600 font-semibold"
-                              : "text-blue-600 font-semibold",
-                        inputWrapper:
-                          goRemark === "Out of Specification Limit"
-                            ? "bg-red-50 border-red-300"
-                            : goRemark === "Within Wear Limit"
-                              ? "bg-green-50 border-green-300"
-                              : "bg-blue-50 border-blue-300",
-                      }}
+                      className={`${goRemark === "Out of Specification Limit"
+                          ? "text-red-600 font-semibold"
+                          : goRemark === "Within Wear Limit"
+                            ? "text-green-600 font-semibold"
+                            : "text-blue-600 font-semibold"} ${goRemark === "Out of Specification Limit"
+                          ? "bg-red-50 border-red-300"
+                          : goRemark === "Within Wear Limit"
+                            ? "bg-green-50 border-green-300"
+                            : "bg-blue-50 border-blue-300"}`}
                       placeholder="-"
                     />
                   </td>
@@ -523,34 +498,25 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.no_go?.specification_limit_max ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.no_go?.specification_limit_max ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.no_go?.specification_limit_min ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.no_go?.specification_limit_min ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
                   <td className="px-3 py-2 text-center">
                     <HeroInput
-                      isReadOnly
-                      value={specifications?.no_go?.wear_limit ?? ""}
-                      classNames={{
-                        inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                        input: "text-sm text-center font-medium",
-                      }}
+                      readOnly
+                      value={String(specifications?.no_go?.wear_limit ?? "")}
+                      className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                       placeholder="--"
                     />
                   </td>
@@ -566,26 +532,15 @@ export const PlainTaperPlugGaugeCalibration: React.FC<PlainTaperPlugGaugeCalibra
                   </td>
                   <td className="px-3 py-2">
                     <HeroInput
-                      isReadOnly
+                      readOnly
                       value={noGoRemark}
-                      classNames={{
-                        input:
-                          noGoRemark === "Out of Specification Limit"
-                            ? "text-red-600 font-semibold"
-                            : noGoRemark === "Within Wear Limit"
-                              ? "text-green-600 font-semibold"
-                            : noGoRemark === "Within Specification Limit"
-                              ? "text-blue-600 font-semibold"
-                              : "text-gray-600",
-                        inputWrapper:
-                          noGoRemark === "Out of Specification Limit"
-                            ? "bg-red-50 border-red-300"
-                            : noGoRemark === "Within Wear Limit"
-                              ? "bg-green-50 border-green-300"
-                            : noGoRemark === "Within Specification Limit"
-                              ? "bg-blue-50 border-blue-300"
-                              : "bg-white border border-gray-300",
-                      }}
+                      className={`${noGoRemark === "Out of Specification Limit"
+                        ? "text-red-600 font-semibold bg-red-50 border-red-300"
+                        : noGoRemark === "Within Wear Limit"
+                          ? "text-green-600 font-semibold bg-green-50 border-green-300"
+                          : noGoRemark === "Within Specification Limit"
+                            ? "text-blue-600 font-semibold bg-blue-50 border-blue-300"
+                            : "text-gray-600 bg-white border border-gray-300"}`}
                       placeholder="-"
                     />
                   </td>

@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Button,
   Input,
+  ListBox,
   Select,
-  SelectItem,
-} from '@heroui-v2/react';
+  Table,
+} from '@heroui/react';
 import { useQuotationStore, QuotationItem } from '../../store/quotationStore';
 import {
   DocumentDuplicateIcon,
-  PlusIcon,
   PencilIcon,
   TrashIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
+import '../../styles/industrial-table.css';
 import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
 import {
   calculateQuotationFinalPrice,
@@ -33,17 +28,18 @@ import {
 
 const GST_RATE_OPTIONS = [0, 5, 9, 12, 18, 28];
 
-const COMPACT_INPUT_CLASS_NAMES = {
-  inputWrapper:
-    'min-h-[38px] rounded-md border border-slate-200 bg-white shadow-none hover:border-slate-300 focus-within:border-blue-400',
-  input: 'text-sm',
-};
-
-const COMPACT_SELECT_CLASS_NAMES = {
-  trigger:
-    'min-h-[38px] rounded-md border border-slate-200 bg-white shadow-none hover:border-slate-300 data-[open=true]:border-blue-400',
-  value: 'text-sm text-slate-700',
-};
+const QUOTATION_COLUMNS = [
+  { id: 'gauge', name: 'GAUGE NAME' },
+  { id: 'serial', name: 'SERIAL NO' },
+  { id: 'make', name: 'MAKE' },
+  { id: 'hsn', name: 'HSN / SAC' },
+  { id: 'quantity', name: 'QTY' },
+  { id: 'specification', name: 'SPECIFICATIONS' },
+  { id: 'basePrice', name: 'BASE PRICE' },
+  { id: 'discount', name: 'DISCOUNT' },
+  { id: 'finalPrice', name: 'FINAL PRICE' },
+  { id: 'actions', name: 'ACTIONS' },
+] as const;
 
 const SUMMARY_FIELD_LABEL_CLASS =
   'mb-1 block text-sm font-semibold text-slate-900';
@@ -57,6 +53,46 @@ const getRateOptions = (rate?: number) => {
     (first, second) => first - second,
   );
 };
+
+type QuotationSelectOption = { id: string; label: string };
+
+const QuotationSelect = ({
+  selectedKey,
+  onSelectionChange,
+  options,
+  ariaLabel,
+  className,
+}: {
+  selectedKey: string;
+  onSelectionChange: (key: string) => void;
+  options: QuotationSelectOption[];
+  ariaLabel: string;
+  className?: string;
+}) => (
+  <Select
+    selectedKey={selectedKey}
+    aria-label={ariaLabel}
+    onSelectionChange={(key) => {
+      if (key !== null) onSelectionChange(String(key));
+    }}
+    className={className}
+  >
+    <Select.Trigger>
+      <Select.Value />
+      <Select.Indicator />
+    </Select.Trigger>
+    <Select.Popover>
+      <ListBox>
+        {options.map((option) => (
+          <ListBox.Item key={option.id} id={option.id} textValue={option.label}>
+            {option.label}
+            <ListBox.ItemIndicator />
+          </ListBox.Item>
+        ))}
+      </ListBox>
+    </Select.Popover>
+  </Select>
+);
 
 export const QuotationItemsTable: React.FC = () => {
   const {
@@ -273,41 +309,26 @@ export const QuotationItemsTable: React.FC = () => {
   }
 
   return (
-    <div className="overflow-hidden">
-      <Table
-        aria-label="Quotation items table"
-        classNames={{
-          wrapper: 'max-h-[600px] overflow-auto p-0',
-          th: 'bg-slate-100 text-slate-700 font-semibold text-xs uppercase tracking-wider border-b border-slate-200',
-          td: 'border-b border-slate-100 py-2',
-          tr: 'hover:bg-blue-50/40 transition-colors',
-        }}
-      >
-        <TableHeader>
-          <TableColumn>GAUGE NAME</TableColumn>
-          <TableColumn>SERIAL NO</TableColumn>
-          <TableColumn>MAKE</TableColumn>
-          <TableColumn>HSN / SAC</TableColumn>
-          <TableColumn>QTY</TableColumn>
-          <TableColumn>SPECIFICATIONS</TableColumn>
-          <TableColumn>BASE PRICE</TableColumn>
-          <TableColumn>DISCOUNT</TableColumn>
-          <TableColumn>FINAL PRICE</TableColumn>
-          <TableColumn>ACTIONS</TableColumn>
-        </TableHeader>
-        <TableBody>
-          {items.map((item) => {
+    <div className="industrial-table-wrapper overflow-hidden">
+      <Table aria-label="Quotation items table" className="min-w-full">
+        <Table.ScrollContainer className="max-h-[600px] overflow-auto p-0">
+          <Table.Content>
+            <Table.Header columns={QUOTATION_COLUMNS}>
+              {(column) => <Table.Column id={column.id} isRowHeader={column.id === QUOTATION_COLUMNS[0]?.id}>{column.name}</Table.Column>}
+            </Table.Header>
+            <Table.Body items={items}>
+              {(item) => {
             const isEditing = editingItemId === item.id;
             const liveFinalPrice = getLiveFinalPrice(item);
 
             return (
-              <TableRow key={item.id}>
-                <TableCell>
+              <Table.Row id={item.id}>
+                <Table.Cell>
                   <div className="min-w-48 whitespace-normal text-sm font-medium text-slate-900">
                     {item.gauge_name}
                   </div>
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <Input
                       value={editForm.serial_number || ''}
@@ -317,45 +338,39 @@ export const QuotationItemsTable: React.FC = () => {
                           serial_number: e.target.value,
                         })
                       }
-                      size="sm"
                       className="w-32"
-                      classNames={COMPACT_INPUT_CLASS_NAMES}
                     />
                   ) : (
                     item.serial_number || '-'
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <Input
                       value={editForm.make || ''}
                       onChange={(e) =>
                         setEditForm({ ...editForm, make: e.target.value })
                       }
-                      size="sm"
                       className="w-32"
-                      classNames={COMPACT_INPUT_CLASS_NAMES}
                     />
                   ) : (
                     item.make || '-'
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <Input
                       value={editForm.hsn_sac || ''}
                       onChange={(e) =>
                         setEditForm({ ...editForm, hsn_sac: e.target.value })
                       }
-                      size="sm"
                       className="w-28"
-                      classNames={COMPACT_INPUT_CLASS_NAMES}
                     />
                   ) : (
                     item.hsn_sac || '-'
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -369,17 +384,15 @@ export const QuotationItemsTable: React.FC = () => {
                           ),
                         })
                       }
-                      size="sm"
                       className="w-20"
                       min="1"
                       step="1"
-                      classNames={COMPACT_INPUT_CLASS_NAMES}
                     />
                   ) : (
                     normalizeQuotationQuantity(item.quantity)
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <div className="flex min-w-48 gap-2">
                       <Input
@@ -390,18 +403,14 @@ export const QuotationItemsTable: React.FC = () => {
                             range_size: e.target.value,
                           })
                         }
-                        size="sm"
                         className="w-32"
-                        classNames={COMPACT_INPUT_CLASS_NAMES}
                       />
                       <Input
                         value={editForm.unit || ''}
                         onChange={(e) =>
                           setEditForm({ ...editForm, unit: e.target.value })
                         }
-                        size="sm"
                         className="w-20"
-                        classNames={COMPACT_INPUT_CLASS_NAMES}
                       />
                     </div>
                   ) : (
@@ -409,8 +418,8 @@ export const QuotationItemsTable: React.FC = () => {
                       {getSpecificationText(item)}
                     </span>
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <Input
                       type="number"
@@ -421,28 +430,20 @@ export const QuotationItemsTable: React.FC = () => {
                           base_price: parseFloat(e.target.value) || 0,
                         })
                       }
-                      size="sm"
                       className="w-24"
-                      startContent={<span className="text-xs">₹</span>}
                       min="0"
                       step="0.01"
-                      classNames={COMPACT_INPUT_CLASS_NAMES}
                     />
                   ) : (
                     `₹${item.base_price.toFixed(2)}`
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <div className="flex gap-2">
-                      <Select
-                        selectedKeys={
-                          editForm.discount_type
-                            ? [editForm.discount_type]
-                            : ['none']
-                        }
-                        onSelectionChange={(keys) => {
-                          const value = Array.from(keys)[0] as string;
+                      <QuotationSelect
+                        selectedKey={editForm.discount_type || 'none'}
+                        onSelectionChange={(value) => {
                           setEditForm({
                             ...editForm,
                             discount_type:
@@ -453,20 +454,10 @@ export const QuotationItemsTable: React.FC = () => {
                               value === 'none' ? 0 : editForm.discount_value,
                           });
                         }}
-                        size="sm"
                         className="w-24"
-                        classNames={COMPACT_SELECT_CLASS_NAMES}
-                      >
-                        <SelectItem key="none" value="none">
-                          None
-                        </SelectItem>
-                        <SelectItem key="percentage" value="percentage">
-                          %
-                        </SelectItem>
-                        <SelectItem key="flat" value="flat">
-                          Flat
-                        </SelectItem>
-                      </Select>
+                        ariaLabel="Discount type"
+                        options={[{ id: 'none', label: 'None' }, { id: 'percentage', label: '%' }, { id: 'flat', label: 'Flat' }]}
+                      />
                       {editForm.discount_type && (
                         <Input
                           type="number"
@@ -477,7 +468,6 @@ export const QuotationItemsTable: React.FC = () => {
                               discount_value: parseFloat(e.target.value) || 0,
                             })
                           }
-                          size="sm"
                           className="w-20"
                           min="0"
                           step="0.01"
@@ -486,33 +476,30 @@ export const QuotationItemsTable: React.FC = () => {
                               ? '100'
                               : undefined
                           }
-                          classNames={COMPACT_INPUT_CLASS_NAMES}
                         />
                       )}
                     </div>
                   ) : (
                     formatDiscount(item)
                   )}
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   <span className="font-semibold text-blue-700">
                     ₹{liveFinalPrice.toFixed(2)}
                   </span>
-                </TableCell>
-                <TableCell>
+                </Table.Cell>
+                <Table.Cell>
                   {isEditing ? (
                     <div className="flex flex-wrap gap-2">
                       <Button
-                        size="sm"
-                        color="primary"
+                        variant="primary"
                         onClick={() => handleSaveEdit(item.id)}
                         className="bg-green-600 hover:bg-green-700 text-white"
                       >
                         Save
                       </Button>
                       <Button
-                        size="sm"
-                        variant="light"
+                        variant="ghost"
                         onClick={handleCancelEdit}
                       >
                         Cancel
@@ -521,21 +508,18 @@ export const QuotationItemsTable: React.FC = () => {
                   ) : (
                     <div className="flex gap-2 justify-center">
                       <Button
-                        size="sm"
                         onPress={() => handleDuplicate(item)}
                         className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
                       >
                         <DocumentDuplicateIcon className="w-4 h-4" />
                       </Button>
                       <Button
-                        size="sm"
                         onPress={() => handleEdit(item)}
                         className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
                       >
                         <PencilIcon className="w-4 h-4" />
                       </Button>
                       <Button
-                        size="sm"
                         onPress={() => requestRemove(item.id)}
                         className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
                       >
@@ -543,11 +527,13 @@ export const QuotationItemsTable: React.FC = () => {
                       </Button>
                     </div>
                   )}
-                </TableCell>
-              </TableRow>
+                </Table.Cell>
+              </Table.Row>
             );
-          })}
-        </TableBody>
+              }}
+            </Table.Body>
+          </Table.Content>
+        </Table.ScrollContainer>
       </Table>
 
       {/* Summary */}
@@ -558,19 +544,12 @@ export const QuotationItemsTable: React.FC = () => {
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <label className={SUMMARY_FIELD_LABEL_CLASS}>GST</label>
-                  <Select
-                    selectedKeys={[gstType]}
-                    aria-label="Quotation GST"
-                    onSelectionChange={(keys) => {
-                      const value = Array.from(keys)[0] as QuotationGstType;
-                      updateGstType(value);
-                    }}
-                    classNames={COMPACT_SELECT_CLASS_NAMES}
-                  >
-                    <SelectItem key="none">No GST</SelectItem>
-                    <SelectItem key="cgst_sgst">CGST + SGST</SelectItem>
-                    <SelectItem key="igst">IGST</SelectItem>
-                  </Select>
+                  <QuotationSelect
+                    selectedKey={gstType}
+                    ariaLabel="Quotation GST"
+                    onSelectionChange={(value) => updateGstType(value as QuotationGstType)}
+                    options={[{ id: 'none', label: 'No GST' }, { id: 'cgst_sgst', label: 'CGST + SGST' }, { id: 'igst', label: 'IGST' }]}
+                  />
                 </div>
 
                 {gstType === 'cgst_sgst' ? (
@@ -579,48 +558,24 @@ export const QuotationItemsTable: React.FC = () => {
                       <label className={SUMMARY_FIELD_LABEL_CLASS}>
                         CGST (%)
                       </label>
-                      <Select
-                        selectedKeys={[String(cgstRate)]}
-                        aria-label="Quotation CGST"
-                        onSelectionChange={(keys) => {
-                          const value = Array.from(keys)[0] as string;
-                          updateGstRate('cgst_rate', value);
-                        }}
-                        classNames={COMPACT_SELECT_CLASS_NAMES}
-                      >
-                        {getRateOptions(cgstRate).map((rate) => (
-                          <SelectItem
-                            key={rate.toString()}
-                            textValue={rate.toString()}
-                          >
-                            {rate}%
-                          </SelectItem>
-                        ))}
-                      </Select>
+                      <QuotationSelect
+                        selectedKey={String(cgstRate)}
+                        ariaLabel="Quotation CGST"
+                        onSelectionChange={(value) => updateGstRate('cgst_rate', value)}
+                        options={getRateOptions(cgstRate).map((rate) => ({ id: String(rate), label: `${rate}%` }))}
+                      />
                     </div>
 
                     <div>
                       <label className={SUMMARY_FIELD_LABEL_CLASS}>
                         SGST (%)
                       </label>
-                      <Select
-                        selectedKeys={[String(sgstRate)]}
-                        aria-label="Quotation SGST"
-                        onSelectionChange={(keys) => {
-                          const value = Array.from(keys)[0] as string;
-                          updateGstRate('sgst_rate', value);
-                        }}
-                        classNames={COMPACT_SELECT_CLASS_NAMES}
-                      >
-                        {getRateOptions(sgstRate).map((rate) => (
-                          <SelectItem
-                            key={rate.toString()}
-                            textValue={rate.toString()}
-                          >
-                            {rate}%
-                          </SelectItem>
-                        ))}
-                      </Select>
+                      <QuotationSelect
+                        selectedKey={String(sgstRate)}
+                        ariaLabel="Quotation SGST"
+                        onSelectionChange={(value) => updateGstRate('sgst_rate', value)}
+                        options={getRateOptions(sgstRate).map((rate) => ({ id: String(rate), label: `${rate}%` }))}
+                      />
                     </div>
                   </>
                 ) : null}
@@ -630,24 +585,12 @@ export const QuotationItemsTable: React.FC = () => {
                     <label className={SUMMARY_FIELD_LABEL_CLASS}>
                       IGST (%)
                     </label>
-                    <Select
-                      selectedKeys={[String(igstRate)]}
-                      aria-label="Quotation IGST"
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string;
-                        updateGstRate('igst_rate', value);
-                      }}
-                      classNames={COMPACT_SELECT_CLASS_NAMES}
-                    >
-                      {getRateOptions(igstRate).map((rate) => (
-                        <SelectItem
-                          key={rate.toString()}
-                          textValue={rate.toString()}
-                        >
-                          {rate}%
-                        </SelectItem>
-                      ))}
-                    </Select>
+                    <QuotationSelect
+                      selectedKey={String(igstRate)}
+                      ariaLabel="Quotation IGST"
+                      onSelectionChange={(value) => updateGstRate('igst_rate', value)}
+                      options={getRateOptions(igstRate).map((rate) => ({ id: String(rate), label: `${rate}%` }))}
+                    />
                   </div>
                 ) : null}
               </div>
@@ -664,11 +607,8 @@ export const QuotationItemsTable: React.FC = () => {
                     </p>
                   </div>
                   <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
+                    variant="primary"
                     onPress={handleAddTerm}
-                    startContent={<PlusIcon className="h-4 w-4" />}
                     className="bg-blue-50 text-blue-700"
                   >
                     Add Term
@@ -703,16 +643,13 @@ export const QuotationItemsTable: React.FC = () => {
                                     handleTermChange(index, e.target.value)
                                   }
                                   placeholder="Enter term and condition"
-                                  size="sm"
-                                  variant="bordered"
-                                  classNames={COMPACT_INPUT_CLASS_NAMES}
+                                  variant="secondary"
                                 />
                               </div>
                             </td>
                             <td className="border-b border-slate-100 px-4 py-3 text-center">
                               <Button
-                                size="sm"
-                                variant="light"
+                                variant="ghost"
                                 onClick={() => handleRemoveTerm(index)}
                                 className="text-red-600"
                               >

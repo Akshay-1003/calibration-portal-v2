@@ -133,27 +133,27 @@ export default function MasterPieceTable({ basic_size, readOnly = false, initial
                     },
                   }}
                   render={({ field: controllerField, fieldState }) => (
-                    <Input
-                      {...controllerField}
-                      value={controllerField.value ?? ""}
-                      type="number"
-                      step="0.0001"
-                      inputMode="decimal"
-                      size="sm"
-                      placeholder="Enter size value"
-                      variant="bordered"
-                      isInvalid={!!fieldState.error}
-                      errorMessage={fieldState.error?.message}
-                      onChange={(e) => controllerField.onChange(e.target.value)}
-                      onBlur={(event) => {
-                        controllerField.onBlur();
-                        const raw = event.target.value;
-                        if (!raw) return;
-                        const numeric = Number(raw);
-                        if (Number.isNaN(numeric)) return;
-                        controllerField.onChange(numeric.toFixed(4));
-                      }}
-                    />
+                    <label className="flex flex-col gap-2">
+                      <Input
+                        {...controllerField}
+                        value={controllerField.value ?? ""}
+                        type="number"
+                        step="0.0001"
+                        inputMode="decimal"
+                        placeholder="Enter size value"
+                        aria-invalid={!!fieldState.error}
+                        onChange={(e) => controllerField.onChange(e.target.value)}
+                        onBlur={(event) => {
+                          controllerField.onBlur();
+                          const raw = event.target.value;
+                          if (!raw) return;
+                          const numeric = Number(raw);
+                          if (Number.isNaN(numeric)) return;
+                          controllerField.onChange(numeric.toFixed(4));
+                        }}
+                      />
+                      {fieldState.error?.message ? <span className="text-sm text-red-600">{fieldState.error.message}</span> : null}
+                    </label>
                   )}
                 />
               </div>
@@ -163,8 +163,7 @@ export default function MasterPieceTable({ basic_size, readOnly = false, initial
                 type="button"
                 isIconOnly
                 size="sm"
-                variant="light"
-                color="danger"
+                variant="danger"
                 onPress={() => handleRemove(index)}
                 className="flex-shrink-0"
               >
@@ -179,12 +178,11 @@ export default function MasterPieceTable({ basic_size, readOnly = false, initial
         <Button
           type="button"
           size="sm"
-          variant="flat"
-          color="primary"
-          startContent={<Plus className="w-4 h-4" />}
+          variant="secondary"
           onPress={handleAdd}
           className="w-full sm:w-auto"
         >
+          <Plus className="w-4 h-4" />
           Add More Size
         </Button>
       </div>

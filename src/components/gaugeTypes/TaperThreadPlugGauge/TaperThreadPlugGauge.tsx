@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
-import { Input, Autocomplete, AutocompleteItem } from "@heroui-v2/react";
+import { Input, Autocomplete, ListBox } from "@heroui/react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchTaperThreadReadingsRaw } from "../../../services/apiServices";
 import type { TaperThreadReadingsApiResponse } from "../../../store/taperThreadReadingsStore";
@@ -214,16 +214,12 @@ const TaperThreadPlugGauge: React.FC<TaperThreadPlugGaugeProps> = ({
   return (
     <div className="space-y-2">
       <div className="w-full rounded-md">
+        <label className="mb-2 block text-sm font-medium text-gray-700">Select standard specification</label>
         <Autocomplete
-          label="Select standard specification"
-          labelPlacement="outside"
-          placeholder="Type to search specifications..."
-          isLoading={isLoading}
-          defaultItems={specificationList}
           selectedKey={
             selectedSpecKey && selectedSpecData?.id
               ? selectedSpecData.id
-              : selectedSpecificationId || selectedSpecification || null
+              : selectedSpecificationId || selectedSpecification || undefined
           }
           onSelectionChange={(key) => {
             if (!key) return;
@@ -266,13 +262,33 @@ const TaperThreadPlugGauge: React.FC<TaperThreadPlugGaugeProps> = ({
             // Reset populated spec tracking
             lastPopulatedSpecRef.current = null;
           }}
-          allowsCustomValue={false}
         >
-          {(spec: TaperThreadReadingsApiResponse) => (
-            <AutocompleteItem key={spec.id || spec.standard_specification}>
-              {spec.standard_specification || "N/A"}
-            </AutocompleteItem>
-          )}
+          <Autocomplete.Trigger>
+            <Autocomplete.Filter>
+              <Input placeholder="Type to search specifications..." disabled={isSubmitting} />
+            </Autocomplete.Filter>
+            <Autocomplete.Indicator />
+          </Autocomplete.Trigger>
+          <Autocomplete.Popover>
+            <ListBox>
+              {isLoading ? (
+                <ListBox.Item id="loading" isDisabled>Loading specifications...</ListBox.Item>
+              ) : specificationList.length === 0 ? (
+                <ListBox.Item id="empty" isDisabled>No specifications found</ListBox.Item>
+              ) : (
+                specificationList.map((spec: TaperThreadReadingsApiResponse) => (
+                  <ListBox.Item
+                    key={spec.id || spec.standard_specification}
+                    id={spec.id || spec.standard_specification || "unknown"}
+                    textValue={spec.standard_specification || "N/A"}
+                  >
+                    {spec.standard_specification || "N/A"}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))
+              )}
+            </ListBox>
+          </Autocomplete.Popover>
         </Autocomplete>
       </div>
 

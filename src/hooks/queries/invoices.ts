@@ -254,7 +254,10 @@ const normalizeDraftResponseToInvoice = (
     credit_days: payload?.credit_days ?? 0,
     payment_due_date: response.payment_due_date ?? null,
     payment_date: response.payment_date ?? null,
-    payment_mode: response.payment_mode ?? null,
+    payment_mode:
+      response.payment_mode === 'NEFT' || response.payment_mode === 'RTGS' ||
+      response.payment_mode === 'UPI' || response.payment_mode === 'Cheque' ||
+      response.payment_mode === 'Cash' ? response.payment_mode : null,
     payment_reference_no: response.payment_reference_no ?? null,
     payment_remarks: response.payment_remarks ?? null,
     status: 'draft',
@@ -283,7 +286,10 @@ const normalizeDraftResponseToInvoice = (
       },
     },
     invoice_details: {
-      billing_items: response.invoice_details?.billing_items ?? [],
+      billing_items: (response.invoice_details?.billing_items ?? []).map((item) => ({
+        ...item,
+        specifications: typeof item.specifications === 'string' ? null : item.specifications,
+      })),
       sub_total: response.invoice_details?.sub_total ?? 0,
       packing: response.invoice_details?.packing ?? 0,
       courier: response.invoice_details?.courier ?? 0,

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal } from '../ui/modal';
 import { Button } from '../ui/button';
-import { Input, Select, SelectItem } from '@heroui-v2/react';
+import { Input, Label, ListBox, Select } from '@heroui/react';
 import { PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import { OutwardGaugeItem } from '../../store/outwardStore';
@@ -204,7 +204,6 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
       }));
 
       const invoiceData = transformInvoiceItemsToInvoiceData(
-        outwardEntry,
         transformedItemsData,
         savedInvoice
       );
@@ -255,39 +254,26 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                       className="grid grid-cols-12 gap-3 items-end bg-gray-50 p-3 rounded"
                     >
                       <div className="col-span-4">
-                        <Select
-                          label="HSN Code"
-                          selectedKeys={[hsnEntry.hsnCode]}
-                          onSelectionChange={(keys) => {
-                            const selectedKey = Array.from(keys)[0] as string;
-                            handleHSNChange(gaugeIndex, hsnEntry.id, selectedKey);
-                          }}
-                          size="sm"
-                        >
-                          {HSN_CODES.map((hsn) => (
-                            <SelectItem key={hsn.code} value={hsn.code}>
-                              {hsn.code} - {hsn.name}
-                            </SelectItem>
-                          ))}
+                        <Select selectedKey={hsnEntry.hsnCode} onSelectionChange={(key) => handleHSNChange(gaugeIndex, hsnEntry.id, String(key ?? DEFAULT_HSN))}>
+                          <Label>HSN Code</Label><Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                          <Select.Popover><ListBox>{HSN_CODES.map((hsn) => <ListBox.Item key={hsn.code} id={hsn.code} textValue={`${hsn.code} - ${hsn.name}`}>{hsn.code} - {hsn.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
                         </Select>
                       </div>
 
                       <div className="col-span-3">
                         <Input
-                          label="Rate (₹)"
+                          aria-label="Rate in rupees"
                           type="number"
                           value={hsnEntry.rate}
                           onChange={(e) => handleRateChange(gaugeIndex, hsnEntry.id, e.target.value)}
-                          size="sm"
                           min="0"
                           step="0.01"
-                          startContent={<span className="text-gray-500">₹</span>}
                         />
                       </div>
 
                       <div className="col-span-2">
                         <Input
-                          label="Quantity"
+                          aria-label="Quantity"
                           type="number"
                           value={hsnEntry.quantity.toString()}
                           onChange={(e) =>
@@ -297,7 +283,6 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                               parseInt(e.target.value) || 1
                             )
                           }
-                          size="sm"
                           min="1"
                         />
                       </div>
@@ -316,9 +301,8 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                           <Button
                             size="sm"
                             variant="ghost"
-                            color="danger"
                             onClick={() => handleRemoveHSN(gaugeIndex, hsnEntry.id)}
-                            isIconOnly
+                            className="size-7 p-0"
                           >
                             <TrashIcon className="w-4 h-4" />
                           </Button>
@@ -331,7 +315,7 @@ export const CreateInvoiceModal: React.FC<CreateInvoiceModalProps> = ({
                     size="sm"
                     variant="ghost"
                     onClick={() => handleAddHSN(gaugeIndex)}
-                    startContent={<PlusIcon className="w-4 h-4" />}
+                    leftIcon={<PlusIcon className="w-4 h-4" />}
                     className="w-full"
                   >
                     Add Another HSN

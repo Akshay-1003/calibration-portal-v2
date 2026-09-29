@@ -10,22 +10,13 @@ import { printOutwardChalan } from "../../../utils/outwardChalanPrint";
 
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Card,
-  CardHeader,
-  CardBody,
-  SelectItem,
+  ListBox,
   Select,
   Tabs,
-  Tab,
   Chip,
-} from "@heroui-v2/react";
-import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
+} from "@heroui/react";
 import { useOutwardStore, type OutwardGaugeItem, type InwardedGaugeItem } from "../../../store/outwardStore";
 import { useInvoiceStore } from "../../../store/invoiceStore";
 import { Loader } from "../../../components/ui/loader/loader";
@@ -177,7 +168,7 @@ const OutwardDetailPage = React.memo(() => {
   const renderStatusChip = useCallback((status?: string) => {
     if (!status) {
       return (
-        <Chip color="default" variant="flat" size="sm">
+        <Chip color="default" variant="soft" size="sm">
           Unknown
         </Chip>
       );
@@ -187,14 +178,14 @@ const OutwardDetailPage = React.memo(() => {
 
     if (status === "calibration_completed") {
       return (
-        <Chip color="success" variant="flat" size="sm" className="capitalize">
+        <Chip color="success" variant="soft" size="sm" className="capitalize">
           {statusLabel}
         </Chip>
       );
     }
 
     return (
-      <Chip color="warning" variant="flat" size="sm" className="capitalize">
+      <Chip color="warning" variant="soft" size="sm" className="capitalize">
         {statusLabel}
       </Chip>
     );
@@ -421,26 +412,25 @@ const OutwardDetailPage = React.memo(() => {
 
 
         <div className="flex w-full flex-col">
-          <Tabs aria-label="Options">
-            <Tab key="outwardItems" title="OUTWARD ITEMS FROM THIS CHALAN" >
+          <Tabs>
+            <Tabs.ListContainer><Tabs.List aria-label="Options">
+              <Tabs.Tab id="outwardItems">OUTWARD ITEMS FROM THIS CHALAN</Tabs.Tab>
+              <Tabs.Tab id="inwardedItems">INWARDED ITEMS</Tabs.Tab>
+            </Tabs.List></Tabs.ListContainer>
+            <Tabs.Panel id="outwardItems">
               <Card>
-                <CardHeader className="flex justify-between items-center bg-blue-600 text-white">
+                <Card.Header className="flex justify-between items-center bg-blue-600 text-white">
                   <h3 className="text-md font-semibold">OUTWARD ITEMS FROM THIS CHALAN</h3>
-                </CardHeader>
-                <CardBody>
+                </Card.Header>
+                <Card.Content>
                   <div className="flex justify-between items-center mb-4">
 
                     <div className="flex-1 items-center">
                       <Input
-                        isClearable
                         className="w-full sm:max-w-xs"
                         placeholder="Search..."
-                        startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
                         value={outwardItemsSearch}
-                        onValueChange={setOutwardItemsSearch}
-                        classNames={{
-                          inputWrapper: "border-gray-300 hover:border-gray-400 focus-within:border-blue-500",
-                        }}
+                        onChange={(event) => setOutwardItemsSearch(event.target.value)}
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -472,11 +462,11 @@ const OutwardDetailPage = React.memo(() => {
                       </Button> */}
                     </div>
                   </div>
-                  <Table
-                    aria-label="Outward items table"
-                    selectedKeys={selectedOutwardItems === 'all' ? 'all' : (selectedOutwardItems as any)}
+                  <Table aria-label="Outward items table">
+                    <Table.ScrollContainer className="max-h-[calc(100vh-320px)] p-0">
+                    <Table.Content
+                    selectedKeys={selectedOutwardItems === 'all' ? 'all' : selectedOutwardItems}
                     selectionMode="multiple"
-                    classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0" }}
                     onSelectionChange={(keys) => {
                       if (keys === 'all') {
                         setSelectedOutwardItems('all');
@@ -486,43 +476,37 @@ const OutwardDetailPage = React.memo(() => {
                       }
                     }}
                   >
-                    <TableHeader>
-                      <TableColumn>SN</TableColumn>
-                      <TableColumn>OUTWARD NO</TableColumn>
-                      <TableColumn>LAB ID</TableColumn>
-                      <TableColumn>NAME</TableColumn>
-                      <TableColumn>IDENTIFICATION NO</TableColumn>
-                      <TableColumn>PROCESS</TableColumn>
-                      <TableColumn>STATUS</TableColumn>
-                      <TableColumn>ACTION</TableColumn>
-                    </TableHeader>
-                    <TableBody
-                      emptyContent={
+                    <Table.Header>
+                      <Table.Column id="sn">SN</Table.Column>
+                      <Table.Column id="outward_no">OUTWARD NO</Table.Column>
+                      <Table.Column id="lab_id">LAB ID</Table.Column>
+                      <Table.Column id="name">NAME</Table.Column>
+                      <Table.Column id="identification">IDENTIFICATION NO</Table.Column>
+                      <Table.Column id="process">PROCESS</Table.Column>
+                      <Table.Column id="status">STATUS</Table.Column>
+                      <Table.Column id="action">ACTION</Table.Column>
+                    </Table.Header>
+                    <Table.Body items={filteredOutwardItems} renderEmptyState={() => (
                         loading.outwardItems ? (
                           <div className="flex items-center justify-center py-8">
                             <Loader size="md" />
                             <span className="ml-2 text-gray-500">Loading items...</span>
                           </div>
-                        ) : (
-                          'No outward items found'
-                        )
-                      }
-                      items={filteredOutwardItems}
-                      isLoading={loading.outwardItems}
-                    >
+                        ) : 'No outward items found'
+                      )}>
                       {(item: OutwardGaugeItem) => {
                         const index = filteredOutwardItems.indexOf(item);
                         const isRemoving = removingGaugeIds.includes(item.gauge_inward_id);
                         return (
-                          <TableRow key={getItemKey(item, index)}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{item.outward_no || '-'}</TableCell>
-                            <TableCell>{item.inward_gauge_lab_id || '-'}</TableCell>
-                            <TableCell>{item.master_gauge_name || '-'}</TableCell>
-                            <TableCell>{item.identification_number || '-'}</TableCell>
-                            <TableCell>{item.process || '-'}</TableCell>
-                            <TableCell>{renderStatusChip(item.status)}</TableCell>
-                            <TableCell>
+                          <Table.Row id={getItemKey(item, index)}>
+                            <Table.Cell>{index + 1}</Table.Cell>
+                            <Table.Cell>{item.outward_no || '-'}</Table.Cell>
+                            <Table.Cell>{item.inward_gauge_lab_id || '-'}</Table.Cell>
+                            <Table.Cell>{item.master_gauge_name || '-'}</Table.Cell>
+                            <Table.Cell>{item.identification_number || '-'}</Table.Cell>
+                            <Table.Cell>{item.process || '-'}</Table.Cell>
+                            <Table.Cell>{renderStatusChip(item.status)}</Table.Cell>
+                            <Table.Cell>
                               <Button
                                 size="sm"
                                 variant="destructive"
@@ -531,11 +515,12 @@ const OutwardDetailPage = React.memo(() => {
                               >
                                 {isRemoving ? "Removing..." : "Remove from Outward"}
                               </Button>
-                            </TableCell>
-                          </TableRow>
+                            </Table.Cell>
+                          </Table.Row>
                         );
                       }}
-                    </TableBody>
+                    </Table.Body>
+                    </Table.Content></Table.ScrollContainer>
                   </Table>
                   <div className="flex justify-between items-center mt-2">
                     <div className="text-sm text-gray-600">
@@ -553,23 +538,21 @@ const OutwardDetailPage = React.memo(() => {
                     </div>
                     <div className="items-center gap-2">
 
-                      <Select label="Rows per page" labelPlacement="outside-left" placeholder="Rows per page" classNames={{
-                        trigger: "border-gray-300 hover:border-gray-400 focus-within:border-blue-500 w-full sm:max-w-xs",
-                      }}>
-                        <SelectItem key="10">10</SelectItem>
-                        <SelectItem key="25">25</SelectItem>
-                        <SelectItem key="50">50</SelectItem>
-                        <SelectItem key="100">100</SelectItem>
+                      <Select placeholder="Rows per page">
+                        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                        <Select.Popover><ListBox>
+                          {[10, 25, 50, 100].map((value) => <ListBox.Item key={value} id={String(value)} textValue={String(value)}>{value}</ListBox.Item>)}
+                        </ListBox></Select.Popover>
                       </Select>
                     </div>
                   </div>
-                </CardBody>
+                </Card.Content>
               </Card>
 
-            </Tab>
-            <Tab key="inwardedItems" title="INWARDED ITEMS">
+            </Tabs.Panel>
+            <Tabs.Panel id="inwardedItems">
               <Card>
-                <CardHeader className="flex justify-between items-center bg-blue-600 text-white">
+                <Card.Header className="flex justify-between items-center bg-blue-600 text-white">
                   <h3 className="text-md font-semibold">INWARDED ITEMS</h3>
                   <div className="flex gap-2">
                     {/* Only show bulk add when 2+ items are selected (not after single add) */}
@@ -580,12 +563,6 @@ const OutwardDetailPage = React.memo(() => {
                         className="bg-green-600 text-white hover:bg-green-700"
                         onClick={handleBulkAddGauges}
                         disabled={loading.bulkAdding || loading.addingGauge}
-                        loading={loading.bulkAdding}
-                        leftIcon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                        }
                       >
                         Bulk Add ({selectedInwardedKeys.size})
                       </Button>
@@ -597,36 +574,25 @@ const OutwardDetailPage = React.memo(() => {
                         className="bg-green-600 text-white hover:bg-green-700"
                         onClick={handleBulkAddGauges}
                         disabled={loading.bulkAdding || loading.addingGauge}
-                        loading={loading.bulkAdding}
-                        leftIcon={
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                          </svg>
-                        }
                       >
                         Bulk Add All ({filteredInwardedItems.length})
                       </Button>
                     )}
 
                   </div>
-                </CardHeader>
-                <CardBody>
+                </Card.Header>
+                <Card.Content>
                   <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <Input
-                      isClearable
                       className="w-full sm:max-w-xs"
                       placeholder="Search..."
-                      startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
                       value={inwardedItemsSearch}
-                      onValueChange={setInwardedItemsSearch}
-                      classNames={{
-                        inputWrapper: "border-gray-300 hover:border-gray-400 focus-within:border-blue-500",
-                      }}
+                      onChange={(event) => setInwardedItemsSearch(event.target.value)}
                     />
                   </div>
-                  <Table
-                    aria-label="Inwarded items table"
-                    selectedKeys={selectedInwardedKeys === "all" ? "all" : (selectedInwardedKeys as any)}
+                  <Table aria-label="Inwarded items table">
+                    <Table.ScrollContainer><Table.Content
+                    selectedKeys={selectedInwardedKeys === "all" ? "all" : selectedInwardedKeys}
                     selectionMode="multiple"
                     onSelectionChange={(keys) => {
                       if (keys === "all") {
@@ -637,35 +603,24 @@ const OutwardDetailPage = React.memo(() => {
                       }
                     }}
                   >
-                    <TableHeader>
-                      <TableColumn>SN</TableColumn>
-                      <TableColumn>INWARD NO</TableColumn>
-                      <TableColumn>LAB ID</TableColumn>
-                      <TableColumn>NAME</TableColumn>
-                      <TableColumn>IDENTIFICATION NO</TableColumn>
-                      <TableColumn>PROCESS</TableColumn>
-                      <TableColumn>STATUS</TableColumn>
-                      <TableColumn>ACTION</TableColumn>
-                    </TableHeader>
-                    <TableBody
-                      emptyContent="No inwarded items found"
-                      items={filteredInwardedItems}
-                      isLoading={loading.inwardedItems}
-                    >
+                    <Table.Header>
+                      <Table.Column id="sn">SN</Table.Column><Table.Column id="inward_no">INWARD NO</Table.Column><Table.Column id="lab_id">LAB ID</Table.Column><Table.Column id="name">NAME</Table.Column><Table.Column id="identification">IDENTIFICATION NO</Table.Column><Table.Column id="process">PROCESS</Table.Column><Table.Column id="status">STATUS</Table.Column><Table.Column id="action">ACTION</Table.Column>
+                    </Table.Header>
+                    <Table.Body items={filteredInwardedItems} renderEmptyState={() => loading.inwardedItems ? <div className="py-8 text-center">Loading inwarded items...</div> : 'No inwarded items found'}>
                       {(item: InwardedGaugeItem) => {
                         const index = filteredInwardedItems.indexOf(item);
                         const itemKey = getItemKey(item, index);
                         const isAdding = addingGaugeId === itemKey;
                         return (
-                          <TableRow key={itemKey} className={isAdding ? "opacity-75" : ""}>
-                            <TableCell>{index + 1}</TableCell>
-                            <TableCell>{item.inward_no || "-"}</TableCell>
-                            <TableCell>{item.inward_gauge_lab_id || "-"}</TableCell>
-                            <TableCell className="no-wrap">{item.master_gauge_name || "-"}</TableCell>
-                            <TableCell>{item.identification_number || "-"}</TableCell>
-                            <TableCell>{item.process || "-"}</TableCell>
-                            <TableCell>{renderStatusChip(item.status)}</TableCell>
-                            <TableCell>
+                          <Table.Row id={itemKey} className={isAdding ? "opacity-75" : ""}>
+                            <Table.Cell>{index + 1}</Table.Cell>
+                            <Table.Cell>{item.inward_no || "-"}</Table.Cell>
+                            <Table.Cell>{item.inward_gauge_lab_id || "-"}</Table.Cell>
+                            <Table.Cell className="no-wrap">{item.master_gauge_name || "-"}</Table.Cell>
+                            <Table.Cell>{item.identification_number || "-"}</Table.Cell>
+                            <Table.Cell>{item.process || "-"}</Table.Cell>
+                            <Table.Cell>{renderStatusChip(item.status)}</Table.Cell>
+                            <Table.Cell>
                               {isAdding ? (
                                 <div className="flex items-center gap-2 text-green-600">
                                   <Loader size="sm" className="border-green-600" />
@@ -674,7 +629,7 @@ const OutwardDetailPage = React.memo(() => {
                               ) : (
                                 <Button
                                   size="sm"
-                                  variant="default"
+                                  variant="secondary"
                                   onClick={() => handleAddGauge(item)}
                                   disabled={loading.bulkAdding}
                                   className="bg-blue-600 text-white hover:bg-blue-700"
@@ -682,11 +637,11 @@ const OutwardDetailPage = React.memo(() => {
                                   Add to Outward
                                 </Button>
                               )}
-                            </TableCell>
-                          </TableRow>
+                            </Table.Cell>
+                          </Table.Row>
                         );
                       }}
-                    </TableBody>
+                    </Table.Body></Table.Content></Table.ScrollContainer>
                   </Table>
                   <div className="mt-4 text-sm text-gray-600">
                     {filteredInwardedItems.length > 0 ? (
@@ -700,9 +655,9 @@ const OutwardDetailPage = React.memo(() => {
                       "No entries to display"
                     )}
                   </div>
-                </CardBody>
+                </Card.Content>
               </Card>
-            </Tab>
+            </Tabs.Panel>
 
           </Tabs>
         </div>

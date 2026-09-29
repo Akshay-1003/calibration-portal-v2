@@ -7,11 +7,11 @@ import {
   Controller,
   useWatch
 } from "react-hook-form"
-import { Input, Checkbox, Spinner } from "@heroui/react"
+import { Checkbox, Input, Spinner } from "@heroui/react"
 import { RepeatabilitySection } from "../common/RepeatabilitySection"
 import { TypeAReadingSection } from "../od-id-limit-gauges/TypeAReadingSection"
 import { useDialReadingTableQuery } from "../../../hooks/queries/dialReadingTable"
-import type { DialCalibrationFormShape as FormShape, DialCalibrationReadingForm as ReadingForm } from "../observationSchemas"
+import type { DialCalibrationFormShape as FormShape } from "../observationSchemas"
 
 /* ===================== CONSTANTS ===================== */
 
@@ -119,15 +119,10 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
             <div>
               <Input
                 {...field}
-                size="sm"
                 type="number"
                 value={field.value ?? ""}
-                isReadOnly={isReadOnly}
-                classNames={{
-                  inputWrapper: `h-9 border-1 ${fieldState.error ? "border-red-500" : "border-gray-300"
-                    } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                  input: "text-sm",
-                }}
+                disabled={isReadOnly}
+                className={`h-9 border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-sm`}
               />
               {fieldState.error && (
                 <p className="text-xs text-red-500 mt-1">{fieldState.error.message}</p>
@@ -154,15 +149,10 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
             <div>
               <Input
                 {...field}
-                size="sm"
                 type="number"
                 value={field.value ?? ""}
-                isReadOnly={isReadOnly}
-                classNames={{
-                  inputWrapper: `h-9 border-1 ${fieldState.error ? "border-red-500" : "border-gray-300"
-                    } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                  input: "text-sm",
-                }}
+                disabled={isReadOnly}
+                className={`h-9 border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-sm`}
               />
               {fieldState.error && (
                 <p className="text-xs text-red-500 mt-1">{fieldState.error.message}</p>
@@ -193,16 +183,11 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
             <div>
               <Input
                 {...field}
-                size="sm"
                 type="number"
                 step="any"
                 value={field.value ?? ""}
-                isReadOnly={isReadOnly}
-                classNames={{
-                  inputWrapper: `h-9 border-1 ${fieldState.error ? "border-red-500" : "border-gray-300"
-                    } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                  input: "text-sm",
-                }}
+                disabled={isReadOnly}
+                className={`h-9 border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-sm`}
                 onChange={(e) => {
                   field.onChange(e)
                   const nextValue = e.target.value
@@ -233,14 +218,10 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
               inputMode="decimal"
-              classNames={{
-                inputWrapper: "h-9 border-1 border-gray-300 bg-yellow-50 hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500",
-                input: "text-sm",
-              }}
+              className="h-9 border border-gray-300 bg-yellow-50 text-sm"
               value={field.value ?? ""}
-              isReadOnly={isReadOnly}
+              disabled={isReadOnly}
               onChange={(e) => {
                 const v = e.target.value
                 if (isValidDecimalInput(v)) {
@@ -264,13 +245,9 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
-              isReadOnly
+              disabled
               value={field.value ?? upwardError}
-              classNames={{
-                inputWrapper: "h-9 border-1 border-gray-300 bg-yellow-50",
-                input: "text-sm text-gray-700",
-              }}
+              className="h-9 border border-gray-300 bg-yellow-50 text-sm text-gray-700"
             />
           )}
         />
@@ -283,14 +260,10 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
               inputMode="decimal"
-              classNames={{
-                inputWrapper: "h-9 border-1 border-gray-300 bg-pink-50 hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500",
-                input: "text-sm",
-              }}
+              className="h-9 border border-gray-300 bg-pink-50 text-sm"
               value={field.value ?? ""}
-              isReadOnly={isReadOnly}
+              disabled={isReadOnly}
               onChange={(e) => {
                 const v = e.target.value
                 if (isValidDecimalInput(v)) {
@@ -314,13 +287,9 @@ const DialRow = memo(function DialRow({ index, isReadOnly = false }: { index: nu
           render={({ field }) => (
             <Input
               {...field}
-              size="sm"
-              isReadOnly
+              disabled
               value={field.value ?? downwardError}
-              classNames={{
-                inputWrapper: "h-9 border-1 border-gray-300 bg-pink-50",
-                input: "text-sm text-gray-700",
-              }}
+              className="h-9 border border-gray-300 bg-pink-50 text-sm text-gray-700"
             />
           )}
         />
@@ -357,7 +326,7 @@ export default function DialCalibration({
       : normalizeTablesToPrint(watchedTables)
 
   useEffect(() => {
-    if (hasObservationsData) {
+    if (hasObservationsData && observations) {
       replace(observations.readings)
       if (observations.tables_to_print !== undefined) {
         const normalizedTables = normalizeTablesToPrint(observations.tables_to_print)
@@ -449,7 +418,11 @@ export default function DialCalibration({
 
       <RepeatabilitySection disabled={isReadOnly} observations={observations} />
 
-      <TypeAReadingSection disabled={isReadOnly} observations={observations} note={false} />
+      <TypeAReadingSection
+        disabled={isReadOnly}
+        observations={{ type_a_readings: observations?.type_a_readings ?? [] }}
+        note={false}
+      />
 
       <div className="mt-2 mb-2 bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="bg-slate-100 text-gray-800 px-3 py-2 border-b border-gray-200">
@@ -468,7 +441,7 @@ export default function DialCalibration({
               <Checkbox
                 isSelected={selectedTables.includes(key)}
                 isDisabled={isReadOnly}
-                onValueChange={(isSelected: boolean) => {
+                onChange={(isSelected: boolean) => {
                   const next = isSelected
                     ? Array.from(new Set([...selectedTables, key]))
                     : selectedTables.filter((item) => item !== key)

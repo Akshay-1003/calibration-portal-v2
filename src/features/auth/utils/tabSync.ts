@@ -115,7 +115,7 @@ class TabSync {
           await this.handleTokenRefresh(payload);
           break;
         case 'USER_UPDATE':
-          await this.handleUserUpdate(payload);
+          await this.handleUserUpdate();
           break;
         default:
           // Unknown event type - ignore silently

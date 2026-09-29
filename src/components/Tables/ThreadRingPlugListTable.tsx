@@ -5,25 +5,18 @@ import type { Key } from "@react-types/shared";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
+  Label,
+  ListBox,
+  Popover,
   Pagination,
   Select,
-  SelectItem,
-} from "@heroui-v2/react";
+} from "@heroui/react";
+import type { Selection, SortDescriptor } from "@react-types/shared";
 
 import { ThreadRingPlugData } from "../../store/threadRingPlugStore";
+import { getTableColumnKey } from './tableColumnKey';
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
@@ -226,7 +219,7 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
             <div className="flex gap-2 justify-center">
               <Button
                 size="sm"
-                variant="bordered"
+                variant="outline"
                 className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
                 onPress={() => onEdit?.(item.standard_specification)}
               >
@@ -236,7 +229,7 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
               {onDeleteThreadRingPlug && (
                 <Button
                   size="sm"
-                  variant="bordered"
+                  variant="outline"
                   className="bg-white border border-red-600 text-red-600 hover:bg-red-100 h-7"
                   onPress={() => requestDelete(item)}
                 >
@@ -303,7 +296,7 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
           <p className="text-sm font-semibold text-red-500">Unable to load thread & ring plugs</p>
           <p className="text-xs text-default-500">{error}</p>
           {onRefresh && (
-            <Button size="sm" variant="bordered" onPress={onRefresh}>
+            <Button size="sm" variant="secondary" onPress={onRefresh}>
               Try Again
             </Button>
           )}
@@ -318,41 +311,27 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search by gauge type or standard specification..."
-            startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
             value={currentSearchValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
+          {currentSearchValue ? <Button type="button" variant="ghost" aria-label="Clear thread ring plug search" onPress={onClear}><MagnifyingGlassIcon className="w-4 h-4" /></Button> : null}
           <div className="flex gap-3">
             {onRefresh && (
-              <Button onPress={onRefresh} size="sm" variant="flat" isDisabled={loading}>
+              <Button onPress={onRefresh} size="sm" variant="secondary" isDisabled={loading}>
                 {loading ? "Refreshing..." : "Refresh"}
               </Button>
             )}
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDownIcon className="text-small w-4 h-4" />} variant="flat">
+            <Popover>
+              <Popover.Trigger>
+                <Button className="hidden sm:flex" variant="secondary">
                   Columns
+                  <ChevronDownIcon className="text-small w-4 h-4" />
                 </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                disallowEmptySelection
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+              </Popover.Trigger>
+              <Popover.Content className="w-64 p-1"><Popover.Dialog><ListBox aria-label="Table Columns" selectedKeys={visibleColumns} selectionMode="multiple" onSelectionChange={setVisibleColumns}>{columns.map((column) => <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>{capitalize(column.name)}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Popover.Dialog></Popover.Content>
+            </Popover>
           </div>
         </div>
       </div>
@@ -376,35 +355,25 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
               : `${selectedKeys.size} of ${filteredItems.length} selected`}
         </span>
 
-        <Pagination
-          color="primary"
-          isCompact
-          showControls
-          page={page}
-          total={pages}
-          onChange={(nextPage) => {
+        <Pagination className="scale-90">
+          <Pagination.Content>
+          <Pagination.Previous isDisabled={page <= 1} onPress={() => {
             if (controlledOnPageChange) {
-              controlledOnPageChange(nextPage);
+              controlledOnPageChange(Math.max(1, page - 1));
             } else {
-              setLocalPage(nextPage);
+              setLocalPage(Math.max(1, page - 1));
             }
-          }}
-          className="scale-90"
-        />
+          }}><Pagination.PreviousIcon /></Pagination.Previous>
+          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
+          <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
+          </Pagination.Content>
+        </Pagination>
 
         <div className="flex flex-col sm:flex-row items-center sm:justify-end sm:w-1/6 gap-3">
-          <Select
-            label="Rows Per Page"
-            selectedKeys={new Set([String(rowsPerPage)])}
-            onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
-            className="min-w-[140px]"
-          >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+          <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="min-w-[140px]">
+            <Label>Rows Per Page</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>{['10', '20', '50', '100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
           </Select>
 
         </div>
@@ -426,48 +395,31 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
 
   return (
     <div className=" p-2 industrial-table-wrapper">
-      <Table
-        aria-label="Thread ring plug list table"
-        isHeaderSticky
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0" }}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
-        sortDescriptor={sortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
-      >
-        <TableHeader columns={headerColumns}>
+      <div className="mb-4">{topContent}</div>
+      <Table aria-label="Thread ring plug list table" className="min-w-full">
+        <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+          <Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
+        <Table.Header columns={headerColumns}>
           {(column) => (
-            <TableColumn key={column.uid} align={column.uid === "actions" ? "center" : "start"} allowsSorting={column.sortable}>
+            <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
               {column.name}
-            </TableColumn>
+            </Table.Column>
           )}
-        </TableHeader>
-        <TableBody
-          emptyContent={emptyContent}
+        </Table.Header>
+        <Table.Body
           items={sortedItems}
-          isLoading={loading}
-          loadingContent={
-            <div className="py-8 flex justify-center items-center text-sm text-default-500">
-              <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-              Loading...
-            </div>
-          }
+          renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? "Loading..." : emptyContent}</div>}
         >
           {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-            </TableRow>
+            <Table.Row id={item.id} columns={headerColumns}>
+              {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>}
+            </Table.Row>
           )}
-        </TableBody>
+        </Table.Body>
+          </Table.Content>
+        </Table.ScrollContainer>
       </Table>
+      {bottomContent}
       <DeleteConfirmModal
         isOpen={deleteOpen}
         onClose={closeDelete}

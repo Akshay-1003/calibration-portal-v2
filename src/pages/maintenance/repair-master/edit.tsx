@@ -72,7 +72,7 @@ const RepairMasterEditPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Repair not found</p>
-          <Button color="primary" onClick={() => navigate('/maintenance/repair-master')}>
+          <Button variant="primary" onClick={() => navigate('/maintenance/repair-master')}>
             Back to Repairs
           </Button>
         </div>
@@ -83,7 +83,7 @@ const RepairMasterEditPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mb-6">
-        <Button variant="flat" onClick={handleCancel} className="mb-4">
+        <Button variant="ghost" onClick={handleCancel} className="mb-4">
           ← Back to Repairs
         </Button>
       </div>

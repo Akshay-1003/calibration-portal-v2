@@ -10,6 +10,7 @@ import { API_ENDPOINTS } from '../../config/api';
 import { queryKeys } from './queryKeys';
 import type { OutwardEntry } from '../../types/api';
 import { toast } from 'sonner';
+import { extractPaginatedList } from '../../utils/paginatedResponse';
 
 const updateOutwardListCaches = (
   queryClient: ReturnType<typeof useQueryClient>,
@@ -60,10 +61,13 @@ export function useOutwardEntriesQuery(options?: {
       if (organizationId) {
         params.set('org_id', organizationId);
       }
-      const response = await apiService.get<{ data: OutwardEntry[] }>(
+      const response = await apiService.get<unknown>(
         `${API_ENDPOINTS.OUTWARDS.LIST}?${params.toString()}`,
       );
-      return response?.data || response || [];
+      return extractPaginatedList<OutwardEntry>(response, {
+        arrayKeys: ['data', 'outwards', 'items'],
+        fallbackLimit: limit,
+      }).items;
     },
     staleTime: options?.staleTime ?? 5 * 60 * 1000, // 5 minutes default
     gcTime: 30 * 60 * 1000,
@@ -88,7 +92,7 @@ export function useOutwardEntryQuery(id: string | null, options?: {
       const response = await apiService.get<OutwardEntry>(
         API_ENDPOINTS.OUTWARDS.GET(id)
       );
-      return response?.data || response;
+      return response;
     },
     enabled: (options?.enabled ?? true) && !!id,
   });
@@ -110,7 +114,7 @@ export function useCreateOutwardEntryMutation() {
         API_ENDPOINTS.OUTWARDS.CREATE,
         data
       );
-      return response?.data || response;
+      return response;
     },
     onSuccess: (newOutward) => {
       updateOutwardListCaches(queryClient, (existing) => {
@@ -158,7 +162,7 @@ export function useUpdateOutwardEntryMutation() {
         API_ENDPOINTS.OUTWARDS.UPDATE(id),
         data
       );
-      return response?.data || response;
+      return response;
     },
     onSuccess: (updatedOutward, variables) => {
       updateOutwardListCaches(queryClient, (existing) =>

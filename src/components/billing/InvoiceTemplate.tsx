@@ -289,7 +289,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
                         border: '1px solid #666',
                         borderColor,
                         padding: '4px',
-                        paddingLeft: item.row_kind === 'service' && column.key === 'gauge_name' ? '14px' : '4px',
+                        paddingLeft: '4px',
                         fontSize: '12px',
                         fontWeight: 400,
                         background: '#ffffff',

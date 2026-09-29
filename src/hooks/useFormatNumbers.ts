@@ -4,7 +4,7 @@ import {
   useCreateFormatNumberMutation,
   useDeleteFormatNumberMutation,
 } from './queries/formatNumbers';
-import type { CreateFormatNumberPayload, FormatNumber } from '../types/formatNumber';
+import type { CreateFormatNumberPayload } from '../types/formatNumber';
 
 export const useFormatNumbers = () => {
   const query = useFormatNumbersQuery();

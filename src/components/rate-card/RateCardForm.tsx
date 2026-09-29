@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { z } from 'zod';
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '../ui/button';
-import { Autocomplete, AutocompleteItem, Input, Select, SelectItem } from '@heroui/react';
+import { Autocomplete, Input, ListBox, Select } from '@heroui/react';
 import {
   ArrowUpTrayIcon,
   DocumentTextIcon,
@@ -54,27 +55,16 @@ type RateCardRowInput = {
   rate: string | number;
 };
 
-type FormInputData = {
-  gauge_id: string;
-  rate_type: 'discount' | 'flat';
-  range_type: RangeType;
-  description?: string;
-  discount: string | number;
-  unit: string;
-  entries: RateCardRowInput[];
-};
-
 const INPUT_CLASS_NAMES = {
-  inputWrapper: 'min-h-[42px] border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500',
+  input: 'min-h-[42px] rounded-md border border-gray-300 bg-white px-3 hover:border-gray-400 focus:border-blue-500',
 };
 
 const COMPACT_INPUT_CLASS_NAMES = {
-  inputWrapper: 'min-h-9 h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500',
-  input: 'text-sm',
+  input: 'h-9 rounded-md border border-gray-300 bg-white px-3 text-sm hover:border-gray-400 focus:border-blue-500',
 };
 
 const SELECT_CLASS_NAMES = {
-  trigger: 'min-h-[42px] border border-gray-300 bg-white hover:border-gray-400 focus:border-primary',
+  trigger: 'min-h-[42px] w-full rounded-md border border-gray-300 bg-white px-3 hover:border-primary',
 };
 
 const INVALID_INPUT_WRAPPER =
@@ -152,8 +142,6 @@ export const RateCardForm = ({
   const priceListInputRef = useRef<HTMLInputElement>(null);
 
   const gaugeMasterList = useMemo(() => gaugeMastersQuery.data ?? [], [gaugeMastersQuery.data]);
-  const gaugeMasterLoading = gaugeMastersQuery.isPending;
-  const specificationsLoading = threadRingPlugsQuery.isPending || taperThreadReadingsQuery.isPending;
 
   const specifications = useMemo<SpecificationOption[]>(() => {
     const plainThreadSpecs = (threadRingPlugsQuery.data ?? []).map((item) =>
@@ -167,7 +155,7 @@ export const RateCardForm = ({
     return [...plainThreadSpecs, ...taperThreadSpecs];
   }, [threadRingPlugsQuery.data, taperThreadReadingsQuery.data]);
 
-  const form = useForm<FormInputData, unknown, RateCardFormData>({
+  const form = useForm<z.input<typeof rateCardFormSchema>, unknown, z.output<typeof rateCardFormSchema>>({
     resolver: zodResolver(rateCardFormSchema),
     mode: 'onChange',
     defaultValues: {
@@ -369,27 +357,33 @@ export const RateCardForm = ({
             render={({ field, fieldState }) => (
               <Autocomplete
                 aria-label="Search and select gauge"
-                placeholder="Search gauge..."
                 selectedKey={field.value || null}
                 onSelectionChange={(key) => {
                   field.onChange(key || '');
                 }}
-                isLoading={gaugeMasterLoading}
-                allowsCustomValue={false}
                 isInvalid={fieldState.invalid}
-                classNames={{
-                  base: 'w-full',
-                  listbox: 'max-h-60',
-                  inputWrapper: fieldState.invalid
-                    ? INVALID_INPUT_WRAPPER
-                    : INPUT_CLASS_NAMES.inputWrapper,
-                }}
+                className="w-full"
               >
-                {gaugeMasterList.map((gauge: { id: string; name: string }) => (
-                  <AutocompleteItem key={gauge.id} textValue={gauge.name}>
-                    {gauge.name}
-                  </AutocompleteItem>
-                ))}
+                <Autocomplete.Trigger className={fieldState.invalid ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input}>
+                  <Autocomplete.Filter>
+                    <Input aria-label="Search gauge" placeholder="Search gauge..." />
+                  </Autocomplete.Filter>
+                  <Autocomplete.Indicator />
+                </Autocomplete.Trigger>
+                <Autocomplete.Popover>
+                  <ListBox>
+                    {gaugeMastersQuery.isPending ? (
+                      <ListBox.Item id="loading-gauges" isDisabled>Loading gauges...</ListBox.Item>
+                    ) : (
+                      gaugeMasterList.map((gauge: { id: string; name: string }) => (
+                        <ListBox.Item key={gauge.id} id={gauge.id} textValue={gauge.name}>
+                          {gauge.name}
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      ))
+                    )}
+                  </ListBox>
+                </Autocomplete.Popover>
               </Autocomplete>
             )}
           />
@@ -403,19 +397,24 @@ export const RateCardForm = ({
               <Select
                 aria-label="Select rate type"
                 placeholder="Select type"
-                selectedKeys={field.value ? [field.value] : []}
+                selectedKey={field.value || null}
                 onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as 'discount' | 'flat' | undefined;
+                  const value = keys as 'discount' | 'flat' | undefined;
                   field.onChange(value || 'discount');
                   if (value === 'flat') {
                     setValue('discount', 0, { shouldDirty: true, shouldValidate: true });
                   }
                 }}
                 isInvalid={fieldState.invalid}
-                classNames={SELECT_CLASS_NAMES}
+                className="w-full"
               >
-                <SelectItem key="discount">Discount</SelectItem>
-                <SelectItem key="flat">Flat</SelectItem>
+                <Select.Trigger className={SELECT_CLASS_NAMES.trigger}><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    <ListBox.Item id="discount" textValue="Discount">Discount<ListBox.ItemIndicator /></ListBox.Item>
+                    <ListBox.Item id="flat" textValue="Flat">Flat<ListBox.ItemIndicator /></ListBox.Item>
+                  </ListBox>
+                </Select.Popover>
               </Select>
             )}
           />
@@ -429,17 +428,22 @@ export const RateCardForm = ({
               <Select
                 aria-label="Select range type"
                 placeholder="Select type"
-                selectedKeys={field.value ? [field.value] : []}
+                selectedKey={field.value || null}
                 onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as RangeType | undefined;
+                  const value = keys as RangeType | undefined;
                   handleRangeTypeChange(value || 'range');
                 }}
                 isInvalid={fieldState.invalid}
-                classNames={SELECT_CLASS_NAMES}
+                className="w-full"
               >
-                <SelectItem key="range">Range</SelectItem>
-                <SelectItem key="specification">Specification</SelectItem>
-                <SelectItem key="basic_size">Basic Size</SelectItem>
+                <Select.Trigger className={SELECT_CLASS_NAMES.trigger}><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    <ListBox.Item id="range" textValue="Range">Range<ListBox.ItemIndicator /></ListBox.Item>
+                    <ListBox.Item id="specification" textValue="Specification">Specification<ListBox.ItemIndicator /></ListBox.Item>
+                    <ListBox.Item id="basic_size" textValue="Basic Size">Basic Size<ListBox.ItemIndicator /></ListBox.Item>
+                  </ListBox>
+                </Select.Popover>
               </Select>
             )}
           />
@@ -450,8 +454,8 @@ export const RateCardForm = ({
             {...register('unit')}
             aria-label="Unit"
             placeholder="rs/unit"
-            isInvalid={Boolean(errors.unit)}
-            classNames={errors.unit ? { inputWrapper: INVALID_INPUT_WRAPPER } : INPUT_CLASS_NAMES}
+            aria-invalid={Boolean(errors.unit)}
+            className={errors.unit ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input}
           />
         </FormField>
       </div>
@@ -466,9 +470,9 @@ export const RateCardForm = ({
             min="0"
             max="100"
             placeholder="0"
-            isDisabled={rateType === 'flat'}
-            isInvalid={Boolean(errors.discount)}
-            classNames={errors.discount ? { inputWrapper: INVALID_INPUT_WRAPPER } : INPUT_CLASS_NAMES}
+            disabled={rateType === 'flat'}
+            aria-invalid={Boolean(errors.discount)}
+            className={errors.discount ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input}
           />
         </FormField>
 
@@ -478,14 +482,14 @@ export const RateCardForm = ({
               {...register('description')}
               aria-label="Description"
               placeholder="Enter description..."
-              isInvalid={Boolean(errors.description)}
-              classNames={errors.description ? { inputWrapper: INVALID_INPUT_WRAPPER } : INPUT_CLASS_NAMES}
+              aria-invalid={Boolean(errors.description)}
+              className={errors.description ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input}
             />
           </FormField>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
         <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-sm font-semibold text-slate-900">Pricing Rows</h3>
@@ -569,11 +573,11 @@ export const RateCardForm = ({
                             type="number"
                             step="0.01"
                             placeholder="0"
-                            isInvalid={Boolean(rangeError && 'min' in rangeError && rangeError.min)}
-                            classNames={
+                            aria-invalid={Boolean(rangeError && 'min' in rangeError && rangeError.min)}
+                            className={
                               rangeError && 'min' in rangeError && rangeError.min
-                                ? { inputWrapper: INVALID_COMPACT_INPUT_WRAPPER }
-                                : COMPACT_INPUT_CLASS_NAMES
+                                ? INVALID_COMPACT_INPUT_WRAPPER
+                                : COMPACT_INPUT_CLASS_NAMES.input
                             }
                           />
                         </td>
@@ -584,11 +588,11 @@ export const RateCardForm = ({
                             type="number"
                             step="0.01"
                             placeholder="0"
-                            isInvalid={Boolean(rangeError && 'max' in rangeError && rangeError.max)}
-                            classNames={
+                            aria-invalid={Boolean(rangeError && 'max' in rangeError && rangeError.max)}
+                            className={
                               rangeError && 'max' in rangeError && rangeError.max
-                                ? { inputWrapper: INVALID_COMPACT_INPUT_WRAPPER }
-                                : COMPACT_INPUT_CLASS_NAMES
+                                ? INVALID_COMPACT_INPUT_WRAPPER
+                                : COMPACT_INPUT_CLASS_NAMES.input
                             }
                           />
                         </td>
@@ -603,33 +607,36 @@ export const RateCardForm = ({
                           render={({ field: specField, fieldState }) => (
                             <Autocomplete
                               aria-label={`Specification row ${index + 1}`}
-                              placeholder="Search spec..."
                               selectedKey={specField.value || null}
                               onSelectionChange={(key) => specField.onChange(key || '')}
-                              isLoading={specificationsLoading}
-                              allowsCustomValue={false}
                               isInvalid={fieldState.invalid}
-                              classNames={{
-                                base: 'w-full',
-                                listbox: 'max-h-60',
-                                inputWrapper: fieldState.invalid
-                                  ? INVALID_COMPACT_INPUT_WRAPPER
-                                  : COMPACT_INPUT_CLASS_NAMES.inputWrapper,
-                              }}
+                              className="w-full"
                             >
-                              {specifications.map((spec) => (
-                                <AutocompleteItem
-                                  key={spec.value}
-                                  textValue={`${spec.label} (${spec.type === 'plain-thread' ? 'Plain' : 'Taper'})`}
-                                >
-                                  <div className="flex flex-col">
-                                    <span className="text-sm">{spec.label}</span>
-                                    <span className="text-xs text-gray-500">
-                                      {spec.type === 'plain-thread' ? 'Plain Thread' : 'Taper Thread'}
-                                    </span>
-                                  </div>
-                                </AutocompleteItem>
-                              ))}
+                              <Autocomplete.Trigger className={fieldState.invalid ? INVALID_COMPACT_INPUT_WRAPPER : COMPACT_INPUT_CLASS_NAMES.input}>
+                                <Autocomplete.Filter>
+                                  <Input aria-label={`Search specification row ${index + 1}`} placeholder="Search spec..." />
+                                </Autocomplete.Filter>
+                                <Autocomplete.Indicator />
+                              </Autocomplete.Trigger>
+                              <Autocomplete.Popover>
+                                <ListBox>
+                                  {threadRingPlugsQuery.isPending || taperThreadReadingsQuery.isPending ? (
+                                    <ListBox.Item id="loading-specifications" isDisabled>Loading specifications...</ListBox.Item>
+                                  ) : (
+                                    specifications.map((spec) => (
+                                      <ListBox.Item key={spec.value} id={spec.value} textValue={`${spec.label} (${spec.type === 'plain-thread' ? 'Plain' : 'Taper'})`}>
+                                        <div className="flex flex-col">
+                                          <span className="text-sm">{spec.label}</span>
+                                          <span className="text-xs text-gray-500">
+                                            {spec.type === 'plain-thread' ? 'Plain Thread' : 'Taper Thread'}
+                                          </span>
+                                        </div>
+                                        <ListBox.ItemIndicator />
+                                      </ListBox.Item>
+                                    ))
+                                  )}
+                                </ListBox>
+                              </Autocomplete.Popover>
                             </Autocomplete>
                           )}
                         />
@@ -644,11 +651,11 @@ export const RateCardForm = ({
                           type="number"
                           step="0.01"
                           placeholder="0"
-                          isInvalid={Boolean(currentRowErrors?.basic_size)}
-                          classNames={
+                          aria-invalid={Boolean(currentRowErrors?.basic_size)}
+                          className={
                             currentRowErrors?.basic_size
-                              ? { inputWrapper: INVALID_COMPACT_INPUT_WRAPPER }
-                              : COMPACT_INPUT_CLASS_NAMES
+                              ? INVALID_COMPACT_INPUT_WRAPPER
+                              : COMPACT_INPUT_CLASS_NAMES.input
                           }
                         />
                       </td>
@@ -662,7 +669,7 @@ export const RateCardForm = ({
                           type="number"
                           step="0.0001"
                           placeholder="0.001"
-                          classNames={COMPACT_INPUT_CLASS_NAMES}
+                          className={COMPACT_INPUT_CLASS_NAMES.input}
                         />
                       </td>
                     )}
@@ -674,11 +681,11 @@ export const RateCardForm = ({
                         type="number"
                         step="0.01"
                         placeholder="0"
-                        isInvalid={Boolean(currentRowErrors?.rate)}
-                        classNames={
+                        aria-invalid={Boolean(currentRowErrors?.rate)}
+                        className={
                           currentRowErrors?.rate
-                            ? { inputWrapper: INVALID_COMPACT_INPUT_WRAPPER }
-                            : COMPACT_INPUT_CLASS_NAMES
+                            ? INVALID_COMPACT_INPUT_WRAPPER
+                            : COMPACT_INPUT_CLASS_NAMES.input
                         }
                       />
                     </td>
@@ -715,7 +722,7 @@ export const RateCardForm = ({
             void handlePriceListFileChange(event.target.files?.[0]);
           }}
         />
-        <div className="flex min-h-[42px] flex-col gap-3 rounded-xl border border-gray-300 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-h-[42px] flex-col gap-3 rounded-md border border-gray-300 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
             <DocumentTextIcon className="h-5 w-5 shrink-0 text-slate-400" />
             <span className="truncate">

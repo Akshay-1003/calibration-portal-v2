@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 
 // Performance monitoring hook
 export const usePerformanceMonitor = (componentName: string) => {
-  const renderStartTime = useRef<number>();
+  const renderStartTime = useRef<number | null>(null);
   const renderCount = useRef(0);
 
   useEffect(() => {
@@ -121,7 +121,7 @@ export const useLocalStorage = <T>(key: string, initialValue: T) => {
 
 // Previous value hook for comparisons
 export const usePrevious = <T>(value: T): T | undefined => {
-  const ref = useRef<T>();
+  const ref = useRef<T | undefined>(undefined);
   useEffect(() => {
     ref.current = value;
   });

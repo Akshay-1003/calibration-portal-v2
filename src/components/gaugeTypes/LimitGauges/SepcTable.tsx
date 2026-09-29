@@ -91,7 +91,7 @@ const SpecTable: React.FC<Props> = ({ specifications, handleTablebasic_sizeChang
                       }}
                       placeholder={`Enter ${getPlaceholderText(col)}`}
                       className="w-full text-sm"
-                      error={errorMsg}
+                      aria-invalid={Boolean(errorMsg)}
                     />
                   ) : (
                     <div className="text-sm">{inputValue || "-"}</div>
@@ -125,7 +125,7 @@ const SpecTable: React.FC<Props> = ({ specifications, handleTablebasic_sizeChang
                       }}
                       placeholder={`Enter ${getPlaceholderText(col)}`}
                       className="w-full text-sm"
-                      error={errorMsg}
+                      aria-invalid={Boolean(errorMsg)}
                     />
                   ) : (
                     <div className="text-sm">{inputValue || "-"}</div>

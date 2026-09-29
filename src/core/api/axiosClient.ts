@@ -11,7 +11,12 @@
  * - HttpOnly cookie support for refresh tokens
  */
 
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import axios, {
+  type AxiosInstance,
+  type AxiosRequestConfig,
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios';
 import { ENV } from '../config/env';
 import { useAuthStore } from '../../features/auth/store/authStore';
 import { toast } from 'sonner';
@@ -185,7 +190,7 @@ class SecureAxiosClient {
    */
   async get<T = any>(url: string, config?: AxiosRequestConfig & { _skipRefresh?: boolean }): Promise<T> {
     const response = await this.instance.get<T>(url, config);
-    return response;
+    return response.data;
   }
 
   /**
@@ -197,7 +202,7 @@ class SecureAxiosClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.instance.post<T>(url, data, config);
-    return response;
+    return response.data;
   }
 
   /**
@@ -209,7 +214,7 @@ class SecureAxiosClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.instance.put<T>(url, data, config);
-    return response;
+    return response.data;
   }
 
   /**
@@ -221,7 +226,7 @@ class SecureAxiosClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.instance.patch<T>(url, data, config);
-    return response;
+    return response.data;
   }
 
   /**
@@ -232,7 +237,7 @@ class SecureAxiosClient {
     config?: AxiosRequestConfig
   ): Promise<T> {
     const response = await this.instance.delete<T>(url, config);
-    return response;
+    return response.data;
   }
 
   /**

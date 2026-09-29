@@ -3,13 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router';
 import { z } from 'zod';
-import {
-  Input,
-  Button,
-  Card,
-  CardHeader,
-  CardBody,
-} from '@heroui-v2/react';
+import { Button, Card as V3Card, InputGroup } from '@heroui/react';
 import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { FormField } from '../../components/ui/form-field';
 import { toast } from 'sonner';
@@ -87,8 +81,8 @@ export const SettingsChangePassword = () => {
 
   return (
     <div className="space-y-6">
-      <Card className="border border-amber-200 bg-amber-50/80">
-        <CardBody className="p-5">
+      <V3Card className="border border-amber-200 bg-amber-50/80">
+        <V3Card.Content className="p-5">
           <div className="space-y-2 text-sm text-amber-900">
             <p className="font-semibold">Existing passwords cannot be shown or prefilled.</p>
             <p>
@@ -96,11 +90,11 @@ export const SettingsChangePassword = () => {
               If you do not know it, use the reset flow instead of trying to reveal the old password.
             </p>
           </div>
-        </CardBody>
-      </Card>
+        </V3Card.Content>
+      </V3Card>
 
-      <Card className="border border-gray-200">
-        <CardHeader className="pb-4 border-b border-gray-200">
+      <V3Card className="border border-gray-200">
+        <V3Card.Header className="pb-4 border-b border-gray-200">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-primary-50 rounded-lg">
               <LockClosedIcon className="h-6 w-6 text-primary-600" />
@@ -112,8 +106,8 @@ export const SettingsChangePassword = () => {
               </p>
             </div>
           </div>
-        </CardHeader>
-        <CardBody className="p-6">
+        </V3Card.Header>
+        <V3Card.Content className="p-6">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               label="Current Password"
@@ -121,29 +115,26 @@ export const SettingsChangePassword = () => {
               error={errors.currentPassword?.message}
               description="We verify this before allowing the password update."
             >
-              <Input
+              <InputGroup variant="secondary">
+              <InputGroup.Input
                 {...register('currentPassword')}
                 type={showCurrentPassword ? 'text' : 'password'}
                 placeholder="Enter current password"
-                isInvalid={!!errors.currentPassword}
-                errorMessage={errors.currentPassword?.message}
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="focus:outline-none"
-                  >
-                    {showCurrentPassword ? (
-                      <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400" />
-                    )}
-                  </button>
-                }
-                classNames={{
-                  inputWrapper: "border border-gray-300 hover:border-gray-400 focus:border-primary",
-                }}
               />
+              <InputGroup.Suffix>
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="focus:outline-none"
+                >
+                  {showCurrentPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </InputGroup.Suffix>
+              </InputGroup>
             </FormField>
 
             <FormField
@@ -152,29 +143,26 @@ export const SettingsChangePassword = () => {
               error={errors.newPassword?.message}
               description="Use at least 8 characters with uppercase, lowercase, and a number."
             >
-              <Input
+              <InputGroup variant="secondary">
+              <InputGroup.Input
                 {...register('newPassword')}
                 type={showNewPassword ? 'text' : 'password'}
                 placeholder="Enter new password"
-                isInvalid={!!errors.newPassword}
-                errorMessage={errors.newPassword?.message}
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="focus:outline-none"
-                  >
-                    {showNewPassword ? (
-                      <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400" />
-                    )}
-                  </button>
-                }
-                classNames={{
-                  inputWrapper: "border border-gray-300 hover:border-gray-400 focus:border-primary",
-                }}
               />
+              <InputGroup.Suffix>
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="focus:outline-none"
+                >
+                  {showNewPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </InputGroup.Suffix>
+              </InputGroup>
             </FormField>
 
             <FormField
@@ -182,29 +170,26 @@ export const SettingsChangePassword = () => {
               required
               error={errors.confirmPassword?.message}
             >
-              <Input
+              <InputGroup variant="secondary">
+              <InputGroup.Input
                 {...register('confirmPassword')}
                 type={showConfirmPassword ? 'text' : 'password'}
                 placeholder="Confirm new password"
-                isInvalid={!!errors.confirmPassword}
-                errorMessage={errors.confirmPassword?.message}
-                endContent={
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="focus:outline-none"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeSlashIcon className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <EyeIcon className="h-5 w-5 text-gray-400" />
-                    )}
-                  </button>
-                }
-                classNames={{
-                  inputWrapper: "border border-gray-300 hover:border-gray-400 focus:border-primary",
-                }}
               />
+              <InputGroup.Suffix>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="focus:outline-none"
+                >
+                  {showConfirmPassword ? (
+                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                  ) : (
+                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                  )}
+                </button>
+              </InputGroup.Suffix>
+              </InputGroup>
             </FormField>
 
             {errors.root && (
@@ -216,7 +201,7 @@ export const SettingsChangePassword = () => {
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
               <Button
                 type="button"
-                variant="flat"
+                variant="ghost"
                 onPress={() => {
                   clearErrors();
                   reset();
@@ -226,26 +211,26 @@ export const SettingsChangePassword = () => {
               </Button>
               <Button
                 type="submit"
-                color="primary"
-                isLoading={isSubmitting}
+                variant="primary"
+                isDisabled={isSubmitting}
               >
                 Update Password
               </Button>
             </div>
           </form>
-        </CardBody>
-      </Card>
+        </V3Card.Content>
+      </V3Card>
 
-      <Card className="border border-slate-200">
-        <CardHeader className="pb-4 border-b border-slate-200">
+      <V3Card className="border border-slate-200">
+        <V3Card.Header className="pb-4 border-b border-slate-200">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">Need a Reset Instead?</h2>
             <p className="mt-1 text-sm text-slate-500">
               If you do not know your current password, it cannot be revealed. Use a reset flow instead of trying to recover the existing password.
             </p>
           </div>
-        </CardHeader>
-        <CardBody className="space-y-4 p-6 text-sm text-slate-600">
+        </V3Card.Header>
+        <V3Card.Content className="space-y-4 p-6 text-sm text-slate-600">
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
             <p className="font-medium text-slate-900">Recommended current flow</p>
             <p className="mt-1">
@@ -260,22 +245,21 @@ export const SettingsChangePassword = () => {
 
           <div className="flex flex-wrap gap-3">
             <Button
-              color="primary"
-              variant="flat"
+              variant="secondary"
               onPress={() => navigate('/forgot-password')}
             >
               Go to Forgot Password
             </Button>
             {canManagePasswordResets ? (
               <Button
-                variant="light"
+                variant="ghost"
                 onPress={() => navigate('/settings/users')}
               >
                 Reset Another User
               </Button>
             ) : null}
             <Button
-              variant="light"
+              variant="ghost"
               onPress={() => {
                 toast.message('Existing passwords cannot be shown. Use a reset flow to set a new one.');
               }}
@@ -292,11 +276,8 @@ export const SettingsChangePassword = () => {
               </p>
             </div>
           ) : null}
-        </CardBody>
-      </Card>
+        </V3Card.Content>
+      </V3Card>
     </div>
   );
 };
-
-
-

@@ -287,10 +287,7 @@ export function FixedRangeCalibration({
                           aria-label="Measured Dimension" 
                           readOnly 
                           value={row?.measured_dimension?.toString() ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full min-w-[100px] border-1 border-gray-300 bg-gray-50",
-                            input: "text-sm text-center",
-                          }}
+                          className="h-9 w-full min-w-[100px] border border-gray-300 bg-gray-50 text-center text-sm"
                         />
                       </td>
 
@@ -307,13 +304,8 @@ export function FixedRangeCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Reading 1"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
-                                  fieldState.error ? "border-red-500" : "border-gray-300"
-                                } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                                input: "text-sm text-center",
-                              }}
+                              disabled={isReadOnly}
+                              className={`h-9 w-full min-w-[100px] border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-center text-sm`}
                               onChange={(e) => {
                                 controllerField.onChange(e);
                                 calculateRow(index);
@@ -337,13 +329,8 @@ export function FixedRangeCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Reading 2"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
-                                  fieldState.error ? "border-red-500" : "border-gray-300"
-                                } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                                input: "text-sm text-center",
-                              }}
+                              disabled={isReadOnly}
+                              className={`h-9 w-full min-w-[100px] border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-center text-sm`}
                               onChange={(e) => {
                                 controllerField.onChange(e);
                                 calculateRow(index);
@@ -367,13 +354,8 @@ export function FixedRangeCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Reading 3"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
-                                  fieldState.error ? "border-red-500" : "border-gray-300"
-                                } bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500`,
-                                input: "text-sm text-center",
-                              }}
+                              disabled={isReadOnly}
+                              className={`h-9 w-full min-w-[100px] border ${fieldState.error ? "border-red-500" : "border-gray-300"} bg-white text-center text-sm`}
                               onChange={(e) => {
                                 controllerField.onChange(e);
                                 calculateRow(index);
@@ -393,14 +375,12 @@ export function FixedRangeCalibration({
                           render={({ field: controllerField }) => (
                             <Input
                               {...controllerField}
+                              value={controllerField.value == null ? "" : String(controllerField.value)}
                               aria-label="Mean"
                               type="text"
                               inputMode="decimal"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-gray-300 bg-white",
-                                input: "text-sm text-center",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-9 w-full min-w-[100px] border border-gray-300 bg-white text-center text-sm"
                               onChange={(e) => {
                                 controllerField.onChange(e);
                                 const meanValue = parseNumber(e.target.value);
@@ -425,10 +405,7 @@ export function FixedRangeCalibration({
                           aria-label="Observed Error" 
                           readOnly 
                           value={formatObservedErrorMicron(row?.observed_error)}
-                          classNames={{
-                            inputWrapper: "h-9 w-full min-w-[100px] border-1 border-gray-300 bg-gray-50",
-                            input: "text-sm text-center",
-                          }}
+                          className="h-9 w-full min-w-[100px] border border-gray-300 bg-gray-50 text-center text-sm"
                         />
                       </td>
 
@@ -443,8 +420,7 @@ export function FixedRangeCalibration({
                               <Checkbox
                                 isSelected={field.value || false}
                                 isDisabled={isReadOnly}
-                                onValueChange={(value: boolean) => field.onChange(value)}
-                                size="sm"
+                                onChange={(value: boolean) => field.onChange(value)}
                               >
                                 Set
                               </Checkbox>
@@ -452,12 +428,9 @@ export function FixedRangeCalibration({
                           />
 
                           <Button
-                            isIconOnly
-                            color="danger"
-                            variant="flat"
+                            variant="danger-soft"
                             onPress={() => remove(index)}
                             isDisabled={isReadOnly}
-                            size="sm"
                           >
                             <Trash2 size={16} />
                           </Button>
@@ -492,12 +465,8 @@ export function FixedRangeCalibration({
                   type="text"
                   inputMode="decimal"
                   aria-label="Squareness of Movement on Base"
-                  isDisabled={isReadOnly}
-                  classNames={{
-                    inputWrapper:
-                      "h-10 border-1 border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500",
-                    input: "text-sm",
-                  }}
+                  disabled={isReadOnly}
+                  className="h-10 border border-gray-300 bg-white text-sm"
                   placeholder="Enter value"
                 />
               )}

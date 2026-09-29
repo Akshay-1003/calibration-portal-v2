@@ -28,7 +28,7 @@ import { useInwardGaugesQuery } from "../../hooks/queries/gauges";
 import { useDashboardStore } from "../../store/dashboardStore";
 import { useOrganizations, useInwardEntries } from "../../store/appStore";
 import { useAuth } from "../../features/auth";
-import { Card, CardBody, Select, SelectItem } from "@heroui-v2/react";
+import { Card, ListBox, Select } from "@heroui/react";
 
 const STATUS_COLORS: Record<string, string> = {
   completed: '#10B981',
@@ -76,7 +76,7 @@ export default function Home() {
     inwardEntries,
     loading: inwardLoading,
     fetchInwardEntries,
-  } = useInwardEntries({ enabled: hasLaboratoryContext });
+  } = useInwardEntries();
 
   // Gauges are heavy: fetch only after user interaction (refresh / filter change)
   const gaugesQuery = useInwardGaugesQuery({ enabled: shouldFetchGauges && hasLaboratoryContext });
@@ -139,7 +139,7 @@ export default function Home() {
 
   const filteredLinkedGauges = useMemo(() => {
     return linkedGauges.filter(g => {
-      const gaugeDate = new Date(g.created_at);
+      const gaugeDate = new Date(g.created_at ?? g.inward_info?.inward_date ?? 0);
       const matchesPeriod = gaugeDate >= periodStart;
       const matchesOrg = !selectedOrgId || g.client_org_id === selectedOrgId;
       // Handle process_status field - normalize status values
@@ -294,7 +294,7 @@ export default function Home() {
     // Group gauges by inward_id
     const gaugesByInward = new Map<string, typeof linkedGauges>();
     linkedGauges.forEach(gauge => {
-      const gaugeDate = new Date(gauge.created_at || gauge.inward_info?.inward_date);
+      const gaugeDate = new Date(gauge.created_at || gauge.inward_info?.inward_date || 0);
       const matchesPeriod = gaugeDate >= periodStart;
       const matchesCompany = selectedCompany === 'all' || gauge.client_org_id === selectedCompany;
       
@@ -342,7 +342,7 @@ export default function Home() {
         gauges: inwardGauges.map(gauge => {
           // Get gauge name - API response may include master_gauge_name even if not in type
           const gaugeName = (gauge as any).master_gauge_name || 
-            `${gauge.gauge_class || 'Gauge'} - ${gauge.identification_number || gauge.manf_serial_number || gauge.id.slice(0, 8)}`;
+            `${gauge.gauge_class || 'Gauge'} - ${gauge.identification_number || gauge.manf_serial_number || gauge.id?.slice(0, 8) || ''}`;
           
           return {
             id: gauge.id,
@@ -383,7 +383,7 @@ export default function Home() {
     filteredLinkedGauges.forEach(gauge => {
       const status = gauge.process_status || '';
       if (status === 'completed') {
-        const date = new Date(gauge.created_at || gauge.inward_info?.inward_date);
+        const date = new Date(gauge.created_at || gauge.inward_info?.inward_date || 0);
         const monthKey = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         if (monthlyData[monthKey]) {
           monthlyData[monthKey].certificates++;
@@ -424,7 +424,7 @@ export default function Home() {
     filteredLinkedGauges.forEach(gauge => {
       const status = gauge.process_status || '';
       if (status === 'completed') {
-        const date = new Date(gauge.created_at || gauge.inward_info?.inward_date);
+        const date = new Date(gauge.created_at || gauge.inward_info?.inward_date || 0);
         const dayKey = date.toLocaleDateString('en-US', { weekday: 'short' });
         if (dailyData[dayKey]) {
           dailyData[dayKey].certificates++;
@@ -449,7 +449,6 @@ export default function Home() {
       borderColor: processStatusData.map(item => item.color),
       borderWidth: 2,
       hoverOffset: 15,
-      cutout: '60%'
     }]
   };
 
@@ -485,7 +484,7 @@ export default function Home() {
     ]
   };
 
-  const monthlyTrendData: ChartData<'bar'> = {
+  const monthlyTrendData: ChartData<'bar' | 'line'> = {
     labels: monthlyTrend.map(item => item.month),
     datasets: [
       {
@@ -602,9 +601,9 @@ export default function Home() {
   };
 
   const pieChartOptions: ChartOptions<'doughnut'> = {
-    ...chartOptions,
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      ...chartOptions.plugins,
       legend: {
         position: 'bottom' as const,
         labels: {
@@ -620,7 +619,11 @@ export default function Home() {
   };
 
   const barChartOptions: ChartOptions<'bar'> = {
-    ...chartOptions,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+    },
     scales: {
       x: {
         grid: {
@@ -657,7 +660,7 @@ export default function Home() {
     <div className="section-spacing">
       {/* Header Section */}
       <Card className="bg-gradient-to-r from-blue-600 to-purple-600 border-none shadow-sm rounded-sm">
-        <CardBody className="p-3 md:p-4">
+        <Card.Content className="p-3 md:p-4">
           <div>
             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold mb-1 text-white">
               {selectedCompanyName ? `${selectedCompanyName} - Analytics Dashboard` : 'Analytics Dashboard'}
@@ -668,12 +671,12 @@ export default function Home() {
                 : 'Monitoring & Performance Analytics'}
             </p>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       {/* Filters Section - Minimalist Design */}
       <Card className="shadow-sm rounded-sm border border-gray-200">
-        <CardBody className="p-3">
+        <Card.Content className="p-3">
           <div className="flex flex-wrap gap-2 items-center">
             <Button
               onClick={() => {
@@ -697,68 +700,67 @@ export default function Home() {
             <div className="h-6 w-px bg-gray-300" />
             <Select
               aria-label="Select time period"
-              placeholder="Select All"
-              selectedKeys={new Set([selectedPeriod])}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+              selectedKey={selectedPeriod}
+              onSelectionChange={(key) => {
+                const selected = String(key);
                 setSelectedPeriod(selected);
                 setShouldFetchGauges(true);
               }}
               className="max-w-[140px]"
-              size="sm"
-              variant="bordered"
-              radius="sm"
             >
-              <SelectItem key="day">Today</SelectItem>
-              <SelectItem key="week">This Week</SelectItem>
-              <SelectItem key="month">This Month</SelectItem>
-              <SelectItem key="year">This Year</SelectItem>
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover><ListBox>
+                <ListBox.Item id="day" textValue="Today">Today</ListBox.Item>
+                <ListBox.Item id="week" textValue="This Week">This Week</ListBox.Item>
+                <ListBox.Item id="month" textValue="This Month">This Month</ListBox.Item>
+                <ListBox.Item id="year" textValue="This Year">This Year</ListBox.Item>
+              </ListBox></Select.Popover>
             </Select>
             <Select
               aria-label="Filter by company"
-              selectedKeys={new Set([selectedCompany])}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string;
+              selectedKey={selectedCompany}
+              onSelectionChange={(key) => {
+                const selected = String(key);
                 setSelectedCompany(selected);
                 setShouldFetchGauges(true);
               }}
               className="max-w-[180px]"
-              size="sm"
-              variant="bordered"
-              radius="sm"
             >
-              <SelectItem key="all">All Companies</SelectItem>
-              {organizations.map((org) => (
-                <SelectItem key={org.id}>{org.name}</SelectItem>
-              ))}
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover><ListBox>
+                <ListBox.Item id="all" textValue="All Companies">All Companies</ListBox.Item>
+                {organizations.map((org) => (
+                  <ListBox.Item key={org.id} id={org.id} textValue={org.name}>{org.name}</ListBox.Item>
+                ))}
+              </ListBox></Select.Popover>
             </Select>
             <Select
               aria-label="Filter by status"
-              selectedKeys={new Set([selectedStatus])}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as StatusFilter;
+              selectedKey={selectedStatus}
+              onSelectionChange={(key) => {
+                const selected = String(key) as StatusFilter;
                 setSelectedStatus(selected);
                 setShouldFetchGauges(true);
               }}
               className="max-w-[140px]"
-              size="sm"
-              variant="bordered"
-              radius="sm"
             >
-              <SelectItem key="all">All Statuses</SelectItem>
-              <SelectItem key="pending">Pending</SelectItem>
-              <SelectItem key="in_progress">In Progress</SelectItem>
-              <SelectItem key="completed">Completed</SelectItem>
-              <SelectItem key="on_hold">On Hold</SelectItem>
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover><ListBox>
+                <ListBox.Item id="all" textValue="All Statuses">All Statuses</ListBox.Item>
+                <ListBox.Item id="pending" textValue="Pending">Pending</ListBox.Item>
+                <ListBox.Item id="in_progress" textValue="In Progress">In Progress</ListBox.Item>
+                <ListBox.Item id="completed" textValue="Completed">Completed</ListBox.Item>
+                <ListBox.Item id="on_hold" textValue="On Hold">On Hold</ListBox.Item>
+              </ListBox></Select.Popover>
             </Select>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="shadow-sm rounded-sm border border-gray-200">
-          <CardBody className="p-3 md:p-4">
+          <Card.Content className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Inwards</p>
@@ -773,11 +775,11 @@ export default function Home() {
                 </svg>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
 
         <Card className="shadow-sm rounded-sm border border-gray-200">
-          <CardBody className="p-3 md:p-4">
+          <Card.Content className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed Certificates</p>
@@ -792,13 +794,13 @@ export default function Home() {
                 </svg>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
 
      
 
         <Card className="shadow-sm rounded-sm border border-gray-200">
-          <CardBody className="p-3 md:p-4">
+          <Card.Content className="p-3 md:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Pending Calibrations</p>
@@ -813,7 +815,7 @@ export default function Home() {
                 </svg>
               </div>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
 
@@ -821,7 +823,7 @@ export default function Home() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
         {/* Process Status Monitoring */}
         <Card className="shadow-sm rounded-sm border border-gray-200">
-          <CardBody className="p-3 md:p-4">
+          <Card.Content className="p-3 md:p-4">
             <h3 className="text-base md:text-lg font-semibold mb-4">Process Status Overview</h3>
             {processStatusData.length > 0 ? (
               <div className="h-80 flex items-center justify-center">
@@ -837,28 +839,28 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </CardBody>
+          </Card.Content>
         </Card>
 
         {/* Daily Performance Trend */}
         <Card className="shadow-sm rounded-sm border border-gray-200">
-          <CardBody className="p-3 md:p-4">
+          <Card.Content className="p-3 md:p-4">
             <h3 className="text-base md:text-lg font-semibold mb-4">Daily Performance (Last 7 Days)</h3>
             <div className="h-80">
               <Line data={dailyTrendData} options={chartOptions} />
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
 
       {/* Monthly Trends & Targets */}
       <Card className="shadow-sm rounded-sm border border-gray-200">
-        <CardBody className="p-3 md:p-4">
+        <Card.Content className="p-3 md:p-4">
           <h3 className="text-base md:text-lg font-semibold mb-4">Monthly Trends & Performance</h3>
           <div className="h-96">
-            <Chart type="bar" data={monthlyTrendData} options={barChartOptions} />
+            <Chart type="bar" data={monthlyTrendData as ChartData<'bar'>} options={barChartOptions} />
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
     </div>

@@ -119,7 +119,7 @@ export const setAllPermissions = (
   mode: 'view' | 'edit' | 'clear',
   organizationId?: string | null,
   labId?: string | null,
-  modules: PermissionModule[] = PERMISSION_MODULES,
+  modules: PermissionModule[] = [...PERMISSION_MODULES],
 ): UserPermissionScope => {
   const normalizedScope = withPermissionScopeMetadata(permissionScope, organizationId, labId);
   const nextPermissions = modules.reduce<UserPermissionScope['permissions']>((accumulator, module) => {

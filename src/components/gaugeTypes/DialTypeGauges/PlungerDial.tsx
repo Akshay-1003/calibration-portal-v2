@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useFormContext } from "react-hook-form";
-import { Input, Select, SelectItem } from "@heroui-v2/react";
+import { Input, Label, ListBox, Select } from "@heroui/react";
 import { useDialTablesQuery } from "../../../hooks/queries/dialTables";
 import { useDialReadingTableQuery } from "../../../hooks/queries/dialReadingTable";
 import {
@@ -68,59 +68,34 @@ export default function PlungerDial({ initialData, readOnly = false }: PlungerDi
             <h3 className="text-sm font-semibold uppercase tracking-[0.08em] text-slate-700">
                 Specifications
             </h3>
-            <Input
-                {...register("specifications.range.min")}
-                placeholder="0"
-                size="sm"
-                label="Range From"
-                labelPlacement="outside"
-                variant="bordered"
-                classNames={{
-                    label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-                }}
-            />
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+                Range From
+                <Input {...register("specifications.range.min")} placeholder="0" className="border border-gray-300" />
+            </label>
 
-            <Input
-                {...register("specifications.range.max")}
-                placeholder="100"
-                size="sm"
-                label="Range To"
-                labelPlacement="outside"
-                variant="bordered"
-                classNames={{
-                    label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-                }}
-            />
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+                Range To
+                <Input {...register("specifications.range.max")} placeholder="100" className="border border-gray-300" />
+            </label>
 
-            <Input
-                {...register("specifications.least_count")}
-                placeholder="0.01"
-                size="sm"
-                label="Least Count"
-                labelPlacement="outside"
-                variant="bordered"
-                classNames={{
-                    label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-                }}
-            />
+            <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+                Least Count
+                <Input {...register("specifications.least_count")} placeholder="0.01" className="border border-gray-300" />
+            </label>
 
-            <Select
-                size="sm"
-                label="Dial Table"
-                labelPlacement="outside"
-                placeholder="Select Dial Table"
-                variant="bordered"
-                selectedKeys={readingTableId ? [readingTableId] : []}
-                onChange={(e) => setValue("specifications.reading_table_id", e.target.value)}
-                classNames={{
-                    label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-                }}
-            >
+            <Select selectedKey={readingTableId || null} placeholder="Select Dial Table" onSelectionChange={(key) => setValue("specifications.reading_table_id", key as string)}>
+                <Label>Dial Table</Label>
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover>
+                    <ListBox>
                 {data.map((item) => (
-                    <SelectItem key={item.id}>
+                    <ListBox.Item key={item.id} id={item.id} textValue={item.table_name}>
                         {item.table_name}
-                    </SelectItem>
+                        <ListBox.ItemIndicator />
+                    </ListBox.Item>
                 ))}
+                    </ListBox>
+                </Select.Popover>
             </Select>
         </div>
     );

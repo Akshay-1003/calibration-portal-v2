@@ -1,14 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
-import {Input, DatePicker} from "@heroui-v2/react";
+import { Calendar, DateField, DatePicker, Input, ListBox, Select, Button, Tabs, Card } from "@heroui/react";
 import { LinkedGaugesTable } from "../../../components/Tables/LinkedGaugesTable";
-import { Select, SelectItem, Button, Tabs, Tab, Card, CardBody } from "@heroui-v2/react";
 import { useInwardGaugeStore } from "../../../store/inwardGaugeStore";
 import { useCertificateStore } from "../../../store/certificateStore";
 import { toast } from "sonner";
 import { CertificatePreviewModal } from "../../../components/certificate/CertificatePreviewModal";
 import { logger } from "../../../utils/logger";
-import { MagnifyingGlassIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import type { DateValue } from "@internationalized/date";
 import { useNavigate } from "react-router-dom";
 import { I18nProvider } from "@react-aria/i18n";
@@ -40,6 +38,20 @@ interface CompletedFilterFormData {
   dateTo: DateValue | null;
   labIdFilter: string;
 }
+
+const OrganizationSelect = ({ value, onChange, loading, organizations }: { value: string | null; onChange: (value: string | null) => void; loading: boolean; organizations: Array<{ id: string; name: string }> }) => (
+  <Select selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : null)} isDisabled={loading} placeholder={loading ? "Loading clients..." : "All Clients"} aria-label="Select client organization">
+    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{organizations.map((org) => <ListBox.Item key={org.id} id={org.id} textValue={org.name}>{org.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
+  </Select>
+);
+
+const FilterDatePicker = ({ value, onChange, label }: { value: DateValue | null; onChange: (value: DateValue | null) => void; label: string }) => (
+  <DatePicker value={value} onChange={onChange} aria-label={label}>
+    <DateField.Group fullWidth><DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input><DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix></DateField.Group>
+    <DatePicker.Popover><Calendar aria-label={label}><Calendar.Header><Calendar.NavButton slot="previous" /><Calendar.Heading /><Calendar.NavButton slot="next" /></Calendar.Header><Calendar.Grid><Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader><Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody></Calendar.Grid></Calendar></DatePicker.Popover>
+  </DatePicker>
+);
 
 function getCertificateId(record: unknown): string | undefined {
   if (!record || typeof record !== "object") return undefined;
@@ -468,8 +480,6 @@ export default function LinkedGaugesPage() {
       closePreviewModal,
     ]
   );
-console.log('completedGauges',completedGauges);
-console.log('pendingGauges',pendingGauges);
 
   const handleCloseCertificateModal = useCallback(() => {
     closePreviewModal();
@@ -502,382 +512,273 @@ console.log('pendingGauges',pendingGauges);
   const handleCompletedTableSearchChange = useCallback((value: string) => {
     setCompletedSearchTerm(value);
   }, [setCompletedSearchTerm]);
-
+  const listClassName = "rounded-xl border border-slate-200 bg-slate-100/80 p-1 shadow-sm";
+  const tabClassName = "rounded-lg px-5 py-2.5 font-semibold opacity-100 transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 data-[hovered=true]:not-data-[selected=true]:bg-white data-[pressed=true]:not-data-[selected=true]:bg-white";
   return (
     <I18nProvider locale="en-GB">
-    <div className="mt-4">
-      {hasLaboratoryContext ? <>
-      <Tabs 
-        aria-label="Certificate Management" 
-        selectedKey={activeTab} 
-        onSelectionChange={(key) => setActiveTab(key as "new-certificate" | "view-certificate")}
-        color="primary"
-        variant="bordered"
-        classNames={{
-          tabList: "gap-4 w-full relative rounded-lg p-1 bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 shadow-sm border border-slate-200 dark:border-slate-700",
-          cursor: "w-full shadow-md",
-          tab: "h-10 font-semibold transition-all",
-          tabContent: "group-data-[selected=true]:text-white"
-        }}
-      >
-        <Tab 
-          key="new-certificate" 
-          title={
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
-              <span>New Certificate</span>
-            </div>
-          }
-          className="data-[selected=true]:bg-primary data-[selected=true]:text-white"
-        >
-          <Card className="shadow-lg border border-slate-200 dark:border-slate-700">
-            <CardBody className="p-0">
-              <LinkedGaugesTable
-                data={pendingGauges}
-                loading={pendingTableLoading}
-                onCertificate={handleCertificateClick}
-                isViewCertificateTab={false}
-                onNablCalibration={handleNablCalibration}
-                onInwardNoClick={handleInwardNoClick}
-                page={pendingPage}
-                rowsPerPage={pendingRowsPerPage}
-                totalItems={pendingQuery.data?.total ?? pendingPaginationMeta.total}
-                totalPages={pendingQuery.data?.totalPages ?? pendingPaginationMeta.totalPages}
-                isServerPagination
-                onPageChange={setPendingPage}
-                onRowsPerPageChange={setPendingRowsPerPage}
-                searchValue={pendingSearchTerm}
-                onSearchValueChange={handlePendingTableSearchChange}
-                // onNonNablCalibration={handleNonNablCalibration}
-                filters={
-                  <form onSubmit={pendingForm.handleSubmit(handlePendingSearch)} className="mb-2 space-y-3">
-                    {/* Row 1: Company Name and Lab ID (2 columns) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Client Filter */}
-                      <Controller
-                        name="clientFilter"
-                        control={pendingForm.control}
-                        render={({ field }) => (
-                          <Select
-                            placeholder={organizationsLoading ? "Loading clients..." : "All Clients"}
-                            selectedKeys={field.value ? [field.value] : []}
-                            onSelectionChange={(keys) => {
-                              const selectedValue = Array.from(keys)[0] as string | undefined;
-                              field.onChange(selectedValue || null);
-                            }}
-                            isLoading={organizationsLoading}
-                            isDisabled={organizationsLoading}
-                            classNames={{
-                              base: "w-full",
-                              trigger: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 text-sm"
-                            }}
-                            aria-label="Select client organization"
-                          >
-                            {organizations.map(org => (
-                              <SelectItem key={org.id} textValue={org.name}>
-                                {org.name}
-                              </SelectItem>
-                            ))}
-                          </Select>
-                        )}
-                      />
-
-                      {/* Lab ID Filter */}
-                      <Controller
-                        name="labIdFilter"
-                        control={pendingForm.control}
-                        render={({ field }) => (
-                          <Input
-                            placeholder="Enter Lab ID..."
-                            aria-label="Enter Lab ID..."
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            classNames={{
-                              inputWrapper: "h-9 border-gray-300 border hover:border-gray-400 focus-within:border-blue-500 bg-white"
-                            }}
+      <div className="mt-4">
+        {hasLaboratoryContext ? <>
+          <Tabs aria-label="Certificate Management" selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as "new-certificate" | "view-certificate")} variant="secondary">
+            <Tabs.ListContainer className="rounded-none bg-transparent w-80">
+              <Tabs.List aria-label="Certificate Management" className={listClassName}>
+                <Tabs.Tab
+                  id="new-certificate"
+                  className={`${tabClassName} text-blue-700 data-[selected=true]:bg-blue-600 data-[selected=true]:text-white data-[selected=true]:shadow-sm`}
+                >
+                  New Certificate
+                </Tabs.Tab>
+                <Tabs.Tab
+                  id="view-certificate"
+                  className={`${tabClassName} text-orange-500 data-[selected=true]:bg-orange-400 data-[selected=true]:text-white data-[selected=true]:shadow-sm`}
+                >
+                  View Certificate
+                </Tabs.Tab>
+              </Tabs.List >
+            </Tabs.ListContainer>
+            <Tabs.Panel id="new-certificate">
+              <Card className="shadow-lg border border-slate-200 dark:border-slate-700">
+                <Card.Content className="p-0">
+                  <LinkedGaugesTable
+                    data={pendingGauges}
+                    loading={pendingTableLoading}
+                    onCertificate={handleCertificateClick}
+                    isViewCertificateTab={false}
+                    onNablCalibration={handleNablCalibration}
+                    onInwardNoClick={handleInwardNoClick}
+                    page={pendingPage}
+                    rowsPerPage={pendingRowsPerPage}
+                    totalItems={pendingQuery.data?.total ?? pendingPaginationMeta.total}
+                    totalPages={pendingQuery.data?.totalPages ?? pendingPaginationMeta.totalPages}
+                    isServerPagination
+                    onPageChange={setPendingPage}
+                    onRowsPerPageChange={setPendingRowsPerPage}
+                    searchValue={pendingSearchTerm}
+                    onSearchValueChange={handlePendingTableSearchChange}
+                    // onNonNablCalibration={handleNonNablCalibration}
+                    filters={
+                      <form onSubmit={pendingForm.handleSubmit(handlePendingSearch)} className="mb-2 space-y-3">
+                        {/* Row 1: Company Name and Lab ID (2 columns) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Client Filter */}
+                          <Controller
+                            name="clientFilter"
+                            control={pendingForm.control}
+                            render={({ field }) => (
+                              <OrganizationSelect value={field.value} onChange={field.onChange} loading={organizationsLoading} organizations={organizations} />
+                            )}
                           />
-                        )}
-                      />
-                    </div>
 
-                    {/* Row 2: Date Range and Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {/* Date From Filter */}
-                      <Controller
-                        name="dateFrom"
-                        control={pendingForm.control}
-                        render={({ field }) => (
-                          <DatePicker
-                            value={field.value || undefined}
-                            aria-label="Select date from..."
-                            onChange={field.onChange}
-                            granularity="day"
-                            showMonthAndYearPickers
-                            classNames={{
-                              base: "w-full",
-                              inputWrapper: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 min-h-[36px]"
-                            }}
+                          {/* Lab ID Filter */}
+                          <Controller
+                            name="labIdFilter"
+                            control={pendingForm.control}
+                            render={({ field }) => (
+                              <Input
+                                placeholder="Enter Lab ID..."
+                                aria-label="Enter Lab ID..."
+                                value={field.value || ""}
+                                onChange={(e) => field.onChange(e.target.value)}
+                              />
+                            )}
                           />
-                        )}
-                      />
+                        </div>
 
-                      {/* Date To Filter */}
-                      <Controller
-                        name="dateTo"
-                        control={pendingForm.control}
-                        render={({ field }) => (
-                          <DatePicker
-                            value={field.value || undefined}
-                            aria-label="Select date to..."
-                            onChange={field.onChange}
-                            granularity="day"
-                            showMonthAndYearPickers
-                            classNames={{
-                              base: "w-full",
-                              inputWrapper: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 min-h-[36px]"
-                            }}
+                        {/* Row 2: Date Range and Buttons */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {/* Date From Filter */}
+                          <Controller
+                            name="dateFrom"
+                            control={pendingForm.control}
+                            render={({ field }) => (
+                              <FilterDatePicker value={field.value} onChange={field.onChange} label="Select date from" />
+                            )}
                           />
-                        )}
-                      />
 
-                      {/* Buttons Column */}
-                      <div className="flex items-end gap-2 lg:col-span-2">
-                        <Button
-                          type="submit"
-                          color="primary"
-                          aria-label="Search pending gauges..."
-                          size="sm"
-                          isLoading={pendingSearchLoading}
-                          startContent={!pendingSearchLoading && <MagnifyingGlassIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          {pendingSearchLoading ? "Searching..." : "Search"}
-                        </Button>
-                        <Button
-                          type="button"
-                          aria-label="Reset pending gauges..."
-                          variant="flat"
-                          size="sm"
-                          onPress={handlePendingReset}
-                          startContent={<ArrowPathIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          type="button"
-                          aria-label="Refresh pending gauges..."
-                          variant="bordered"
-                          size="sm"
-                          onPress={handlePendingRefresh}
-                          isLoading={pendingQuery.isRefetching}
-                          startContent={!pendingQuery.isRefetching && <ArrowPathIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          {pendingQuery.isRefetching ? "Refreshing..." : "Refresh"}
-                        </Button>
-                      </div>
-                    </div>
-                    {/* Empty State Message */}
-                    {pendingGauges.length === 0 && !pendingQuery.isPending && !pendingQuery.isFetching && (
-                      <div className="text-center py-8 text-gray-500">
-                        No gauges found matching your filters. Please try different search criteria.
-                      </div>
-                    )}
-                  </form>
-                }
-              />
-            </CardBody>
-          </Card>
-        </Tab>
-        <Tab 
-          key="view-certificate" 
-          title={
-            <div className="flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <span>View Certificate</span>
-            </div>
-          }
-          className="data-[selected=true]:bg-warning data-[selected=true]:text-white"
-        >
-          <Card className="shadow-lg border border-slate-200 dark:border-slate-700">
-            <CardBody className="p-0">
-              <LinkedGaugesTable
-                data={completedGauges}
-                loading={completedTableLoading}
-                onEdit={handleEditGauge}
-                onDelete={handleDeleteGauge}
-                onCertificate={handleCertificateClick}
-                isViewCertificateTab={true}
-                onInwardNoClick={handleInwardNoClick}
-                page={completedPage}
-                rowsPerPage={completedRowsPerPage}
-                totalItems={completedQuery.data?.total ?? completedPaginationMeta.total}
-                totalPages={completedQuery.data?.totalPages ?? completedPaginationMeta.totalPages}
-                isServerPagination
-                onPageChange={setCompletedPage}
-                onRowsPerPageChange={setCompletedRowsPerPage}
-                searchValue={completedSearchTerm}
-                onSearchValueChange={handleCompletedTableSearchChange}
-                filters={
-                  <form onSubmit={completedForm.handleSubmit(handleCompletedSearch)} className="mb-2 space-y-3">
-                    {/* Row 1: Company Name and Lab ID (2 columns) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Client Filter */}
-                      <Controller
-                        name="clientFilter"
-                        control={completedForm.control}
-                        render={({ field }) => (
-                          <Select
-                            placeholder={organizationsLoading ? "Loading clients..." : "All Clients"}
-                            selectedKeys={field.value ? [field.value] : []}
-                            onSelectionChange={(keys) => {
-                              const selectedValue = Array.from(keys)[0] as string | undefined;
-                              field.onChange(selectedValue || null);
-                            }}
-                            isLoading={organizationsLoading}
-                            isDisabled={organizationsLoading}
-                            classNames={{
-                              base: "w-full",
-                              trigger: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 text-sm"
-                            }}
-                            aria-label="Select client organization"
-                          >
-                            {organizations.map(org => (
-                              <SelectItem key={org.id} textValue={org.name}>
-                                {org.name}
-                              </SelectItem>
-                            ))}
-                          </Select>
-                        )}
-                      />
-
-                      {/* Lab ID Filter */}
-                      <Controller
-                        name="labIdFilter"
-                        control={completedForm.control}
-                        render={({ field }) => (
-                          <Input
-                            placeholder="Enter Lab ID..."
-                            aria-label="Enter Lab ID..."
-                            value={field.value || ""}
-                            onChange={(e) => field.onChange(e.target.value)}
-                            classNames={{
-                              inputWrapper: "h-9 border-gray-300 border hover:border-gray-400 focus-within:border-blue-500 bg-white"
-                            }}
+                          {/* Date To Filter */}
+                          <Controller
+                            name="dateTo"
+                            control={pendingForm.control}
+                            render={({ field }) => (
+                              <FilterDatePicker value={field.value} onChange={field.onChange} label="Select date to" />
+                            )}
                           />
-                        )}
-                      />
-                    </div>
 
-                    {/* Row 2: Date Range and Buttons */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {/* Date From Filter */}
-                      <Controller
-                        name="dateFrom"
-                        control={completedForm.control}
-                        render={({ field }) => (
-                          <DatePicker
-                            value={field.value || undefined}
-                            aria-label="Select date from..."
-                            onChange={field.onChange}
-                            granularity="day"
-                            showMonthAndYearPickers
-                            classNames={{
-                              base: "w-full",
-                              inputWrapper: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 min-h-[36px]"
-                            }}
+                          {/* Buttons Column */}
+                          <div className="flex items-end gap-2 lg:col-span-2">
+                            <Button
+                              type="submit"
+                              variant="primary"
+                              aria-label="Search pending gauges..."
+                              size="sm"
+                              isDisabled={pendingSearchLoading}
+                              className="flex-1"
+                            >
+                              {pendingSearchLoading ? "Searching..." : "Search"}
+                            </Button>
+                            <Button
+                              type="button"
+                              aria-label="Reset pending gauges..."
+                              variant="secondary"
+                              size="sm"
+                              onPress={handlePendingReset}
+                              className="flex-1"
+                            >
+                              Reset
+                            </Button>
+                            <Button
+                              type="button"
+                              aria-label="Refresh pending gauges..."
+                              variant="outline"
+                              size="sm"
+                              onPress={handlePendingRefresh}
+                              isDisabled={pendingQuery.isRefetching}
+                              className="flex-1"
+                            >
+                              {pendingQuery.isRefetching ? "Refreshing..." : "Refresh"}
+                            </Button>
+                          </div>
+                        </div>
+                        {/* Empty State Message */}
+                        {pendingGauges.length === 0 && !pendingQuery.isPending && !pendingQuery.isFetching && (
+                          <div className="text-center py-8 text-gray-500">
+                            No gauges found matching your filters. Please try different search criteria.
+                          </div>
+                        )}
+                      </form>
+                    }
+                  />
+                </Card.Content>
+              </Card>
+            </Tabs.Panel>
+            <Tabs.Panel id="view-certificate">
+              <Card className="shadow-lg border border-slate-200 dark:border-slate-700">
+                <Card.Content className="p-0">
+                  <LinkedGaugesTable
+                    data={completedGauges}
+                    loading={completedTableLoading}
+                    onEdit={handleEditGauge}
+                    onDelete={handleDeleteGauge}
+                    onCertificate={handleCertificateClick}
+                    isViewCertificateTab={true}
+                    onInwardNoClick={handleInwardNoClick}
+                    page={completedPage}
+                    rowsPerPage={completedRowsPerPage}
+                    totalItems={completedQuery.data?.total ?? completedPaginationMeta.total}
+                    totalPages={completedQuery.data?.totalPages ?? completedPaginationMeta.totalPages}
+                    isServerPagination
+                    onPageChange={setCompletedPage}
+                    onRowsPerPageChange={setCompletedRowsPerPage}
+                    searchValue={completedSearchTerm}
+                    onSearchValueChange={handleCompletedTableSearchChange}
+                    filters={
+                      <form onSubmit={completedForm.handleSubmit(handleCompletedSearch)} className="mb-2 space-y-3">
+                        {/* Row 1: Company Name and Lab ID (2 columns) */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {/* Client Filter */}
+                          <Controller
+                            name="clientFilter"
+                            control={completedForm.control}
+                            render={({ field }) => (
+                              <OrganizationSelect value={field.value} onChange={field.onChange} loading={organizationsLoading} organizations={organizations} />
+                            )}
                           />
-                        )}
-                      />
 
-                      {/* Date To Filter */}
-                      <Controller
-                        name="dateTo"
-                        control={completedForm.control}
-                        render={({ field }) => (
-                          <DatePicker
-                            value={field.value || undefined}
-                            aria-label="Select date to..."
-                            onChange={field.onChange}
-                            granularity="day"
-                            showMonthAndYearPickers
-                            classNames={{
-                              base: "w-full",
-                              inputWrapper: "h-9 border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 min-h-[36px]"
-                            }}
+                          {/* Lab ID Filter */}
+                          <Controller
+                            name="labIdFilter"
+                            control={completedForm.control}
+                            render={({ field }) => (
+                              <Input
+                                placeholder="Enter Lab ID..."
+                                aria-label="Enter Lab ID..."
+                                value={field.value || ""}
+                                onChange={(e) => field.onChange(e.target.value)}
+                              />
+                            )}
                           />
-                        )}
-                      />
+                        </div>
 
-                      {/* Buttons Column */}
-                      <div className="flex items-end gap-2 lg:col-span-2">
-                        <Button
-                          type="submit"
-                          color="primary"
-                          aria-label="Search completed gauges..."
-                          size="sm"
-                          isLoading={completedSearchLoading}
-                          startContent={!completedSearchLoading && <MagnifyingGlassIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          {completedSearchLoading ? "Searching..." : "Search"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="flat"
-                          aria-label="Reset completed gauges..."
-                          size="sm"
-                          onPress={handleCompletedReset}
-                          startContent={<ArrowPathIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          Reset
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="bordered"
-                          aria-label="Refresh completed gauges..."
-                          size="sm"
-                          onPress={handleCompletedRefresh}
-                          isLoading={completedQuery.isRefetching}
-                          startContent={!completedQuery.isRefetching && <ArrowPathIcon className="w-4 h-4" />}
-                          className="flex-1"
-                        >
-                          {completedQuery.isRefetching ? "Refreshing..." : "Refresh"}
-                        </Button>
-                      </div>
-                    </div>
-                  </form>
-                }
-              />
-            </CardBody>
-          </Card>
-        </Tab>
+                        {/* Row 2: Date Range and Buttons */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                          {/* Date From Filter */}
+                          <Controller
+                            name="dateFrom"
+                            control={completedForm.control}
+                            render={({ field }) => (
+                              <FilterDatePicker value={field.value} onChange={field.onChange} label="Select date from" />
+                            )}
+                          />
 
-      </Tabs>
-      </> : (
-        <div className="flex min-h-48 items-center justify-center rounded-md border border-amber-200 bg-amber-50 px-6 text-center text-sm font-medium text-amber-800">
-          Select a laboratory to view and manage calibration certificates.
-        </div>
-      )}
-      
-      {/* Modals */}
-      {/* Certificate Preview Modal */}
-      <CertificatePreviewModal
-        isOpen={previewModal.isOpen}
-        onClose={handleCloseCertificateModal}
-        certificateUrl={previewModal.certificateUrl}
-        fileName={previewModal.fileName}
-        isLoading={previewModal.isLoading}
-        loadingText={previewModal.loadingText}
-      />
-    </div>
+                          {/* Date To Filter */}
+                          <Controller
+                            name="dateTo"
+                            control={completedForm.control}
+                            render={({ field }) => (
+                              <FilterDatePicker value={field.value} onChange={field.onChange} label="Select date to" />
+                            )}
+                          />
+
+                          {/* Buttons Column */}
+                          <div className="flex items-end gap-2 lg:col-span-2">
+                            <Button
+                              type="submit"
+                              variant="primary"
+                              aria-label="Search completed gauges..."
+                              size="sm"
+                              isDisabled={completedSearchLoading}
+                              className="flex-1"
+                            >
+                              {completedSearchLoading ? "Searching..." : "Search"}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              aria-label="Reset completed gauges..."
+                              size="sm"
+                              onPress={handleCompletedReset}
+                              className="flex-1"
+                            >
+                              Reset
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              aria-label="Refresh completed gauges..."
+                              size="sm"
+                              onPress={handleCompletedRefresh}
+                              isDisabled={completedQuery.isRefetching}
+                              className="flex-1"
+                            >
+                              {completedQuery.isRefetching ? "Refreshing..." : "Refresh"}
+                            </Button>
+                          </div>
+                        </div>
+                      </form>
+                    }
+                  />
+                </Card.Content>
+              </Card>
+            </Tabs.Panel>
+          </Tabs>
+        
+        </> : (
+          <div className="flex min-h-48 items-center justify-center rounded-md border border-amber-200 bg-amber-50 px-6 text-center text-sm font-medium text-amber-800">
+            Select a laboratory to view and manage calibration certificates.
+          </div>
+        )}
+
+        {/* Modals */}
+        {/* Certificate Preview Modal */}
+        <CertificatePreviewModal
+          isOpen={previewModal.isOpen}
+          onClose={handleCloseCertificateModal}
+          certificateUrl={previewModal.certificateUrl}
+          fileName={previewModal.fileName}
+          isLoading={previewModal.isLoading}
+          loadingText={previewModal.loadingText}
+        />
+      </div>
+        
     </I18nProvider>
   );
 }

@@ -7,14 +7,10 @@
 
 import { useState } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
   Checkbox,
-} from "@heroui-v2/react";
+  Modal,
+} from "@heroui/react";
 
 export type StickerPrintMethod = "regular" | "qz";
 
@@ -56,24 +52,23 @@ export function StickerSettingsSimpleModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">
-              <h3 className="text-lg font-semibold">Sticker Print Settings</h3>
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="md">
+          <Modal.Dialog>
+            <Modal.Header className="flex flex-col gap-1">
+              <Modal.Heading>Sticker Print Settings</Modal.Heading>
               <p className="text-sm text-default-500 font-normal">
                 Configure sticker layout options for {selectedCount} sticker{selectedCount > 1 ? "s" : ""}
               </p>
-            </ModalHeader>
-            <ModalBody>
+            </Modal.Header>
+            <Modal.Body>
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <span className="text-sm font-medium text-default-700">Print Method</span>
                   <div className="grid grid-cols-2 gap-2">
                     <Button
-                      color={settings.printMethod === "regular" ? "primary" : "default"}
-                      variant={settings.printMethod === "regular" ? "solid" : "flat"}
+                      variant={settings.printMethod === "regular" ? "primary" : "secondary"}
                       onPress={() =>
                         setSettings((prev) => ({ ...prev, printMethod: "regular" }))
                       }
@@ -81,8 +76,7 @@ export function StickerSettingsSimpleModal({
                       Regular Print
                     </Button>
                     <Button
-                      color={settings.printMethod === "qz" ? "primary" : "default"}
-                      variant={settings.printMethod === "qz" ? "solid" : "flat"}
+                      variant={settings.printMethod === "qz" ? "primary" : "secondary"}
                       onPress={() =>
                         setSettings((prev) => ({ ...prev, printMethod: "qz" }))
                       }
@@ -96,7 +90,7 @@ export function StickerSettingsSimpleModal({
                 <div className="flex flex-col gap-2">
                   <Checkbox
                     isSelected={settings.withIdentification}
-                    onValueChange={(checked) =>
+                    onChange={(checked) =>
                       setSettings((prev) => ({ ...prev, withIdentification: checked }))
                     }
                   >
@@ -123,23 +117,22 @@ export function StickerSettingsSimpleModal({
                   </div>
                 </div>
               </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button color="default" variant="flat" onPress={handleReset}>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onPress={handleReset}>
                 Reset
               </Button>
-              <Button color="danger" variant="light" onPress={onClose}>
+              <Button variant="ghost" onPress={onClose}>
                 Cancel
               </Button>
-              <Button color="primary" onPress={handleConfirm}>
+              <Button variant="primary" onPress={handleConfirm}>
                 Print Stickers
               </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 }
-
 

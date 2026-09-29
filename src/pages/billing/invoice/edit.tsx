@@ -1,19 +1,20 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { parseDate } from '@internationalized/date';
 import { Button } from '../../../components/ui/button';
 import {
+  Calendar,
   Card,
-  CardBody,
-  CardHeader,
   Checkbox,
   DatePicker,
+  DateField,
   Input,
+  ListBox,
   Select,
-  SelectItem,
-} from '@heroui-v2/react';
+} from '@heroui/react';
 import { UserIcon } from '@heroicons/react/24/outline';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -24,7 +25,7 @@ import {
   type InvoiceDetails,
   type ClientDetails,
 } from '../../../types/types';
-import { EditInvoiceFormData, editInvoiceFormSchema } from '../../../lib/validations/invoiceSchemas';
+import { editInvoiceFormSchema } from '../../../lib/validations/invoiceSchemas';
 import {
   useGenerateInvoiceMutation,
   useInvoiceDetailQuery,
@@ -75,19 +76,47 @@ import {
 const DEFAULT_BILLING_FIRM_ID = '';
 const DEFAULT_BILLING_FIRM_NAME = '';
 
-const INPUT_CLASS_NAMES = {
-  inputWrapper: 'border border-gray-300 hover:border-gray-400 focus:border-primary bg-white',
-};
+const InvoiceSelect = ({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ value: string; label: string }>;
+  ariaLabel: string;
+  disabled?: boolean;
+}) => (
+  <Select aria-label={ariaLabel} selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')} isDisabled={disabled}>
+    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
+  </Select>
+);
 
-const SELECT_CLASS_NAMES = {
-  trigger: 'border border-gray-300 hover:border-gray-400 focus:border-primary bg-white',
-};
-
-const DATE_PICKER_CLASS_NAMES = {
-  base: 'w-full',
-  inputWrapper:
-    'border border-gray-300 bg-white hover:border-gray-400 focus-within:border-blue-500 min-h-[42px]',
-};
+const InvoiceDatePicker = ({
+  value,
+  onChange,
+  ariaLabel,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  ariaLabel: string;
+  disabled?: boolean;
+}) => (
+  <DatePicker value={value ? parseDate(value) : null} onChange={(date) => onChange(date ? String(date) : '')} isDisabled={disabled}>
+    <DateField.Group fullWidth>
+      <DateField.Input aria-label={ariaLabel}>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+      <DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix>
+    </DateField.Group>
+    <DatePicker.Popover><Calendar aria-label={ariaLabel}>
+      <Calendar.Header><Calendar.NavButton slot="previous" /><Calendar.Heading /><Calendar.NavButton slot="next" /></Calendar.Header>
+      <Calendar.Grid><Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader><Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody></Calendar.Grid>
+    </Calendar></DatePicker.Popover>
+  </DatePicker>
+);
 
 const INDIAN_CURRENCY_FORMATTER = new Intl.NumberFormat('en-IN', {
   minimumFractionDigits: 2,
@@ -167,21 +196,6 @@ type InvoiceBillingComponentApi = {
   net_amount?: number;
 };
 
-type InvoiceBillingItemApi = {
-  source_type?: 'outward' | 'manual';
-  gauge_id?: string | null;
-  inward_id?: string | null;
-  inward_gauge_lab_id?: string;
-  master_gauge_name?: string;
-  identification_number?: string;
-  inward_date?: string;
-  specifications?: Record<string, unknown> | string | null;
-  master_gauge_id?: string | null;
-  billing_components?: InvoiceBillingComponentApi[];
-  total?: number;
-  [key: string]: unknown;
-};
-
 type InvoiceUpdatePayload = Omit<Invoice, 'updated_at' | 'created_at' | 'deleted_at' | 'id'>;
 
 const createDefaultHsnEntry = (seed: string): InvoiceItemHSN => ({
@@ -248,7 +262,11 @@ export default function EditInvoicePage() {
     DEFAULT_BILLING_FIRM_NAME;
 
   // React Hook Form setup
-  const form = useForm<EditInvoiceFormData>({
+  const form = useForm<
+    z.input<typeof editInvoiceFormSchema>,
+    unknown,
+    z.output<typeof editInvoiceFormSchema>
+  >({
     resolver: zodResolver(editInvoiceFormSchema),
     mode: 'onChange',
     defaultValues: {
@@ -357,7 +375,7 @@ export default function EditInvoicePage() {
     }
     const pdfColumnDefaults = normalizeInvoicePdfColumns(
       invoiceDetails?.pdf_columns,
-      (invoiceDetails?.billing_items ?? []).flatMap((item: InvoiceBillingItemApi) =>
+      (invoiceDetails?.billing_items ?? []).flatMap((item: InvoiceBillingItem) =>
         item.billing_components?.map((component: InvoiceBillingComponentApi) => ({
           repair_new:
             component.process?.toLowerCase() === 'repair'
@@ -395,7 +413,7 @@ export default function EditInvoicePage() {
       pdf_columns: pdfColumnDefaults,
     });
 
-    const items: InvoiceItemDataLocal[] = (invoiceDetails?.billing_items ?? []).map((item: InvoiceBillingItemApi, index: number) => {
+    const items: InvoiceItemDataLocal[] = (invoiceDetails?.billing_items ?? []).map((item: InvoiceBillingItem, index: number) => {
       const formattedSpecs = formatSpecificationForPrint(item.specifications);
       const isManualItem = item.source_type === 'manual' || (!item.inward_id && !!item.master_gauge_id);
       const sourceType = isManualItem ? 'manual' : 'outward';
@@ -608,7 +626,7 @@ export default function EditInvoicePage() {
 
             const processType = getInvoiceProcessFromHsn(hsnCode);
             const nextHsnName = getInvoiceHsnName(hsnCode, hsnName ?? entry.hsnName);
-            const nextEntry = {
+            const nextEntry: InvoiceItemHSN = {
               ...entry,
               hsnCode,
               hsnName: nextHsnName,
@@ -1025,7 +1043,7 @@ export default function EditInvoicePage() {
           rate,
           amount,
           service_type: processType,
-          line_type: hsnEntry.lineType || processType,
+          line_type: hsnEntry.lineType || (processType === 'repair' || processType === 'calibration' ? processType : 'custom'),
           description: hsnEntry.description || undefined,
           hsn_sac: hsnEntry.hsnCode,
           discount_type: discountType,
@@ -1181,7 +1199,7 @@ export default function EditInvoicePage() {
       to_date: trimOrNull(formValues.to_date),
       invoice_from_date: trimOrNull(formValues.from_date),
       invoice_to_date: trimOrNull(formValues.to_date),
-      credit_days: formValues.credit_days,
+      credit_days: Number(formValues.credit_days) || 0,
       payment_due_date: existingInvoice?.payment_due_date ?? null,
       payment_date: existingInvoice?.payment_date ?? null,
       payment_mode: existingInvoice?.payment_mode ?? null,
@@ -1193,7 +1211,7 @@ export default function EditInvoicePage() {
       outward_ids: outwardIds,
       outward_no: outwardNumbers[0] ?? trimOrNull(formValues.outward_no),
       outward_nos: outwardNumbers,
-      gauge_inward_ids: gaugeInwardIds ?? [],
+      gauge_inward_ids: (gaugeInwardIds ?? []).filter((id): id is string => typeof id === 'string'),
       client_details: clientDetails,
       invoice_details: invoiceDetails,
     };
@@ -1257,7 +1275,7 @@ export default function EditInvoicePage() {
       const invoicePayload = buildInvoicePayload();
       await updateInvoiceMutation.mutateAsync({
         invoiceId,
-        data: invoicePayload,
+        data: invoicePayload as Invoice,
       });
 
       toast.success(successMessage);
@@ -1302,11 +1320,11 @@ export default function EditInvoicePage() {
       <div className="max-w-6xl mx-auto space-y-4">
         <PageMeta title="Edit Invoice" />
         <Card className="border border-danger-200 bg-danger-50">
-          <CardBody className="p-6">
+          <Card.Content className="p-6">
             <div className="text-sm text-danger-600">
               {(invoiceError as Error).message || 'Failed to load invoice details'}
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     );
@@ -1317,9 +1335,9 @@ export default function EditInvoicePage() {
       <div className="max-w-6xl mx-auto space-y-4">
         <PageMeta title="Edit Invoice" />
         <Card className="shadow-sm border border-gray-200">
-          <CardBody className="p-6">
+          <Card.Content className="p-6">
             <PageLoader message="Loading invoice..." />
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     );
@@ -1330,11 +1348,11 @@ export default function EditInvoicePage() {
       <div className="max-w-6xl mx-auto space-y-4">
         <PageMeta title="Edit Invoice" />
         <Card className="border border-danger-200 bg-danger-50">
-          <CardBody className="p-6">
+          <Card.Content className="p-6">
             <div className="text-sm text-danger-600">
               Invoice not found or failed to load.
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     );
@@ -1345,7 +1363,7 @@ export default function EditInvoicePage() {
       <PageMeta title="Edit Invoice" />
       <div className="max-w-7xl mx-auto space-y-4">
         <Card className="border border-slate-200 shadow-none">
-          <CardHeader className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
+          <Card.Header className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-600 rounded-lg">
                 <UserIcon className="h-6 w-6 text-white" />
@@ -1354,9 +1372,9 @@ export default function EditInvoicePage() {
                 <h1 className="text-xl font-semibold text-white">Edit Invoice</h1>
               </div>
             </div>
-          </CardHeader>
+          </Card.Header>
 
-          <CardBody className="p-2 lg:p-2">
+          <Card.Content className="p-2 lg:p-2">
             <form onSubmit={(event) => event.preventDefault()} className="space-y-2">
               <input type="hidden" {...register('billing_firm_id')} />
               <input type="hidden" {...register('billing_firm_name')} />
@@ -1385,8 +1403,7 @@ export default function EditInvoicePage() {
                       aria-label="Billing Firm"
                       value={billingFirmName}
                       placeholder={billingFirmInputPlaceholder}
-                      isReadOnly
-                      classNames={INPUT_CLASS_NAMES}
+                      readOnly
                     />
                   </FormField>
 
@@ -1395,24 +1412,13 @@ export default function EditInvoicePage() {
                       control={control}
                       name="party_id"
                       render={({ field }) => (
-                        <Select
-                          aria-label="Party"
-                          placeholder={organizationsLoading ? 'Loading customers...' : 'Select customer'}
-                          selectedKeys={field.value ? [field.value] : []}
-                          onSelectionChange={(keys) => {
-                            const selected = Array.from(keys)[0] as string | undefined;
-                            field.onChange(selected ?? '');
-                          }}
-                          isDisabled={organizationsLoading || isAccountingLocked}
-                          isInvalid={Boolean(errors.party_id)}
-                          classNames={SELECT_CLASS_NAMES}
-                        >
-                          {organizations.map((organization) => (
-                            <SelectItem key={organization.id} textValue={organization.name}>
-                              {organization.name}
-                            </SelectItem>
-                          ))}
-                        </Select>
+                        <InvoiceSelect
+                          ariaLabel="Party"
+                          value={field.value ?? ''}
+                          onChange={field.onChange}
+                          options={organizations.map((organization) => ({ value: organization.id, label: organization.name }))}
+                          disabled={organizationsLoading || isAccountingLocked}
+                        />
                       )}
                     />
                   </FormField>
@@ -1426,12 +1432,7 @@ export default function EditInvoicePage() {
                       aria-label="Invoice Number"
                       placeholder="Enter invoice number"
                       {...register('invoice_number')}
-                      isInvalid={Boolean(errors.invoice_number)}
-                      isReadOnly={isAccountingLocked}
-                      classNames={{
-                        ...INPUT_CLASS_NAMES,
-                        input: 'whitespace-nowrap [font-variant-numeric:tabular-nums]',
-                      }}
+                      readOnly={isAccountingLocked}
                     />
                   </FormField>
 
@@ -1444,19 +1445,14 @@ export default function EditInvoicePage() {
                       name="billing_date"
                       control={control}
                       render={({ field }) => (
-                        <DatePicker
-                          aria-label="Billing Date"
-                          value={field.value ? parseDate(field.value) : undefined}
-                          onChange={(value) => {
-                            const nextValue = value ? value.toString() : '';
+                        <InvoiceDatePicker
+                          ariaLabel="Billing Date"
+                          value={field.value ?? ''}
+                          onChange={(nextValue) => {
                             field.onChange(nextValue);
                             setValue('date_of_issue', nextValue, { shouldDirty: true });
                           }}
-                          granularity="day"
-                          showMonthAndYearPickers
-                          isInvalid={Boolean(errors.billing_date)}
-                          isDisabled={isAccountingLocked}
-                          classNames={DATE_PICKER_CLASS_NAMES}
+                          disabled={isAccountingLocked}
                         />
                       )}
                     />
@@ -1473,9 +1469,8 @@ export default function EditInvoicePage() {
                           aria-label="Outward Number"
                           placeholder="Enter outward number"
                           value={field.value ?? ''}
-                          onValueChange={field.onChange}
-                          isReadOnly={isAccountingLocked || invoiceOutwardIds.length > 0}
-                          classNames={INPUT_CLASS_NAMES}
+                          onChange={field.onChange}
+                          readOnly={isAccountingLocked || invoiceOutwardIds.length > 0}
                         />
                       )}
                     />
@@ -1490,9 +1485,8 @@ export default function EditInvoicePage() {
                           aria-label="Order Number"
                           placeholder="Enter order number"
                           value={field.value ?? ''}
-                          onValueChange={field.onChange}
-                          isReadOnly={isAccountingLocked}
-                          classNames={INPUT_CLASS_NAMES}
+                          onChange={field.onChange}
+                          readOnly={isAccountingLocked}
                         />
                       )}
                     />
@@ -1503,15 +1497,7 @@ export default function EditInvoicePage() {
                       control={control}
                       name="order_date"
                       render={({ field }) => (
-                        <DatePicker
-                          aria-label="Order Date"
-                          value={field.value ? parseDate(field.value) : undefined}
-                          onChange={(value) => field.onChange(value ? value.toString() : '')}
-                          granularity="day"
-                          showMonthAndYearPickers
-                          isDisabled={isAccountingLocked}
-                          classNames={DATE_PICKER_CLASS_NAMES}
-                        />
+                        <InvoiceDatePicker ariaLabel="Order Date" value={field.value ?? ''} onChange={field.onChange} disabled={isAccountingLocked} />
                       )}
                     />
                   </FormField>
@@ -1521,15 +1507,7 @@ export default function EditInvoicePage() {
                       control={control}
                       name="from_date"
                       render={({ field }) => (
-                        <DatePicker
-                          aria-label="From Date"
-                          value={field.value ? parseDate(field.value) : undefined}
-                          onChange={(value) => field.onChange(value ? value.toString() : '')}
-                          granularity="day"
-                          showMonthAndYearPickers
-                          isDisabled={isAccountingLocked}
-                          classNames={DATE_PICKER_CLASS_NAMES}
-                        />
+                        <InvoiceDatePicker ariaLabel="From Date" value={field.value ?? ''} onChange={field.onChange} disabled={isAccountingLocked} />
                       )}
                     />
                   </FormField>
@@ -1539,15 +1517,7 @@ export default function EditInvoicePage() {
                       control={control}
                       name="to_date"
                       render={({ field }) => (
-                        <DatePicker
-                          aria-label="To Date"
-                          value={field.value ? parseDate(field.value) : undefined}
-                          onChange={(value) => field.onChange(value ? value.toString() : '')}
-                          granularity="day"
-                          showMonthAndYearPickers
-                          isDisabled={isAccountingLocked}
-                          classNames={DATE_PICKER_CLASS_NAMES}
-                        />
+                        <InvoiceDatePicker ariaLabel="To Date" value={field.value ?? ''} onChange={field.onChange} disabled={isAccountingLocked} />
                       )}
                     />
                   </FormField>
@@ -1557,22 +1527,13 @@ export default function EditInvoicePage() {
                       control={control}
                       name="credit_days"
                       render={({ field }) => (
-                        <Select
-                          aria-label="Payment Terms"
-                          selectedKeys={[String(field.value ?? 0)]}
-                          onSelectionChange={(keys) => {
-                            const selected = Array.from(keys)[0] as string | undefined;
-                            field.onChange(Number(selected ?? 0));
-                          }}
-                          isDisabled={isAccountingLocked}
-                          classNames={SELECT_CLASS_NAMES}
-                        >
-                          {PAYMENT_TERMS.map((term) => (
-                            <SelectItem key={String(term.creditDays)} textValue={term.label}>
-                              {term.label}
-                            </SelectItem>
-                          ))}
-                        </Select>
+                        <InvoiceSelect
+                          ariaLabel="Payment Terms"
+                          value={String(field.value ?? 0)}
+                          onChange={(value) => field.onChange(Number(value || 0))}
+                          options={PAYMENT_TERMS.map((term) => ({ value: String(term.creditDays), label: term.label }))}
+                          disabled={isAccountingLocked}
+                        />
                       )}
                     />
                   </FormField>
@@ -1586,7 +1547,7 @@ export default function EditInvoicePage() {
                         key={option.key}
                         isSelected={pdfColumns[option.key]}
                         isDisabled={!canEditSummaryTotals}
-                        onValueChange={(isSelected) => {
+                        onChange={(isSelected) => {
                           setValue(
                             'pdf_columns',
                             {
@@ -1596,9 +1557,6 @@ export default function EditInvoicePage() {
                             { shouldDirty: true, shouldValidate: true },
                           );
                           setValue('pdf_columns_user_configured', true, { shouldDirty: true });
-                        }}
-                        classNames={{
-                          label: 'text-sm font-medium text-slate-700',
                         }}
                       >
                         {option.label}
@@ -1650,12 +1608,7 @@ export default function EditInvoicePage() {
                             min="0"
                             step="0.01"
                             max="100"
-                            isReadOnly={!canEditSummaryTotals}
-                            endContent={<span className="text-gray-500 text-xs">%</span>}
-                            classNames={{
-                              ...INPUT_CLASS_NAMES,
-                              input: 'text-right whitespace-nowrap [font-variant-numeric:tabular-nums]',
-                            }}
+                            readOnly={!canEditSummaryTotals}
                           />
                         )}
                       />
@@ -1666,22 +1619,13 @@ export default function EditInvoicePage() {
                         name="cgst_rate"
                         control={control}
                         render={({ field }) => (
-                          <Select
-                            selectedKeys={[field.value.toString()]}
-                            aria-label="CGST"
-                            isDisabled={!canEditSummaryTotals}
-                            onSelectionChange={(keys) => {
-                              const value = Array.from(keys)[0] as string;
-                              field.onChange(parseFloat(value));
-                            }}
-                            classNames={SELECT_CLASS_NAMES}
-                          >
-                            {[0, 5, 9, 12, 18, 28].map((rate) => (
-                              <SelectItem key={rate.toString()} textValue={rate.toString()}>
-                                {rate}%
-                              </SelectItem>
-                            ))}
-                          </Select>
+                          <InvoiceSelect
+                            ariaLabel="CGST"
+                            value={field.value.toString()}
+                            onChange={(value) => field.onChange(parseFloat(value || '0'))}
+                            options={[0, 5, 9, 12, 18, 28].map((rate) => ({ value: rate.toString(), label: `${rate}%` }))}
+                            disabled={!canEditSummaryTotals}
+                          />
                         )}
                       />
                     </FormField>
@@ -1691,22 +1635,13 @@ export default function EditInvoicePage() {
                         name="sgst_rate"
                         control={control}
                         render={({ field }) => (
-                          <Select
-                            selectedKeys={[field.value.toString()]}
-                            aria-label="SGST"
-                            isDisabled={!canEditSummaryTotals}
-                            onSelectionChange={(keys) => {
-                              const value = Array.from(keys)[0] as string;
-                              field.onChange(parseFloat(value));
-                            }}
-                            classNames={SELECT_CLASS_NAMES}
-                          >
-                            {[0, 5, 9, 12, 18, 28].map((rate) => (
-                              <SelectItem key={rate.toString()} textValue={rate.toString()}>
-                                {rate}%
-                              </SelectItem>
-                            ))}
-                          </Select>
+                          <InvoiceSelect
+                            ariaLabel="SGST"
+                            value={field.value.toString()}
+                            onChange={(value) => field.onChange(parseFloat(value || '0'))}
+                            options={[0, 5, 9, 12, 18, 28].map((rate) => ({ value: rate.toString(), label: `${rate}%` }))}
+                            disabled={!canEditSummaryTotals}
+                          />
                         )}
                       />
                     </FormField>
@@ -1796,7 +1731,7 @@ export default function EditInvoicePage() {
                 </div>
               </div>
             </form>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     </FormDateProvider>

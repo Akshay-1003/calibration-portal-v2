@@ -67,8 +67,6 @@ export interface Contract {
   dispatch_mode: string;
   conformity_statement: boolean;
   conformity_accepted: boolean;
-  conformity_statement?: boolean;
-  conformity_accepted?: boolean;
   specific_requirements?: string;
   rate_card?: InwardRateCard | null;
 }
@@ -95,6 +93,7 @@ export type InwardRateCard = Record<string, InwardRateCardEntry[]>;
 
 // Inward Entry Types
 export interface InwardEntry {
+  history_card_reference?: string | null;
   id: string;
   client_org_id: string;
   billing_org_id: string;
@@ -204,6 +203,8 @@ export interface LinkedGauge {
   inward_gauge_lab_id: string;   
   specifications: GaugeSpecifications; // gauge.specifications
   inward_no:number;
+  process_status?: string;
+  inward_info?: { inward_date?: string };
 }
 export interface GaugeObservationValues {
   values: number[];
@@ -250,6 +251,7 @@ export interface Specifications {
   go: SpecificationLimits;
   no_go: SpecificationLimits;
   inputs: SpecificationInputs;
+  surface_plate_ref_id?: string;
 }
 
 export interface ReadingFormatColumn {
@@ -302,11 +304,15 @@ export interface CertificateGaugeData {
   process: string;
   unit: string;
 
-  specifications: Specifications;
+  specifications: Specifications | Partial<Specifications>;
 
   master_gauge_name: string;
   calibration_method: string;
   certificate_type: string;
+  certificate_type_id?: string;
+  gauge_name?: string;
+  certificate_date?: string;
+  calibration_date?: string;
 
   reading_format: ReadingFormat;
 

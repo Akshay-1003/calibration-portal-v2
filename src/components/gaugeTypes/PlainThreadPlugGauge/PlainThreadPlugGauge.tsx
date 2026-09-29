@@ -1,6 +1,6 @@
 import React, { useEffect, useCallback, useRef, useState } from "react";
 import { useFormContext, useWatch, Controller } from "react-hook-form";
-import { Input, Autocomplete, AutocompleteItem, Button, Spinner } from "@heroui-v2/react";
+import { Autocomplete, Button, Input, ListBox } from "@heroui/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -302,8 +302,8 @@ const PlainThreadPlugGauge: React.FC<PlainThreadPlugGaugeProps> = ({
 
       <div className="w-full bg-gray-100 border rounded-xl px-3 py-3 sm:px-5 sm:py-4">
         <Autocomplete
-          onOpenChange={setIsAutocompleteOpen}
           selectedKey={selectedAutocompleteKey}
+          onOpenChange={setIsAutocompleteOpen}
           onSelectionChange={(key) => {
             const value = key as string | null;
             if (!value) return;
@@ -327,53 +327,43 @@ const PlainThreadPlugGauge: React.FC<PlainThreadPlugGaugeProps> = ({
             setValue("specifications.no_go", {}, { shouldDirty: false, shouldValidate: false });
             lastPopulatedSpecRef.current = null;
           }}
-          placeholder="Select specification"
           aria-label="Select specification"
-          isLoading={isLoading || specificationPagesQuery.isFetchingNextPage}
-          allowsCustomValue={false}
-          listboxProps={{
-            emptyContent: specificationPagesQuery.error
-              ? "Unable to load specifications"
-              : isLoading
-                ? "Loading specifications..."
-                : "No specifications found",
-            bottomContent: specificationList.length > 0 ? (
-              <div className="border-t border-default-100 px-3 py-2 text-xs text-default-500">
-                <div className="flex items-center justify-between gap-3">
-                  <span>
-                    Loaded {specificationList.length} of {totalSpecifications} specifications
-                  </span>
-                  {hasMoreSpecifications ? (
-                    <div className="flex items-center gap-2">
-                      {specificationPagesQuery.isFetchingNextPage ? (
-                        <>
-                          <Spinner size="sm" />
-                          <span>Loading remaining specifications...</span>
-                        </>
-                      ) : (
-                        <span>Loading more automatically...</span>
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : null,
-          }}
-          inputProps={{
-            classNames: {
-              inputWrapper:
-                "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-            },
-          }}
         >
-          {specificationList.map((spec: ThreadRingPlugData) => (
-            <AutocompleteItem
-              key={spec.id || spec.standard_specification}
-              textValue={spec.standard_specification || "N/A"}
-            >
-              {spec.standard_specification || "N/A"}
-            </AutocompleteItem>
-          ))}
+          <Autocomplete.Trigger>
+            <Autocomplete.Filter>
+              <Input placeholder="Select specification" className="bg-white border border-gray-300" />
+            </Autocomplete.Filter>
+            <Autocomplete.Indicator />
+          </Autocomplete.Trigger>
+          <Autocomplete.Popover>
+            <ListBox>
+              {isLoading ? (
+                <ListBox.Item id="loading" isDisabled>
+                  {specificationPagesQuery.error ? "Unable to load specifications" : "Loading specifications..."}
+                </ListBox.Item>
+              ) : specificationList.length === 0 ? (
+                <ListBox.Item id="empty" isDisabled>No specifications found</ListBox.Item>
+              ) : (
+                specificationList.map((spec: ThreadRingPlugData) => (
+                  <ListBox.Item
+                    key={spec.id || spec.standard_specification}
+                    id={spec.id || spec.standard_specification || "unknown"}
+                    textValue={spec.standard_specification || "N/A"}
+                  >
+                    {spec.standard_specification || "N/A"}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))
+              )}
+              {specificationList.length > 0 && (
+                <ListBox.Item id="status" isDisabled>
+                  {specificationPagesQuery.isFetchingNextPage
+                    ? "Loading remaining specifications..."
+                    : `Loaded ${specificationList.length} of ${totalSpecifications} specifications`}
+                </ListBox.Item>
+              )}
+            </ListBox>
+          </Autocomplete.Popover>
         </Autocomplete>
       </div>
 
@@ -536,11 +526,10 @@ const PlainThreadPlugGauge: React.FC<PlainThreadPlugGaugeProps> = ({
           </div>
           <div className="p-2 bg-background flex items-center justify-center">
             <Button
-              color="success"
-              size="sm"
+              variant="primary"
               aria-label="Calculate Table"
               onPress={handleCalculateTable}
-              disabled={!selectedSpecKey || isSubmitting}
+              isDisabled={!selectedSpecKey || isSubmitting}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
               Calculate Table

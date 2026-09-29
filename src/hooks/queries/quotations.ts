@@ -212,7 +212,7 @@ const normalizeQuotationItem = (raw: unknown, index: number): QuotationItem => {
   const basicSize = toStringValue(record.basic_size ?? record.basicSize).trim();
   const basePrice = toNumberValue(record.base_price ?? record.basePrice) ?? 0;
   const discountType = normalizeDiscountTypeFromApi(
-    record.discount_type ?? record.discountType,
+    String(record.discount_type ?? record.discountType ?? ''),
   );
   const discountValue =
     toNumberValue(record.discount_value ?? record.discountValue) ?? 0;
@@ -557,7 +557,7 @@ const buildQuotationExtendedPayload = (
   optionalFields.forEach((field) => {
     const value = trimOptionalString(quotation[field] as string | undefined);
     if (value) {
-      payload[field] = value;
+      Object.assign(payload, { [field]: value });
     }
   });
 

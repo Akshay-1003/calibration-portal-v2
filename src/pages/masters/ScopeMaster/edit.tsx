@@ -98,6 +98,7 @@ const ScopeMasterEditPage = () => {
 
     return {
       master_gauge_id: data.master_gauge_id ?? "",
+      unit: data.unit === "Kg/cm2" ? "kg/cm2" : data.unit === "Degree" ? "degree" : data.unit ?? "mm",
       range: {
         min:
           data.range?.min !== undefined && data.range?.min !== null

@@ -3,15 +3,12 @@ import type { FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Autocomplete,
-  AutocompleteItem,
   Button,
   Card,
-  CardBody,
-  CardHeader,
   Input,
+  ListBox,
   Select,
-  SelectItem,
-} from '@heroui-v2/react';
+} from '@heroui/react';
 import { ArrowLeftIcon, BuildingOffice2Icon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { CustomerTable } from '../../components/Tables/customerTable';
 import { FormField } from '../../components/ui/form-field';
@@ -61,18 +58,6 @@ type LaboratoryPayload = {
 };
 
 type LaboratoryFormErrors = Partial<Record<'name' | 'lab_certificate_number' | 'address_line_1', string>>;
-
-const INPUT_CLASS_NAMES = {
-  inputWrapper: 'border border-gray-300 hover:border-gray-400 focus:border-primary bg-white',
-};
-
-const SELECT_CLASS_NAMES = {
-  trigger: 'border border-gray-300 hover:border-gray-400 focus:border-primary bg-white',
-};
-
-const AUTOCOMPLETE_CLASS_NAMES = {
-  inputWrapper: 'border border-gray-300 hover:border-gray-400 focus-within:border-primary bg-white',
-};
 
 const LAB_TYPE_OPTIONS: Array<{ key: LaboratoryType; label: string }> = [
   { key: 'NABL Lab', label: 'NABL Lab' },
@@ -245,7 +230,7 @@ function LaboratoryForm({
 
   return (
     <Card className="border border-gray-200 shadow-sm">
-      <CardHeader className="border-b border-gray-200 px-6 py-5">
+      <Card.Header className="border-b border-gray-200 px-6 py-5">
         <div>
           <h2 className="text-xl font-semibold text-gray-950">
             {mode === 'create' ? 'Create Laboratory' : 'Edit Laboratory'}
@@ -254,36 +239,28 @@ function LaboratoryForm({
             Maintain the platform laboratory workspace and accreditation details.
           </p>
         </div>
-      </CardHeader>
-      <CardBody className="px-6 py-6">
+      </Card.Header>
+      <Card.Content className="px-6 py-6">
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             <FormField label="Laboratory Name" required error={errors.name}>
               <Input
                 value={values.name}
-                onValueChange={(value) => updateValue('name', value)}
+                onChange={(event) => updateValue('name', event.target.value)}
                 placeholder="Enter laboratory name"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
             <FormField label="Type of Lab" required>
               <Select
                 aria-label="Type of Lab"
-                selectedKeys={new Set([values.lab_type])}
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0];
-                  if (selectedKey) {
-                    updateValue('lab_type', String(selectedKey) as LaboratoryType);
-                  }
-                }}
+                selectedKey={values.lab_type}
+                onSelectionChange={(key) => { if (key) updateValue('lab_type', String(key) as LaboratoryType); }}
                 isDisabled={isSaving}
-                classNames={SELECT_CLASS_NAMES}
               >
-                {LAB_TYPE_OPTIONS.map((option) => (
-                  <SelectItem key={option.key}>{option.label}</SelectItem>
-                ))}
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover><ListBox>{LAB_TYPE_OPTIONS.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
               </Select>
             </FormField>
 
@@ -294,55 +271,45 @@ function LaboratoryForm({
             >
               <Input
                 value={values.lab_certificate_number}
-                onValueChange={(value) => updateValue('lab_certificate_number', value)}
+                onChange={(event) => updateValue('lab_certificate_number', event.target.value)}
                 placeholder="Enter lab CC or certificate number"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
             <FormField label="Status" required>
               <Select
                 aria-label="Status"
-                selectedKeys={new Set([values.status])}
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0];
-                  if (selectedKey) {
-                    updateValue('status', String(selectedKey) as LaboratoryStatus);
-                  }
-                }}
+                selectedKey={values.status}
+                onSelectionChange={(key) => { if (key) updateValue('status', String(key) as LaboratoryStatus); }}
                 isDisabled={isSaving}
-                classNames={SELECT_CLASS_NAMES}
               >
-                {LAB_STATUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.key}>{option.label}</SelectItem>
-                ))}
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover><ListBox>{LAB_STATUS_OPTIONS.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
               </Select>
             </FormField>
 
             <FormField label="GST No">
               <Input
                 value={values.gst}
-                onValueChange={(value) => updateValue('gst', value)}
+                onChange={(event) => updateValue('gst', event.target.value)}
                 placeholder="GST number"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
             <FormField label="GST Type">
               <Select
                 placeholder="Select GST Type"
-                selectedKeys={values.gst_type ? new Set([values.gst_type]) : new Set([])}
-                onSelectionChange={(keys) => {
-                  const selectedKey = Array.from(keys)[0];
-                  updateValue('gst_type', selectedKey ? String(selectedKey) : '');
-                }}
+                selectedKey={values.gst_type || null}
+                onSelectionChange={(key) => updateValue('gst_type', key ? String(key) : '')}
                 isDisabled={isSaving}
-                classNames={SELECT_CLASS_NAMES}
               >
-                <SelectItem key="Cgst_Sgst">CGST/SGST</SelectItem>
-                <SelectItem key="Igst">IGST</SelectItem>
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover><ListBox>
+                  <ListBox.Item id="Cgst_Sgst" textValue="CGST/SGST">CGST/SGST</ListBox.Item>
+                  <ListBox.Item id="Igst" textValue="IGST">IGST</ListBox.Item>
+                </ListBox></Select.Popover>
               </Select>
             </FormField>
           </div>
@@ -353,12 +320,11 @@ function LaboratoryForm({
               <Button
                 type="button"
                 onPress={addContact}
-                variant="flat"
-                color="primary"
+                variant="secondary"
                 size="sm"
-                startContent={<PlusIcon className="h-4 w-4" />}
                 isDisabled={isSaving}
               >
+                <PlusIcon className="h-4 w-4" />
                 Add Contact
               </Button>
             </div>
@@ -375,38 +341,34 @@ function LaboratoryForm({
                     <FormField label={index === 0 ? 'Name' : undefined}>
                       <Input
                         value={contact.name}
-                        onValueChange={(value) => updateContactValue(index, 'name', value)}
+                        onChange={(event) => updateContactValue(index, 'name', event.target.value)}
                         placeholder="Contact name"
-                        isDisabled={isSaving}
-                        classNames={INPUT_CLASS_NAMES}
+                        disabled={isSaving}
                       />
                     </FormField>
 
                     <FormField label={index === 0 ? 'Email' : undefined}>
                       <Input
                         value={contact.email}
-                        onValueChange={(value) => updateContactValue(index, 'email', value)}
+                        onChange={(event) => updateContactValue(index, 'email', event.target.value)}
                         placeholder="contact@example.com / NA"
-                        isDisabled={isSaving}
-                        classNames={INPUT_CLASS_NAMES}
+                        disabled={isSaving}
                       />
                     </FormField>
 
                     <FormField label={index === 0 ? 'Phone' : undefined}>
                       <Input
                         value={contact.phone}
-                        onValueChange={(value) => updateContactValue(index, 'phone', value)}
+                        onChange={(event) => updateContactValue(index, 'phone', event.target.value)}
                         placeholder="Phone number / -"
-                        isDisabled={isSaving}
-                        classNames={INPUT_CLASS_NAMES}
+                        disabled={isSaving}
                       />
                     </FormField>
 
                     <Button
                       type="button"
                       onPress={() => removeContact(index)}
-                      variant="flat"
-                      color="danger"
+                      variant="danger-soft"
                       size="sm"
                       isIconOnly
                       aria-label={`Remove contact ${index + 1}`}
@@ -425,30 +387,27 @@ function LaboratoryForm({
             <FormField label="Address" required error={errors.address_line_1} className="md:col-span-2 xl:col-span-4">
               <Input
                 value={values.address.address_line_1}
-                onValueChange={(value) => updateAddressValue('address_line_1', value)}
+                onChange={(event) => updateAddressValue('address_line_1', event.target.value)}
                 placeholder="Enter address"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
             <FormField label="Address Line 2" className="md:col-span-2 xl:col-span-4">
               <Input
                 value={values.address.address_line_2 ?? ''}
-                onValueChange={(value) => updateAddressValue('address_line_2', value)}
+                onChange={(event) => updateAddressValue('address_line_2', event.target.value)}
                 placeholder="Optional address line"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
             <FormField label="City">
               <Input
                 value={values.address.city}
-                onValueChange={(value) => updateAddressValue('city', value)}
+                onChange={(event) => updateAddressValue('city', event.target.value)}
                 placeholder="City / NA"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
@@ -456,29 +415,25 @@ function LaboratoryForm({
               <Autocomplete
                 aria-label="State"
                 selectedKey={values.address.state || null}
-                inputValue={values.address.state || ''}
-                onInputChange={(value) => updateAddressValue('state', value)}
                 onSelectionChange={(key) => updateAddressValue('state', (key as string | null) || '')}
-                placeholder={selectedCountry ? 'Search and select state' : 'Select country first'}
-                allowsCustomValue
                 isDisabled={!selectedCountry || isSaving}
-                classNames={AUTOCOMPLETE_CLASS_NAMES}
               >
-                {states.map((state) => (
-                  <AutocompleteItem key={state.name} textValue={state.name}>
-                    {state.name}
-                  </AutocompleteItem>
-                ))}
+                <Autocomplete.Trigger>
+                  <Autocomplete.Filter>
+                    <Input aria-label="Search state" placeholder={selectedCountry ? 'Search and select state' : 'Select country first'} value={values.address.state || ''} onChange={(event) => updateAddressValue('state', event.target.value)} />
+                  </Autocomplete.Filter>
+                  <Autocomplete.Indicator />
+                </Autocomplete.Trigger>
+                <Autocomplete.Popover><ListBox>{states.map((state) => <ListBox.Item key={state.name} id={state.name} textValue={state.name}>{state.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Popover>
               </Autocomplete>
             </FormField>
 
             <FormField label="ZIP Code">
               <Input
                 value={values.address.zip_code}
-                onValueChange={(value) => updateAddressValue('zip_code', value)}
+                onChange={(event) => updateAddressValue('zip_code', event.target.value)}
                 placeholder="ZIP / -"
-                isDisabled={isSaving}
-                classNames={INPUT_CLASS_NAMES}
+                disabled={isSaving}
               />
             </FormField>
 
@@ -486,8 +441,6 @@ function LaboratoryForm({
               <Autocomplete
                 aria-label="Country"
                 selectedKey={values.address.country || null}
-                inputValue={values.address.country || ''}
-                onInputChange={(value) => updateAddressValue('country', value)}
                 onSelectionChange={(key) => {
                   const nextValue = (key as string | null) || '';
                   updateAddressValue('country', nextValue);
@@ -495,30 +448,29 @@ function LaboratoryForm({
                     updateAddressValue('state', '');
                   }
                 }}
-                placeholder="Search and select country"
-                allowsCustomValue
                 isDisabled={isSaving}
-                classNames={AUTOCOMPLETE_CLASS_NAMES}
               >
-                {countries.map((country) => (
-                  <AutocompleteItem key={country.name} textValue={country.name}>
-                    {country.name}
-                  </AutocompleteItem>
-                ))}
+                <Autocomplete.Trigger>
+                  <Autocomplete.Filter>
+                    <Input aria-label="Search country" placeholder="Search and select country" value={values.address.country || ''} onChange={(event) => updateAddressValue('country', event.target.value)} />
+                  </Autocomplete.Filter>
+                  <Autocomplete.Indicator />
+                </Autocomplete.Trigger>
+                <Autocomplete.Popover><ListBox>{countries.map((country) => <ListBox.Item key={country.name} id={country.name} textValue={country.name}>{country.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Popover>
               </Autocomplete>
             </FormField>
           </div>
 
           <div className="flex justify-end gap-3 border-t border-gray-200 pt-5">
-            <Button type="button" variant="flat" onPress={onCancel} isDisabled={isSaving}>
+            <Button type="button" variant="outline" onPress={onCancel} isDisabled={isSaving}>
               Cancel
             </Button>
-            <Button type="submit" color="primary" isLoading={isSaving}>
-              {mode === 'create' ? 'Create Laboratory' : 'Save Laboratory'}
+            <Button type="submit" variant="primary" isDisabled={isSaving}>
+              {isSaving ? 'Saving...' : mode === 'create' ? 'Create Laboratory' : 'Save Laboratory'}
             </Button>
           </div>
         </form>
-      </CardBody>
+      </Card.Content>
     </Card>
   );
 }
@@ -644,11 +596,11 @@ export const SettingsLaboratories = () => {
     return (
       <div className="space-y-4 p-2">
         <Card className="border border-gray-200 shadow-sm">
-          <CardBody className="flex items-center justify-center gap-4 p-10 text-center">
+          <Card.Content className="flex items-center justify-center gap-4 p-10 text-center">
             {platformAccessError ? (
               <>
                 <p className="text-sm font-medium text-red-600">{platformAccessError}</p>
-                <Button color="primary" onPress={() => void restorePlatformAccess()}>
+                <Button variant="primary" onPress={() => void restorePlatformAccess()}>
                   Try again
                 </Button>
               </>
@@ -657,7 +609,7 @@ export const SettingsLaboratories = () => {
                 Returning to platform access...
               </p>
             )}
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     );
@@ -667,10 +619,10 @@ export const SettingsLaboratories = () => {
     return (
       <div className="space-y-4 p-2">
         <Button
-          variant="light"
-          startContent={<ArrowLeftIcon className="h-4 w-4" />}
+          variant="ghost"
           onPress={() => setEditor({ mode: 'list' })}
         >
+          <ArrowLeftIcon className="h-4 w-4" />
           Back to laboratories
         </Button>
 
@@ -700,10 +652,10 @@ export const SettingsLaboratories = () => {
           </div>
         </div>
         <Button
-          color="primary"
-          startContent={<PlusIcon className="h-4 w-4" />}
+          variant="primary"
           onPress={() => setEditor({ mode: 'create' })}
         >
+          <PlusIcon className="h-4 w-4" />
           Create Laboratory
         </Button>
       </div>
@@ -733,26 +685,23 @@ export const SettingsLaboratories = () => {
                 <p className="truncate text-sm font-medium text-gray-900" title={customer.name}>{customer.name}</p>
                 <Select
                   aria-label={`Laboratory for ${customer.name}`}
-                  selectedKeys={laboratoryId ? [laboratoryId] : []}
-                  onSelectionChange={(keys) => {
-                    const nextLaboratoryId = String(Array.from(keys)[0] ?? '');
+                  selectedKey={laboratoryId || null}
+                  onSelectionChange={(key) => {
+                    const nextLaboratoryId = String(key ?? '');
                     setLaboratoryAssignments((current) => ({ ...current, [customer.id]: nextLaboratoryId }));
                   }}
-                  size="sm"
                   isDisabled={laboratories.length === 0 || assignCustomerMutation.isPending}
                 >
-                  {laboratories.map((laboratory) => (
-                    <SelectItem key={laboratory.id}>{laboratory.name}</SelectItem>
-                  ))}
+                  <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                  <Select.Popover><ListBox>{laboratories.map((laboratory) => <ListBox.Item key={laboratory.id} id={laboratory.id} textValue={laboratory.name}>{laboratory.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
                 </Select>
                 <Button
-                  color="primary"
+                  variant="primary"
                   size="sm"
                   isDisabled={!laboratoryId}
-                  isLoading={assignCustomerMutation.isPending}
                   onPress={() => assignCustomerMutation.mutate({ customerId: customer.id, laboratoryId })}
                 >
-                  Assign
+                  {assignCustomerMutation.isPending ? 'Assigning...' : 'Assign'}
                 </Button>
               </div>
             ))}

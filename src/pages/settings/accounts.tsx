@@ -2,22 +2,12 @@ import { useMemo, useState } from 'react';
 import {
   Button,
   Card,
-  CardBody,
   Chip,
   Input,
   Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
   Pagination,
   Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-  useDisclosure,
-} from '@heroui-v2/react';
+} from '@heroui/react';
 import {
   BanknotesIcon,
   MagnifyingGlassIcon,
@@ -26,6 +16,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline';
 import { DeleteConfirmModal } from '../../components/common/DeleteConfirmModal';
+import { getTableColumnKey } from '../../components/Tables/tableColumnKey';
 import { AccountDetailsForm } from '../../components/settings/AccountDetailsForm';
 import {
   useAccountDetailsQuery,
@@ -38,6 +29,7 @@ import type { AccountDetailFormData } from '../../lib/validations/accountDetails
 import { usePermissionAccess } from '../../features/auth';
 import { UnauthorizedPage } from '../../features/auth/components/UnauthorizedPage';
 import { settingsAdministrationRoles } from '../../config/access-control';
+import '../../styles/industrial-table.css';
 
 const columns = [
   { key: 'firm_name', label: 'Firm Name' },
@@ -50,9 +42,9 @@ const columns = [
 
 const ROWS_PER_PAGE = 8;
 
-const typeColorMap: Record<string, 'primary' | 'secondary' | 'success' | 'warning'> = {
-  'Calibration Lab': 'primary',
-  Trading: 'secondary',
+const typeColorMap: Record<string, 'accent' | 'default' | 'success' | 'warning'> = {
+  'Calibration Lab': 'accent',
+  Trading: 'default',
   Sales: 'success',
   Service: 'warning',
 };
@@ -65,8 +57,8 @@ export const SettingsAccounts = () => {
   const [selectedAccount, setSelectedAccount] = useState<AccountDetail | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AccountDetail | null>(null);
 
-  const createModal = useDisclosure();
-  const editModal = useDisclosure();
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
 
   const accountDetailsQuery = useAccountDetailsQuery();
   const createMutation = useCreateAccountDetailMutation();
@@ -106,13 +98,13 @@ export const SettingsAccounts = () => {
 
   const handleCreate = async (data: AccountDetailFormData) => {
     await createMutation.mutateAsync(data);
-    createModal.onClose();
+    setCreateModalOpen(false);
   };
 
   const handleEdit = async (data: AccountDetailFormData) => {
     if (!selectedAccount) return;
     await updateMutation.mutateAsync({ id: selectedAccount.id, data });
-    editModal.onClose();
+    setEditModalOpen(false);
     setSelectedAccount(null);
   };
 
@@ -124,7 +116,7 @@ export const SettingsAccounts = () => {
 
   const openEditModal = (account: AccountDetail) => {
     setSelectedAccount(account);
-    editModal.onOpen();
+    setEditModalOpen(true);
   };
 
   const renderCell = (account: AccountDetail, columnKey: string) => {
@@ -140,7 +132,7 @@ export const SettingsAccounts = () => {
         return (
           <Chip
             size="sm"
-            variant="flat"
+            variant="soft"
             color={typeColorMap[account.type] || 'secondary'}
           >
             {account.type || '-'}
@@ -164,7 +156,7 @@ export const SettingsAccounts = () => {
         );
       case 'status':
         return (
-          <Chip size="sm" variant="flat" color={account.is_active ? 'success' : 'default'}>
+          <Chip size="sm" variant="soft" color={account.is_active ? 'success' : 'default'}>
             {account.is_active ? 'Active' : 'Inactive'}
           </Chip>
         );
@@ -173,7 +165,7 @@ export const SettingsAccounts = () => {
           <div className="flex gap-2">
             <Button
               size="sm"
-              variant="light"
+              variant="ghost"
               isIconOnly
               onPress={() => openEditModal(account)}
               isDisabled={!canManageAccounts}
@@ -182,8 +174,7 @@ export const SettingsAccounts = () => {
             </Button>
             <Button
               size="sm"
-              variant="light"
-              color="danger"
+              variant="danger-soft"
               isIconOnly
               onPress={() => setDeleteTarget(account)}
               isDisabled={!canManageAccounts}
@@ -207,110 +198,130 @@ export const SettingsAccounts = () => {
           </p>
         </div>
         <Button
-          color="primary"
-          startContent={<PlusIcon className="h-4 w-4" />}
-          onPress={createModal.onOpen}
+          variant="primary"
+          onPress={() => setCreateModalOpen(true)}
           isDisabled={!canManageAccounts}
         >
-          Add Account Details
+          <PlusIcon className="h-4 w-4" />
+          <span>Add Account Details</span>
         </Button>
       </div>
 
       <Card>
-        <CardBody>
+        <Card.Content>
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <Input
+            <div className="relative max-w-xl w-full">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Input
               placeholder="Search firm, bank, IFSC, email..."
-              startContent={<MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />}
               value={searchValue}
-              onValueChange={(value) => {
-                setSearchValue(value);
+              onChange={(event) => {
+                setSearchValue(event.target.value);
                 setPage(1);
               }}
-              className="max-w-xl"
-            />
+              className="pl-9"
+              />
+            </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
               <span className="font-semibold text-slate-900">{filteredAccounts.length}</span> firms available
             </div>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       <Card>
-        <CardBody className="p-0">
+        <Card.Content className="p-0">
+          <div className="industrial-table-wrapper">
           <Table aria-label="Account details table">
-            <TableHeader columns={columns}>
-              {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-            </TableHeader>
-            <TableBody
-              items={paginatedAccounts}
-              isLoading={accountDetailsQuery.isLoading || accountDetailsQuery.isFetching}
-              emptyContent="No account details found"
-            >
-              {(item: AccountDetail) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => (
-                    <TableCell>{renderCell(item, columnKey as string)}</TableCell>
+            <Table.ScrollContainer>
+              <Table.Content>
+                <Table.Header columns={columns}>
+                  {(column) => <Table.Column id={column.key} isRowHeader={column.key === columns[0]?.key}>{column.label}</Table.Column>}
+                </Table.Header>
+                <Table.Body
+                  items={paginatedAccounts}
+                  renderEmptyState={() => (
+                    <div className="py-10 text-center text-sm text-slate-500">
+                      {accountDetailsQuery.isLoading || accountDetailsQuery.isFetching
+                        ? 'Loading account details...'
+                        : 'No account details found'}
+                    </div>
                   )}
-                </TableRow>
-              )}
-            </TableBody>
+                >
+                  {(item) => (
+                    <Table.Row id={item.id} columns={columns}>
+                      {(columnKey) => (
+                        <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>
+                      )}
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
           </Table>
+          </div>
 
           {totalPages > 1 && (
             <div className="flex justify-center p-4">
-              <Pagination page={page} total={totalPages} onChange={setPage} />
+              <Pagination aria-label="Account details pagination">
+                <Pagination.Content>
+                  <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
+                    <Pagination.PreviousIcon />
+                  </Pagination.Previous>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                    <Pagination.Item key={pageNumber}>
+                      <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>
+                        {pageNumber}
+                      </Pagination.Link>
+                    </Pagination.Item>
+                  ))}
+                  <Pagination.Next isDisabled={page >= totalPages} onPress={() => setPage((current) => Math.min(totalPages, current + 1))}>
+                    <Pagination.NextIcon />
+                  </Pagination.Next>
+                </Pagination.Content>
+              </Pagination>
             </div>
           )}
-        </CardBody>
+        </Card.Content>
       </Card>
 
-      <Modal isOpen={createModal.isOpen} onOpenChange={createModal.onOpenChange} size="4xl">
-        <ModalContent>
-          {() => (
-            <>
-              <ModalHeader className="flex items-center gap-2">
-                <BanknotesIcon className="h-5 w-5 text-primary" />
-                Create Account Details
-              </ModalHeader>
-              <ModalBody className="pb-6">
-                <AccountDetailsForm
-                  onSubmit={handleCreate}
-                  onClose={createModal.onClose}
-                  isLoading={createMutation.isPending}
-                />
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      <Modal.Root isOpen={createModalOpen} onOpenChange={(open) => { if (!open) setCreateModalOpen(false); }}>
+        <Modal.Backdrop>
+          <Modal.Container size="lg" scroll="inside">
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading><BanknotesIcon className="mr-2 inline h-5 w-5 text-primary" />Create Account Details</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="pb-6">
+                <AccountDetailsForm onSubmit={handleCreate} onClose={() => setCreateModalOpen(false)} isLoading={createMutation.isPending} />
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal.Root>
 
-      <Modal isOpen={editModal.isOpen} onOpenChange={editModal.onOpenChange} size="4xl">
-        <ModalContent>
-          {() => (
-            <>
-              <ModalHeader className="flex items-center gap-2">
-                <BanknotesIcon className="h-5 w-5 text-primary" />
-                Edit Account Details
-              </ModalHeader>
-              <ModalBody className="pb-6">
+      <Modal.Root isOpen={editModalOpen} onOpenChange={(open) => { if (!open) setEditModalOpen(false); }}>
+        <Modal.Backdrop>
+          <Modal.Container size="lg" scroll="inside">
+            <Modal.Dialog>
+              <Modal.Header>
+                <Modal.Heading><BanknotesIcon className="mr-2 inline h-5 w-5 text-primary" />Edit Account Details</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="pb-6">
                 {selectedAccount && (
                   <AccountDetailsForm
                     initialData={selectedAccount}
                     onSubmit={handleEdit}
-                    onClose={() => {
-                      editModal.onClose();
-                      setSelectedAccount(null);
-                    }}
+                    onClose={() => { setEditModalOpen(false); setSelectedAccount(null); }}
                     isLoading={updateMutation.isPending}
                   />
                 )}
-              </ModalBody>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal.Root>
 
       <DeleteConfirmModal
         isOpen={Boolean(deleteTarget)}

@@ -1,7 +1,7 @@
 "use client"
 
 import { useForm } from "react-hook-form"
-import { Input, Select, SelectItem, Button } from "@heroui-v2/react"
+import { Button, Input, Label, ListBox, Select } from "@heroui/react"
 import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { ApiError, apiClient } from "../../services/api"
@@ -29,8 +29,7 @@ const GaugesMasterForm = ({ mode = 'create', gaugeId, initialData, onSuccess, on
   } = useCertificateTypeStore()
   
   // Use gauge store for state management
-  const { updateGauge, createGauge, fetchGaugeMasters } = useMasterDataStore()
-  void createGauge
+  const { updateGauge, fetchGaugeMasters } = useMasterDataStore()
   
   const {
     register,
@@ -129,8 +128,8 @@ const GaugesMasterForm = ({ mode = 'create', gaugeId, initialData, onSuccess, on
 
   return (
     <div className="w-full">
-      <div className="shadow-lg border rounded-xl bg-card">
-        <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+      <div className="shadow-sm border rounded-md bg-card">
+        <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
           {mode === "edit" ? "Edit Gauge Master" : "New Gauge Master"}
         </div>
 
@@ -139,44 +138,50 @@ const GaugesMasterForm = ({ mode = 'create', gaugeId, initialData, onSuccess, on
             {/* Form Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {formFields.map((field) => (
-                <Input
-                  key={field.key}
-                  label={field.label}
-                  labelPlacement="outside"
-                  placeholder={field.placeholder}
-                  {...register(field.key as keyof GaugeMasterFormData)}
-                  isInvalid={!!errors[field.key as keyof GaugeMasterFormData]}
-                  errorMessage={errors[field.key as keyof GaugeMasterFormData]?.message}
-                />
+                <label key={field.key} className="flex flex-col gap-2 text-sm font-medium text-foreground">
+                  {field.label}
+                  <Input
+                    className="w-full"
+                    placeholder={field.placeholder}
+                    {...register(field.key as keyof GaugeMasterFormData)}
+                    aria-invalid={!!errors[field.key as keyof GaugeMasterFormData]}
+                  />
+                  {errors[field.key as keyof GaugeMasterFormData]?.message ? (
+                    <span className="font-normal text-red-600">{errors[field.key as keyof GaugeMasterFormData]?.message}</span>
+                  ) : null}
+                </label>
               ))}
 
               {/* Certificate Type */}
-              <Select
-                label="Certificate Type"
-                labelPlacement="outside"
+              <Select className="w-full"
+                selectedKey={watch('certificate_type_id') || null}
                 placeholder="Select Certificate Type"
-                selectedKeys={watch('certificate_type_id') ? [watch('certificate_type_id')] : []}
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string
+                onSelectionChange={(key) => {
+                  const value = key as string
                   setValue('certificate_type_id', value, { shouldValidate: true })
                 }}
-                isInvalid={!!errors.certificate_type_id}
-                errorMessage={errors.certificate_type_id?.message}
               >
+                <Label>Certificate Type</Label>
+                <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
                 {certificateTypes.map(certType => (
-                  <SelectItem key={certType.id}>
+                  <ListBox.Item key={certType.id} id={certType.id} textValue={certType.name}>
                     {certType.name}
-                  </SelectItem>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
                 ))}
+                  </ListBox>
+                </Select.Popover>
               </Select>
             </div>
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <Button type="submit" color="primary" isDisabled={loading || isSubmitting}>
-                {mode === "edit" ? "Update" : "Save"}
+              <Button type="submit" variant="primary" isDisabled={loading || isSubmitting}>
+                {loading || isSubmitting ? "Saving..." : mode === "edit" ? "Update" : "Save"}
               </Button>
-              <Button variant="bordered" onPress={onCancel || (() => navigate(-1))}>
+              <Button variant="outline" onPress={onCancel || (() => navigate(-1))}>
                 Cancel
               </Button>
             </div>

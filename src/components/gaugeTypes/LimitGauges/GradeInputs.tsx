@@ -38,9 +38,9 @@ const GradeInputs: React.FC<GradeInputsProps> = ({ watchedInputs, setValue, onUs
                     <label className="block text-sm font-medium text-gray-700 mb-2">Grade</label>
                     <Select
                         value={watchedInputs?.grade ?? ""}
-                        onValueChange={(v: string) => {
+                        onValueChange={(v: string | null) => {
                             onUserInteraction?.();
-                            setValue("specifications.inputs.inputs.grade" as const, v);
+                            setValue("specifications.inputs.inputs.grade" as const, v ?? "");
                         }}
                     >
                         <SelectTrigger className="w-full"><SelectValue placeholder="Select grade" /></SelectTrigger>

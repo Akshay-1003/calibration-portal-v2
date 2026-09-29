@@ -1,8 +1,10 @@
 "use client"
 import React, { useEffect } from "react"
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell, Input, Button, Select, SelectItem, Chip, Pagination } from "@heroui-v2/react"
+import { Table, Input, Button, Select, ListBox, Label, Chip, Pagination } from "@heroui/react"
+import type { Key } from "@react-types/shared"
 import { InwardEntry } from "../../types"
 import "../../styles/industrial-table.css"
+import { getTableColumnKey } from './tableColumnKey'
 
 // ----------------------
 // Calibration Inward Table Component
@@ -89,7 +91,7 @@ export function CalibrationInwardTable({
       }
       case "inward_no":
         return (
-          <Chip color="primary" variant="flat" radius="sm">
+          <Chip color="accent" variant="soft">
             {item.inward_no}
           </Chip>
         );
@@ -120,16 +122,15 @@ export function CalibrationInwardTable({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Filter by company name..."
             value={filterValue}
-            onClear={() => setFilterValue("")}
-            onValueChange={setFilterValue}
+            onChange={(event) => setFilterValue(event.target.value)}
           />
+          {filterValue ? <Button type="button" variant="ghost" aria-label="Clear filter" onPress={() => setFilterValue("")}>Clear</Button> : null}
           <div className="flex gap-3">
             {onRefresh && (
-              <Button onPress={onRefresh} size="sm" variant="flat" isDisabled={loading}>
+              <Button onPress={onRefresh} size="sm" variant="secondary" isDisabled={loading}>
                 {loading ? "Refreshing..." : "Refresh"}
               </Button>
             )}
@@ -139,11 +140,11 @@ export function CalibrationInwardTable({
     );
   }, [filterValue, onRefresh, loading]);
 
-  const onRowsPerPageChange = React.useCallback((keys: Selection) => {
-    const value = Number(Array.from(keys)[0]);
+  const onRowsPerPageChange = React.useCallback((key: Key | null) => {
+    const value = Number(key ?? rowsPerPage);
     setRowsPerPage(value);
     setPage(1);
-  }, []);
+  }, [rowsPerPage]);
 
   const bottomContent = React.useMemo(() => {
     return (
@@ -154,37 +155,38 @@ export function CalibrationInwardTable({
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            page={page}
-            total={pages}
-            onChange={setPage}
-            className="scale-90"
-            classNames={{
-              item: "bg-white border-gray-300",
-              cursor: "bg-blue-600 text-white",
-            }}
-          />
+          <Pagination size="sm" className="scale-90">
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
+                <Pagination.PreviousIcon />
+              </Pagination.Previous>
+              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}>
+                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
+                </Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}>
+                <Pagination.NextIcon />
+              </Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
           <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
+            selectedKey={String(rowsPerPage)}
             onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
             className="min-w-[170px]"
-            classNames={{
-              trigger: "bg-white border-gray-300 h-8",
-            }}
           >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+            <Label>Rows per page</Label>
+            <Select.Trigger className="h-8 border border-gray-300 bg-white"><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {['10', '20', '50', '100'].map((size) => (
+                  <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
           </Select>
         </div>
       </div>
@@ -194,23 +196,29 @@ export function CalibrationInwardTable({
   return (
     <div className="p-2">
       <div className="industrial-table-wrapper">
-        <Table aria-label="Calibration Inward" isHeaderSticky bottomContent={bottomContent} bottomContentPlacement="outside" classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0", base: "min-w-full" }} topContent={topContent} topContentPlacement="outside" >
-          <TableHeader>
+        <div className="mb-4">{topContent}</div>
+        <Table aria-label="Calibration Inward" className="min-w-full">
+          <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+          <Table.Content>
+          <Table.Header>
             {columns.map((c) => (
-              <TableColumn key={c.uid} align={c.uid === "actions" || c.uid === "sr_no" ? "center" : "start"}>{c.name}</TableColumn>
+              <Table.Column key={c.uid} id={String(c.uid)} isRowHeader={c.uid === columns[0]?.uid}>{c.name}</Table.Column>
             ))}
-          </TableHeader>
-          <TableBody emptyContent={error || "No data"} items={items} isLoading={loading}
-          loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}>
-            {items.map((item, index) => (
-              <TableRow key={item.id}>
-                {columns.map((c) => (
-                  <TableCell key={`${item.id}-${String(c.uid)}`}>{renderCell(item, c.uid, index)}</TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
+          </Table.Header>
+          <Table.Body items={items} renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? 'Loading...' : error || 'No data'}</div>}>
+            {(item) => (
+              <Table.Row id={item.id} columns={columns}>
+                {(columnKey) => {
+                  const column = columns.find((candidate) => String(candidate.uid) === getTableColumnKey(columnKey));
+                  return <Table.Cell>{column ? renderCell(item, column.uid, items.indexOf(item)) : null}</Table.Cell>;
+                }}
+              </Table.Row>
+            )}
+          </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
+        {bottomContent}
       </div>
     </div>
   )

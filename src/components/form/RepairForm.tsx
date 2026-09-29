@@ -5,23 +5,14 @@ import { useForm, Controller } from "react-hook-form";
 import {
   Input,
   Select,
-  SelectItem,
   Autocomplete,
-  AutocompleteItem,
+  ListBox,
   Button,
-  Textarea,
+  TextArea,
   Card,
-  CardHeader,
-  CardBody,
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import {
-  PlusIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import type { 
@@ -236,12 +227,12 @@ const RepairForm = ({
   return (
     <div className="max-w-6xl mx-auto p-6">
       <Card>
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+        <Card.Header className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
           <h2 className="text-xl font-bold">
             {isEditing ? 'Edit Repair' : 'Create New Repair'}
           </h2>
-        </CardHeader>
-        <CardBody>
+        </Card.Header>
+        <Card.Content>
           <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
             <input type="hidden" {...register('gauge_id', { required: 'Gauge selection is required' })} />
             {/* Basic Information */}
@@ -251,10 +242,10 @@ const RepairForm = ({
                   Repair Date *
                 </label>
                 <Input
+                  className="w-full"
                   type="date"
                   {...register('repair_date', { required: 'Repair date is required' })}
-                  isInvalid={!!errors.repair_date}
-                  errorMessage={errors.repair_date?.message}
+                  aria-invalid={!!errors.repair_date}
                 />
               </div>
 
@@ -267,18 +258,9 @@ const RepairForm = ({
                   control={control}
                   rules={{ required: 'Client organization is required' }}
                   render={({ field }) => (
-                    <Select
-                      {...field}
-                      selectedKeys={field.value ? [field.value] : []}
-                      onSelectionChange={(keys) => field.onChange(Array.from(keys)[0])}
-                      isInvalid={!!errors.client_org_id}
-                      errorMessage={errors.client_org_id?.message}
-                    >
-                      {organizations.map((org) => (
-                        <SelectItem key={org.id}>
-                          {org.name}
-                        </SelectItem>
-                      ))}
+                    <Select className="w-full" selectedKey={field.value || null} onSelectionChange={(key) => field.onChange(key ? String(key) : '')} placeholder="Select organization">
+                      <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                      <Select.Popover><ListBox>{organizations.map((org) => <ListBox.Item key={org.id} id={org.id} textValue={org.name}>{org.name}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
                     </Select>
                   )}
                 />
@@ -294,7 +276,7 @@ const RepairForm = ({
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Search & Select Gauge *
                   </label>
-                  <Autocomplete
+                  <Autocomplete className="w-full"
                     selectedKey={selectedGaugeId || null}
                     onSelectionChange={(key) => {
                       const gaugeId = key as string | null;
@@ -307,42 +289,27 @@ const RepairForm = ({
                       }
                       handleGaugeSelect(gaugeId);
                     }}
-                    placeholder="Search by gauge name or standard no..."
-                    allowsCustomValue={false}
-                    isInvalid={!!errors.gauge_id}
-                    errorMessage={errors.gauge_id?.message}
-                    inputProps={{
-                      classNames: {
-                        input: "text-sm",
-                      },
-                    }}
-                    listboxProps={{
-                      emptyContent: "No gauges found",
-                    }}
-                  >
-                    {gaugeMasterList.map((gauge) => (
-                      <AutocompleteItem
-                        key={gauge.id}
-                        textValue={`${gauge.name} ${gauge.is_standard_no}`}
-                      >
-                        <div className="flex flex-col">
-                          <span>{gauge.name}</span>
-                          <span className="text-xs text-gray-500">
-                            Standard No: {gauge.is_standard_no}
-                          </span>
-                        </div>
-                      </AutocompleteItem>
-                    ))}
+                    >
+                    <Autocomplete.Trigger>
+                      <Autocomplete.Filter><Input aria-label="Search gauge" placeholder="Search by gauge name or standard no..." /></Autocomplete.Filter>
+                      <Autocomplete.Indicator />
+                    </Autocomplete.Trigger>
+                    <Autocomplete.Popover><ListBox>{gaugeMasterList.length ? gaugeMasterList.map((gauge) => (
+                      <ListBox.Item key={gauge.id} id={gauge.id} textValue={`${gauge.name} ${gauge.is_standard_no}`}>
+                        <div className="flex flex-col"><span>{gauge.name}</span><span className="text-xs text-gray-500">Standard No: {gauge.is_standard_no}</span></div>
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    )) : <ListBox.Item id="no-gauges" isDisabled>No gauges found</ListBox.Item>}</ListBox></Autocomplete.Popover>
                   </Autocomplete>
                 </div>
               </div>
 
               {selectedGauge && (
                 <Card className="bg-blue-50 border-blue-200">
-                  <CardBody>
+                  <Card.Content>
                     <h4 className="font-semibold text-blue-800 mb-2">Gauge Specifications</h4>
                     {renderGaugeSpecifications(gaugeSpecs)}
-                  </CardBody>
+                  </Card.Content>
                 </Card>
               )}
             </div>
@@ -361,28 +328,11 @@ const RepairForm = ({
                     control={control}
                     rules={{ required: 'Repair status is required' }}
                     render={({ field }) => (
-                      <Select
-                        {...field}
-                        selectedKeys={field.value ? [field.value] : []}
-                        onSelectionChange={(keys) => field.onChange(Array.from(keys)[0])}
-                        isInvalid={!!errors.repair_status}
-                        errorMessage={errors.repair_status?.message}
-                      >
-                        <SelectItem key="pending">
-                          Pending
-                        </SelectItem>
-                        <SelectItem key="in_progress">
-                          In Progress
-                        </SelectItem>
-                        <SelectItem key="completed">
-                          Completed
-                        </SelectItem>
-                        <SelectItem key="on_hold">
-                          On Hold
-                        </SelectItem>
-                        <SelectItem key="cancelled">
-                          Cancelled
-                        </SelectItem>
+                      <Select className="w-full" selectedKey={field.value || null} onSelectionChange={(key) => field.onChange(key ? String(key) : '')} placeholder="Select status">
+                        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                        <Select.Popover><ListBox>
+                          {[['pending', 'Pending'], ['in_progress', 'In Progress'], ['completed', 'Completed'], ['on_hold', 'On Hold'], ['cancelled', 'Cancelled']].map(([key, label]) => <ListBox.Item key={key} id={key} textValue={label}>{label}<ListBox.ItemIndicator /></ListBox.Item>)}
+                        </ListBox></Select.Popover>
                       </Select>
                     )}
                   />
@@ -393,12 +343,12 @@ const RepairForm = ({
                     Estimated Completion Date *
                   </label>
                   <Input
+                    className="w-full"
                     type="date"
                     {...register('estimated_completion_date', { 
                       required: 'Estimated completion date is required' 
                     })}
-                    isInvalid={!!errors.estimated_completion_date}
-                    errorMessage={errors.estimated_completion_date?.message}
+                    aria-invalid={!!errors.estimated_completion_date}
                   />
                 </div>
 
@@ -407,12 +357,12 @@ const RepairForm = ({
                     Technician Name *
                   </label>
                   <Input
+                    className="w-full"
                     {...register('technician_name', { 
                       required: 'Technician name is required' 
                     })}
                     placeholder="Enter technician name"
-                    isInvalid={!!errors.technician_name}
-                    errorMessage={errors.technician_name?.message}
+                    aria-invalid={!!errors.technician_name}
                   />
                 </div>
 
@@ -425,8 +375,7 @@ const RepairForm = ({
                     value={totalSparePartsCost.toString()}
                     readOnly
                     placeholder="Auto-calculated from spare parts"
-                    className="bg-gray-50"
-                    startContent="₹"
+                    className="w-full bg-gray-50"
                   />
                 </div>
               </div>
@@ -435,14 +384,14 @@ const RepairForm = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Repair Description *
                 </label>
-                <Textarea
+                <TextArea
+                  className="w-full"
                   {...register('repair_description', { 
                     required: 'Repair description is required' 
                     })}
                   placeholder="Describe the repair work needed..."
                   rows={3}
-                  isInvalid={!!errors.repair_description}
-                  errorMessage={errors.repair_description?.message}
+                  aria-invalid={!!errors.repair_description}
                 />
               </div>
 
@@ -450,7 +399,8 @@ const RepairForm = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Technician Notes
                 </label>
-                <Textarea
+                <TextArea
+                  className="w-full"
                   {...register('technician_notes')}
                   placeholder="Additional notes from technician..."
                   rows={2}
@@ -464,10 +414,8 @@ const RepairForm = ({
                 <h3 className="text-lg font-semibold text-gray-800">Spare Parts</h3>
                 <Button
                   type="button"
-                  color="primary"
-                  variant="flat"
+                  variant="secondary"
                   size="sm"
-                  startContent={<PlusIcon className="h-4 w-4" />}
                   onClick={addSparePart}
                 >
                   Add Spare Part
@@ -476,82 +424,78 @@ const RepairForm = ({
 
               {spareParts.length > 0 && (
                 <div className="overflow-x-auto">
-                  <Table aria-label="Spare parts table" removeWrapper>
-                    <TableHeader>
-                      <TableColumn>Part Name</TableColumn>
-                      <TableColumn>Make</TableColumn>
-                      <TableColumn>Part Number</TableColumn>
-                      <TableColumn>Quantity</TableColumn>
-                      <TableColumn>Unit Rate</TableColumn>
-                      <TableColumn>Total Amount</TableColumn>
-                      <TableColumn>Actions</TableColumn>
-                    </TableHeader>
-                    <TableBody>
-                      {spareParts.map((part, index) => (
-                        <TableRow key={part.id}>
-                          <TableCell>
+                  <Table aria-label="Spare parts table">
+                    <Table.ScrollContainer><Table.Content>
+                      <Table.Header>
+                        <Table.Column id="part_name">Part Name</Table.Column>
+                        <Table.Column id="make">Make</Table.Column>
+                        <Table.Column id="part_number">Part Number</Table.Column>
+                        <Table.Column id="quantity">Quantity</Table.Column>
+                        <Table.Column id="unit_rate">Unit Rate</Table.Column>
+                        <Table.Column id="total_amount">Total Amount</Table.Column>
+                        <Table.Column id="actions">Actions</Table.Column>
+                      </Table.Header>
+                      <Table.Body items={spareParts}>
+                        {(part) => {
+                          const index = spareParts.indexOf(part);
+                          return <Table.Row id={part.id}>
+                          <Table.Cell>
                             <Input
-                              size="sm"
                               value={part.part_name}
                               onChange={(e) => updateSparePart(index, 'part_name', e.target.value)}
                               placeholder="Part name"
                             />
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <Input
-                              size="sm"
                               value={part.make}
                               onChange={(e) => updateSparePart(index, 'make', e.target.value)}
                               placeholder="Make"
                             />
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <Input
-                              size="sm"
                               value={part.part_number || ''}
                               onChange={(e) => updateSparePart(index, 'part_number', e.target.value)}
                               placeholder="Part number"
                             />
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <Input
-                              size="sm"
                               type="number"
                               value={part.quantity.toString()}
                               onChange={(e) => updateSparePart(index, 'quantity', parseInt(e.target.value) || 0)}
                               min="1"
                             />
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <Input
-                              size="sm"
                               type="number"
                               value={part.unit_rate.toString()}
                               onChange={(e) => updateSparePart(index, 'unit_rate', parseFloat(e.target.value) || 0)}
                               min="0"
-                              startContent="₹"
                             />
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <div className="font-medium">
                               ₹{part.total_amount.toFixed(2)}
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </Table.Cell>
+                          <Table.Cell>
                             <Button
                               type="button"
                               isIconOnly
                               size="sm"
-                              color="danger"
-                              variant="light"
+                              variant="danger-soft"
                               onClick={() => removeSparePart(index)}
                             >
                               <TrashIcon className="h-4 w-4" />
                             </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
+                          </Table.Cell>
+                        </Table.Row>;
+                        }}
+                      </Table.Body>
+                    </Table.Content></Table.ScrollContainer>
                   </Table>
                   
                   <div className="mt-4 text-right">
@@ -567,24 +511,22 @@ const RepairForm = ({
             <div className="flex justify-end gap-4 pt-6 border-t">
               <Button
                 type="button"
-                variant="flat"
-                color="default"
+                variant="outline"
                 onClick={onCancel}
-                disabled={isSubmitting || formIsSubmitting}
+                isDisabled={isSubmitting || formIsSubmitting}
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                color="primary"
-                isLoading={isSubmitting || formIsSubmitting}
-                disabled={!selectedGaugeId}
+                variant="primary"
+                isDisabled={!selectedGaugeId || isSubmitting || formIsSubmitting}
               >
                 {isEditing ? 'Update Repair' : 'Create Repair'}
               </Button>
             </div>
           </form>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

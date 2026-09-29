@@ -172,7 +172,9 @@ const entryMatchesMeasurement = (entry: InvoiceRateCardEntry, measurement: Measu
   if (entryBasicSize !== undefined) {
     const measuredBasicSize =
       measurement.basicSize ??
-      (measurement.range?.min === measurement.range?.max ? measurement.range.min : undefined);
+      (measurement.range?.min !== undefined && measurement.range.max !== undefined && measurement.range.min === measurement.range.max
+        ? measurement.range.min
+        : undefined);
     return measuredBasicSize !== undefined && measuredBasicSize === entryBasicSize;
   }
 

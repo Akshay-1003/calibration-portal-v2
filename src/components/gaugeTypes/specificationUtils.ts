@@ -127,7 +127,7 @@ export const getGaugeTypeDisplayName = (gaugeType: string): string => {
       return 'ID Limit Gauge';
     case SUPPORTED_GAUGE_TYPES.MASTER_PIECE:
       return 'Master Piece';
-    case SUPPORTED_GAUGE_TYPES.THREAD_GAUGE:
+    case SUPPORTED_GAUGE_TYPES.FIXED_RANGE_GAUGE:
       return 'Thread Gauge';
     case SUPPORTED_GAUGE_TYPES.LIMIT_GAUGE:
       return 'Limit Gauge';

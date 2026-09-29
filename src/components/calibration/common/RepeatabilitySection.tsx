@@ -41,7 +41,7 @@ export const RepeatabilitySection: React.FC<{
                   <Controller
                     name={`observations.repeatability.${idx}`}
                     control={control}
-                    defaultValue={observations?.repeatability?.[idx] ?? ""}
+                    defaultValue={observations?.repeatability?.[idx] == null ? "" : String(observations.repeatability[idx])}
                     rules={{
                       required: `Reading ${idx + 1} is required`,
                       validate: (value) => {
@@ -75,14 +75,11 @@ export const RepeatabilitySection: React.FC<{
                               syncToTypeA(updatedRepeatability);
                             }
                           }}
-                          classNames={{
-                            inputWrapper: `h-9 px-2 border-1 ${
-                              fieldState.error || errors?.observations?.repeatability?.[idx] 
-                                ? "border-red-500" 
-                                : "border-gray-300"
-                            } bg-white`,
-                            input: "text-sm text-center",
-                          }}
+                          className={`h-9 px-2 text-center text-sm ${
+                            fieldState.error || errors?.observations?.repeatability?.[idx]
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          } bg-white`}
                           placeholder="0.000"
                         />
                         {(fieldState.error || errors?.observations?.repeatability?.[idx]) && (

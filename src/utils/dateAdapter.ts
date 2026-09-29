@@ -140,7 +140,7 @@ export function apiToDisplay(api: ApiDate): DisplayDate {
 /**
  * Convert CalendarDate to ISO format (YYYY-MM-DD)
  */
-export function calendarDateToIso(date: DateValue | null): IsoDate | undefined {
+export function calendarDateToIso(date: DateValue | null | undefined): IsoDate | undefined {
   if (!date) return undefined;
   return String(date); // CalendarDate.toString() returns ISO format
 }
@@ -148,7 +148,7 @@ export function calendarDateToIso(date: DateValue | null): IsoDate | undefined {
 /**
  * Convert CalendarDate to API format (DD-MM-YYYY)
  */
-export function calendarDateToApi(date: DateValue | null): ApiDate | undefined {
+export function calendarDateToApi(date: DateValue | null | undefined): ApiDate | undefined {
   const iso = calendarDateToIso(date);
   if (!iso) return undefined;
   return isoToApi(iso);
@@ -157,7 +157,7 @@ export function calendarDateToApi(date: DateValue | null): ApiDate | undefined {
 /**
  * Convert CalendarDate to Display format (DD/MM/YYYY)
  */
-export function calendarDateToDisplay(date: DateValue | null): DisplayDate | undefined {
+export function calendarDateToDisplay(date: DateValue | null | undefined): DisplayDate | undefined {
   const iso = calendarDateToIso(date);
   if (!iso) return undefined;
   return isoToDisplay(iso);

@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState, useRef } from "react";
-import {
-  Input,
-  Checkbox,
-  Button,
-} from "@heroui/react";
+import { Input, Checkbox, Button } from "@heroui/react";
 import { Trash2, Plus, X } from "lucide-react";
 import { useFieldArray, useFormContext, useWatch, Controller } from "react-hook-form";
 import { TypeAReadingSection } from "../od-id-limit-gauges/TypeAReadingSection";
@@ -416,7 +412,7 @@ export function ExternalMicrometerCalibration({
             actual_size?: unknown;
           };
 
-          const masterRows =
+          const masterRows = (
             initialObservations.master_setting_readings && initialObservations.master_setting_readings.length > 0
               ? normalizeMasterSettingRows(initialObservations.master_setting_readings)
               : legacyObservations.master_setting_table
@@ -424,7 +420,8 @@ export function ExternalMicrometerCalibration({
                 : buildMasterSettingReadingsFromLegacyArrays(
                     legacyObservations.setting_master_size,
                     legacyObservations.actual_size
-                  );
+                  )
+          ) ?? [];
 
           const currentObservations = stripLegacyMasterSettingFields(
             getValues("observations") as Record<string, unknown>
@@ -564,7 +561,7 @@ export function ExternalMicrometerCalibration({
           row.reading_2 &&
           row.reading_3;
 
-        const path = `observations.readings.${index}`;
+        const path = `observations.readings.${index}` as `observations.readings.${number}`;
 
         if (allReadingsValid && !actualReadingEditingRef.current[index]) {
           calculatingRef.current.add(index);
@@ -739,13 +736,10 @@ export function ExternalMicrometerCalibration({
           <Checkbox
             isSelected={printValue}
             isDisabled={isReadOnly}
-            onValueChange={(v: boolean) => {
+            onChange={(v: boolean) => {
               setValue("observations.print", v, { shouldDirty: true });
             }}
-            classNames={{
-              label: "text-white text-xs font-semibold",
-              base: "text-white",
-            }}
+            className="text-white text-xs font-semibold"
           >
             PRINT
           </Checkbox>
@@ -799,10 +793,7 @@ export function ExternalMicrometerCalibration({
                           aria-label="Measured Dimension"
                           readOnly
                           value={row?.measured_dimension?.toString() ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-700",
-                          }}
+                            className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                         />
                       </td>
 
@@ -836,14 +827,11 @@ export function ExternalMicrometerCalibration({
                                 type="text"
                                 inputMode="decimal"
                                 aria-label="Reading 1"
-                                isDisabled={isReadOnly}
-                                classNames={{
-                                  inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
-                                    ? "border-red-400 shadow-sm"
-                                    : "border-slate-200"
-                                    } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                  input: "text-sm text-center font-medium text-slate-700",
-                                }}
+                                disabled={isReadOnly}
+                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
+                                  ? "border-red-400 shadow-sm"
+                                  : "border-slate-200"
+                                  } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                 onChange={(e) => {
                                   markReadingsModified();
                                   controllerField.onChange(e);
@@ -892,14 +880,11 @@ export function ExternalMicrometerCalibration({
                                 type="text"
                                 inputMode="decimal"
                                 aria-label="Reading 2"
-                                isDisabled={isReadOnly}
-                                classNames={{
-                                  inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
+                                disabled={isReadOnly}
+                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
                                     ? "border-red-400 shadow-sm"
                                     : "border-slate-200"
-                                    } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                  input: "text-sm text-center font-medium text-slate-700",
-                                }}
+                                    } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                 onChange={(e) => {
                                   markReadingsModified();
                                   controllerField.onChange(e);
@@ -948,14 +933,11 @@ export function ExternalMicrometerCalibration({
                                 type="text"
                                 inputMode="decimal"
                                 aria-label="Reading 3"
-                                isDisabled={isReadOnly}
-                                classNames={{
-                                  inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
+                                disabled={isReadOnly}
+                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
                                     ? "border-red-400 shadow-sm"
                                     : "border-slate-200"
-                                    } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                  input: "text-sm text-center font-medium text-slate-700",
-                                }}
+                                    } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                 onChange={(e) => {
                                   markReadingsModified();
                                   controllerField.onChange(e);
@@ -979,19 +961,16 @@ export function ExternalMicrometerCalibration({
                         <Controller
                           name={`observations.readings.${index}.mean` as const}
                           control={control}
-                          defaultValue={row?.mean ?? ""}
+                          defaultValue={row?.mean ?? 0}
                           render={({ field: controllerField }) => (
                             <Input
                               {...controllerField}
                               aria-label="Measured Dimension Actual Reading"
                               type="text"
                               inputMode="decimal"
-                              isDisabled={isReadOnly}
+                              disabled={isReadOnly}
                               value={toDisplay(controllerField.value)}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                                input: "text-sm text-center font-medium text-slate-600",
-                              }}
+                              className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-600 shadow-sm"
                               onFocus={() => {
                                 actualReadingEditingRef.current[index] = true;
                               }}
@@ -1045,10 +1024,7 @@ export function ExternalMicrometerCalibration({
                           aria-label="Observed Error"
                           readOnly
                           value={row?.observed_error?.toFixed(3) ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-600",
-                          }}
+                          className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-600 shadow-sm"
                         />
                       </td>
 
@@ -1064,11 +1040,10 @@ export function ExternalMicrometerCalibration({
                               <Checkbox
                                 isSelected={field.value || false}
                                 isDisabled={isReadOnly}
-                                onValueChange={(value: boolean) => {
+                                onChange={(value: boolean) => {
                                   markReadingsModified();
                                   field.onChange(value);
                                 }}
-                                size="sm"
                               >
                                 Set
                               </Checkbox>
@@ -1112,11 +1087,8 @@ export function ExternalMicrometerCalibration({
                   {...field}
                   type="text"
                   inputMode="decimal"
-                  isDisabled={isReadOnly}
-                  classNames={{
-                    inputWrapper: "h-9 border-1 border-gray-300",
-                    input: "text-sm",
-                  }}
+                  disabled={isReadOnly}
+                  className="h-9 border border-gray-300 text-sm"
                 />
                 <span className="text-sm text-gray-600">μm.</span>
               </div>
@@ -1138,11 +1110,8 @@ export function ExternalMicrometerCalibration({
                   {...field}
                   type="text"
                   inputMode="decimal"
-                  isDisabled={isReadOnly}
-                  classNames={{
-                    inputWrapper: "h-9 border-1 border-gray-300",
-                    input: "text-sm",
-                  }}
+                  disabled={isReadOnly}
+                  className="h-9 border border-gray-300 text-sm"
                 />
                 <span className="text-sm text-gray-600">μm.</span>
               </div>
@@ -1165,12 +1134,11 @@ export function ExternalMicrometerCalibration({
                   </p>
                 </div>
                 <Button
-                  size="sm"
-                  color="primary"
                   onPress={handleCreateMasterSettingTable}
                   isDisabled={isReadOnly}
-                  startContent={<Plus size={16} />}
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white"
                 >
+                  <Plus size={16} />
                   Create Master Setting Table
                 </Button>
               </div>
@@ -1182,32 +1150,25 @@ export function ExternalMicrometerCalibration({
                 <h3 className="text-sm font-bold uppercase">Master Setting Size Table</h3>
                 <div className="flex items-center gap-2">
                   <Button
-                    size="sm"
-                    variant="bordered"
-                    color="primary"
                     onPress={handleAddReadingColumn}
                     isDisabled={isReadOnly}
-                    startContent={<Plus size={14} />}
+                    className="inline-flex items-center gap-2 border border-blue-600 text-blue-600"
                   >
+                    <Plus size={14} />
                     Add Reading Column
                   </Button>
 
                   {readingColumnsCount > 1 && (
                     <Button
-                      size="sm"
-                      variant="bordered"
-                      color="danger"
                       onPress={handleRemoveReadingColumn}
                       isDisabled={isReadOnly}
-                      startContent={<X size={14} />}
+                      className="inline-flex items-center gap-2 border border-red-600 text-red-600"
                     >
+                      <X size={14} />
                       Remove Column
                     </Button>
                   )}
                     <Button
-                      size="sm"
-                      variant="bordered"
-                      color="primary"
                       onPress={() => {
                         markMasterSettingColumnsMutating();
                         masterSettingFields.replace([]);
@@ -1215,8 +1176,9 @@ export function ExternalMicrometerCalibration({
                         setShowMasterSettingTable(false);
                       }}
                     isDisabled={isReadOnly}
-                    startContent={<Plus size={14} />}
+                    className="inline-flex items-center gap-2 border border-blue-600 text-blue-600"
                   >
+                    <Plus size={14} />
                     Remove Table
                   </Button>
                 </div>
@@ -1266,14 +1228,11 @@ export function ExternalMicrometerCalibration({
                                       type="text"
                                       inputMode="decimal"
                                       aria-label={`Setting Master Size Reading ${colNum}`}
-                                      isDisabled={isReadOnly}
-                                      classNames={{
-                                        inputWrapper: `h-9 w-full border-1 ${fieldState.error
+                                      disabled={isReadOnly}
+                                      className={`h-9 w-full border ${fieldState.error
                                           ? "border-red-400 shadow-sm"
                                           : "border-slate-200"
-                                          } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                        input: "text-sm text-center font-medium text-slate-700",
-                                      }}
+                                          } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                     />
                                     {fieldState.error && (
                                       <p className="text-xs text-red-500 mt-1 text-center">
@@ -1312,14 +1271,11 @@ export function ExternalMicrometerCalibration({
                                       type="text"
                                       inputMode="decimal"
                                       aria-label={`Actual Size Reading ${colNum}`}
-                                      isDisabled={isReadOnly}
-                                      classNames={{
-                                        inputWrapper: `h-9 w-full border-1 ${fieldState.error
+                                      disabled={isReadOnly}
+                                      className={`h-9 w-full border ${fieldState.error
                                           ? "border-red-400 shadow-sm"
                                           : "border-slate-200"
-                                          } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                        input: "text-sm text-center font-medium text-slate-700",
-                                      }}
+                                          } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                     />
                                     {fieldState.error && (
                                       <p className="text-xs text-red-500 mt-1 text-center">

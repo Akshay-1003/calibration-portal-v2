@@ -7,6 +7,8 @@
  */
 
 import { useAuthStore } from '../store/authStore';
+import { authService } from '../services/authService';
+import { tabSync } from '../utils/tabSync';
 
 /**
  * useAuth - Main authentication hook
@@ -31,6 +33,13 @@ export const useAuth = () => {
   const hasAllPermissions = useAuthStore((state) => state.hasAllPermissions);
   const canView = useAuthStore((state) => state.canView);
   const canEdit = useAuthStore((state) => state.canEdit);
+  const loginWithGoogle = async (credential: string) => {
+    const response = await authService.loginWithGoogle(credential);
+    const store = useAuthStore.getState();
+    store.setAccessToken(response.access_token);
+    store.setUser(response.user, { broadcast: false });
+    tabSync.broadcastLogin(response.access_token);
+  };
 
   return {
     // State
@@ -55,5 +64,6 @@ export const useAuth = () => {
     hasAllPermissions,
     canView,
     canEdit,
+    loginWithGoogle,
   };
 };

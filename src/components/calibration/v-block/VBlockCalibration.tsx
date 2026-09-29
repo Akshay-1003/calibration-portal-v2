@@ -176,11 +176,8 @@ export function VBlockCalibration({ observations, isReadOnly = false }: Props) {
                   {...field}
                   type="number"
                   step="any"
-                  isDisabled={isReadOnly}
-                  classNames={{
-                    inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                    input: "text-sm text-center",
-                  }}
+                  disabled={isReadOnly}
+                  className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm"
                   placeholder="0.0000"
                 />
               )}
@@ -196,13 +193,10 @@ export function VBlockCalibration({ observations, isReadOnly = false }: Props) {
             render={({ field }) => (
               <Input
                 {...field}
-                isDisabled={isReadOnly}
+                disabled={isReadOnly}
                 type="text"
                 inputMode="decimal"
-                classNames={{
-                  inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                  input: "text-sm text-center font-semibold",
-                }}
+                className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm font-semibold"
                 placeholder="0.0000"
                 onFocus={() => {
                   meanEditingRef.current[`${basePath}-${index}`] = true;

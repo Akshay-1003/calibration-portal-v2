@@ -5,11 +5,9 @@ import {
   Input,
   Button,
   Card,
-  CardHeader,
-  CardBody,
+  ListBox,
   Select,
-  SelectItem,
-} from "@heroui-v2/react"; import { useNavigate } from "react-router-dom"
+} from "@heroui/react"; import { useNavigate } from "react-router-dom"
 import { useEffect } from "react"
 import { toast } from "sonner"
 import { 
@@ -104,13 +102,13 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
   if (initialLoading) {
     return (
       <div className="max-w-5xl mx-auto">
-        <Card className="shadow-lg border-0 bg-card">
-          < CardBody className="p-8">
+        <Card className="shadow-sm border-0 bg-card">
+          <Card.Content className="p-8">
             <div className="flex items-center justify-center space-x-2">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
               <span className="text-muted-foreground">Loading data...</span>
             </div>
-          </ CardBody>
+          </Card.Content>
         </Card>
       </div>
     )
@@ -118,13 +116,13 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
 
   return (
     <div className="w-full">
-      <Card className="shadow-md border bg-card rounded-xl overflow-hidden">
-        <CardHeader className="bg-blue-600 text-white px-6 py-4 rounded-t-xl">
+      <Card className="shadow-sm border bg-card rounded-md overflow-hidden">
+        <Card.Header className="bg-blue-600 text-white px-6 py-4 rounded-t-md">
           <h1 className="text-xl font-semibold text-white tracking-tight">
             {mode === 'edit' ? 'Edit Taper Thread Reading' : 'Taper Thread Reading'}
           </h1>
-        </CardHeader>
-        < CardBody className="p-4">
+        </Card.Header>
+        <Card.Content className="p-4">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             {/* Type and Standard Specification */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-x-5 gap-y-5">
@@ -138,21 +136,16 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                   control={control}
                   render={({ field: { onChange, value } }) => (
                     <Select
-                      label=""
                       placeholder="Select type"
-                      selectedKeys={value ? [value] : []}
-                      onSelectionChange={(keys) => {
-                        const selectedValue = Array.from(keys)[0] as string;
+                      selectedKey={value || null}
+                      onSelectionChange={(key) => {
+                        const selectedValue = key as string;
                         onChange(selectedValue);
                       }}
                       className="w-full"
-                      classNames={{
-                        trigger: "border border-input bg-background hover:bg-accent min-h-[40px]",
-                        value: "text-foreground/80"
-                      }}
                     >
-                      <SelectItem key="Plug">Plug</SelectItem>
-                      <SelectItem key="Ring">Ring</SelectItem>
+                      <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                      <Select.Popover><ListBox><ListBox.Item id="Plug" textValue="Plug">Plug<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="Ring" textValue="Ring">Ring<ListBox.ItemIndicator /></ListBox.Item></ListBox></Select.Popover>
                     </Select>
                   )}
                 />
@@ -168,21 +161,16 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                   control={control}
                   render={({ field: { onChange, value } }) => (
                     <Select
-                      label=""
                       placeholder="Select gauge sub type"
-                      selectedKeys={value ? [value] : []}
-                      onSelectionChange={(keys) => {
-                        const selectedValue = Array.from(keys)[0] as string;
+                      selectedKey={value || null}
+                      onSelectionChange={(key) => {
+                        const selectedValue = key as string;
                         onChange(selectedValue);
                       }}
                       className="w-full"
-                      classNames={{
-                        trigger: "border border-input bg-background hover:bg-accent min-h-[40px]",
-                        value: "text-foreground/80"
-                      }}
                     >
-                      <SelectItem key="Gauge Plane">Gauge Plane</SelectItem>
-                      <SelectItem key="Other">Other</SelectItem>
+                      <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                      <Select.Popover><ListBox><ListBox.Item id="Gauge Plane" textValue="Gauge Plane">Gauge Plane<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="Other" textValue="Other">Other<ListBox.ItemIndicator /></ListBox.Item></ListBox></Select.Popover>
                     </Select>
                   )}
                 />
@@ -196,7 +184,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                 <Input
                   placeholder="Enter standard specification"
                   className={cn(
-                    "h-10",
+                    "h-10 w-full",
                     errors.standard_specification && "border-destructive"
                   )}
                   {...register("standard_specification")}
@@ -226,7 +214,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                       placeholder=""
                       type="number"
                       step="0.001"
-                      className="h-9 text-sm"
+                      className="h-9 w-full text-sm"
                       {...register("pitch_dial_max")}
                     />
                   </div>
@@ -235,7 +223,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                       placeholder=""
                       type="number"
                       step="0.001"
-                      className="h-9 text-sm"
+                      className="h-9 w-full text-sm"
                       {...register("pitch_dial_min")}
                     />
                   </div>
@@ -249,7 +237,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                       placeholder=""
                       type="number"
                       step="0.001"
-                      className="h-9 text-sm"
+                      className="h-9 w-full text-sm"
                       {...register("max_step")}
                     />
                   </div>
@@ -268,7 +256,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                       placeholder=""
                       type="number"
                       step="0.001"
-                      className="h-9 text-sm"
+                      className="h-9 w-full text-sm"
                       {...register("basic_step")}
                     />
                   </div>
@@ -287,7 +275,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
                       placeholder=""
                       type="number"
                       step="0.001"
-                      className="h-9 text-sm"
+                      className="h-9 w-full text-sm"
                       {...register("min_step")}
                     />
                   </div>
@@ -319,7 +307,7 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
             <div className="flex flex-col sm:flex-row gap-3 pt-3">
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                isDisabled={isSubmitting}
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
                 {isSubmitting
@@ -328,19 +316,18 @@ const TaperThreadReadingsForm = ({ mode = 'create', standard_specification, onSu
               </Button>
               <Button
                 type="button"
-                variant="flat"
+                variant="secondary"
                 onPress={onCancel || (() => navigate(-1))}
-                disabled={isSubmitting}
+                isDisabled={isSubmitting}
               >
                 Close
               </Button>
             </div>
           </form>
-        </ CardBody>
+        </Card.Content>
       </Card>
     </div>
   )
 }
 
 export default TaperThreadReadingsForm;
-

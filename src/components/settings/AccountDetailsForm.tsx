@@ -1,14 +1,17 @@
 import React from 'react';
+import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { z } from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Button,
   Input,
+  Label,
+  ListBox,
   Select,
-  SelectItem,
   Switch,
-  Textarea,
-} from '@heroui-v2/react';
+  TextArea,
+} from '@heroui/react';
 import {
   accountDetailFormSchema,
   accountDetailTypes,
@@ -43,6 +46,30 @@ const toDefaultValues = (initialData?: AccountDetail | null): AccountDetailFormD
   is_active: initialData?.is_active ?? true,
 });
 
+const FieldInput = ({
+  label,
+  error,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <Input {...props} className={`w-full ${props.className ?? ''}`} aria-invalid={Boolean(error)} />
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+);
+
+const FieldTextArea = ({
+  label,
+  error,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <TextArea {...props} className={`w-full ${props.className ?? ''}`} rows={3} aria-invalid={Boolean(error)} />
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+);
+
 export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
   initialData,
   onSubmit,
@@ -54,7 +81,7 @@ export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
     control,
     handleSubmit,
     formState: { errors },
-  } = useForm<AccountDetailFormData>({
+  } = useForm<z.input<typeof accountDetailFormSchema>, unknown, z.output<typeof accountDetailFormSchema>>({
     resolver: zodResolver(accountDetailFormSchema),
     mode: 'onChange',
     defaultValues: toDefaultValues(initialData),
@@ -63,13 +90,11 @@ export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input
+        <FieldInput
           {...register('firm_name')}
           label="Firm Name"
-          labelPlacement="outside"
           placeholder="Enter firm name"
-          isInvalid={Boolean(errors.firm_name)}
-          errorMessage={errors.firm_name?.message}
+          error={errors.firm_name?.message}
         />
 
         <Controller
@@ -77,92 +102,81 @@ export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
           name="type"
           render={({ field }) => (
             <Select
-              label="Type"
-              labelPlacement="outside"
+              className="w-full"
+              selectedKey={field.value}
               placeholder="Select firm type"
-              selectedKeys={field.value ? [field.value] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as AccountDetailFormData['type'] | undefined;
+              onSelectionChange={(key) => {
+                const selected = key as AccountDetailFormData['type'] | undefined;
                 field.onChange(selected ?? 'Calibration Lab');
               }}
-              isInvalid={Boolean(errors.type)}
-              errorMessage={errors.type?.message}
             >
+              <Label>Type</Label>
+              <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover>
+                <ListBox>
               {accountDetailTypes.map((type) => (
-                <SelectItem key={type} textValue={type}>
+                <ListBox.Item key={type} id={type} textValue={type}>
                   {type}
-                </SelectItem>
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
               ))}
+                </ListBox>
+              </Select.Popover>
             </Select>
           )}
         />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input
+        <FieldInput
           {...register('gst_no')}
           label="GST No"
-          labelPlacement="outside"
           placeholder="Enter GST number"
-          isInvalid={Boolean(errors.gst_no)}
-          errorMessage={errors.gst_no?.message}
+          error={errors.gst_no?.message}
         />
-        <Input
+        <FieldInput
           {...register('pan_no')}
           label="PAN No"
-          labelPlacement="outside"
           placeholder="Enter PAN number"
-          isInvalid={Boolean(errors.pan_no)}
-          errorMessage={errors.pan_no?.message}
+          error={errors.pan_no?.message}
         />
       </div>
 
-      <Textarea
+      <FieldTextArea
         {...register('address')}
         label="Address"
-        labelPlacement="outside"
         placeholder="Enter firm address"
-        minRows={3}
-        isInvalid={Boolean(errors.address)}
-        errorMessage={errors.address?.message}
+        error={errors.address?.message}
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Input
+        <FieldInput
           {...register('contact_no')}
           label="Contact No"
-          labelPlacement="outside"
           placeholder="Enter contact number"
-          isInvalid={Boolean(errors.contact_no)}
-          errorMessage={errors.contact_no?.message}
+          error={errors.contact_no?.message}
         />
-        <Input
+        <FieldInput
           {...register('email')}
           label="Email"
-          labelPlacement="outside"
           placeholder="Enter email address"
-          isInvalid={Boolean(errors.email)}
-          errorMessage={errors.email?.message}
+          error={errors.email?.message}
         />
-        <Input
+        <FieldInput
           {...register('website')}
           label="Website"
-          labelPlacement="outside"
           placeholder="Enter website"
-          isInvalid={Boolean(errors.website)}
-          errorMessage={errors.website?.message}
+          error={errors.website?.message}
         />
-        <Input
+        <FieldInput
           {...register('logo')}
           label="Logo URL"
-          labelPlacement="outside"
           placeholder="Enter logo url"
-          isInvalid={Boolean(errors.logo)}
-          errorMessage={errors.logo?.message}
+          error={errors.logo?.message}
         />
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+      <div className="rounded-md border border-slate-200 bg-slate-50/60 p-4">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-slate-900">Bank Details</h3>
           <p className="text-xs text-slate-500">
@@ -171,37 +185,29 @@ export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Input
+          <FieldInput
             {...register('bank_details.bank_name')}
             label="Bank Name"
-            labelPlacement="outside"
             placeholder="Enter bank name"
-            isInvalid={Boolean(errors.bank_details?.bank_name)}
-            errorMessage={errors.bank_details?.bank_name?.message}
+            error={errors.bank_details?.bank_name?.message}
           />
-          <Input
+          <FieldInput
             {...register('bank_details.account_no')}
             label="Account No"
-            labelPlacement="outside"
             placeholder="Enter account number"
-            isInvalid={Boolean(errors.bank_details?.account_no)}
-            errorMessage={errors.bank_details?.account_no?.message}
+            error={errors.bank_details?.account_no?.message}
           />
-          <Input
+          <FieldInput
             {...register('bank_details.ifsc')}
             label="IFSC"
-            labelPlacement="outside"
             placeholder="Enter IFSC code"
-            isInvalid={Boolean(errors.bank_details?.ifsc)}
-            errorMessage={errors.bank_details?.ifsc?.message}
+            error={errors.bank_details?.ifsc?.message}
           />
-          <Input
+          <FieldInput
             {...register('bank_details.branch')}
             label="Branch"
-            labelPlacement="outside"
             placeholder="Enter branch"
-            isInvalid={Boolean(errors.bank_details?.branch)}
-            errorMessage={errors.bank_details?.branch?.message}
+            error={errors.bank_details?.branch?.message}
           />
         </div>
       </div>
@@ -210,18 +216,18 @@ export const AccountDetailsForm: React.FC<AccountDetailsFormProps> = ({
         control={control}
         name="is_active"
         render={({ field }) => (
-          <Switch isSelected={field.value} onValueChange={field.onChange}>
+          <Switch isSelected={field.value} onChange={field.onChange}>
             Active firm
           </Switch>
         )}
       />
 
       <div className="flex justify-end gap-3 pt-2">
-        <Button variant="flat" onPress={onClose} isDisabled={isLoading}>
+        <Button variant="secondary" onPress={onClose} isDisabled={isLoading}>
           Cancel
         </Button>
-        <Button color="primary" type="submit" isLoading={isLoading}>
-          {initialData ? 'Update Account Details' : 'Create Account Details'}
+        <Button variant="primary" type="submit" isDisabled={isLoading}>
+          {isLoading ? 'Saving...' : initialData ? 'Update Account Details' : 'Create Account Details'}
         </Button>
       </div>
     </form>

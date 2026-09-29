@@ -1,4 +1,5 @@
-import { Input, Textarea } from '@heroui-v2/react';
+import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import { Input, TextArea } from '@heroui/react';
 import type { FieldErrors, UseFormRegister } from 'react-hook-form';
 import type { ManagedUserFormValues } from './userManagementSchema';
 
@@ -8,6 +9,30 @@ interface UserBasicDetailsProps {
   mode: 'create' | 'edit';
   userType?: 'laboratory' | 'customer';
 }
+
+const FieldInput = ({
+  label,
+  error,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-sm font-medium text-slate-700">{label}</span>
+    <Input {...props} className={`w-full ${props.className ?? ''}`} aria-invalid={Boolean(error)} />
+    {error ? <span className="text-sm text-red-600">{error}</span> : null}
+  </label>
+);
+
+const FieldTextArea = ({
+  label,
+  error,
+  ...props
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2">
+    <span className="text-sm font-medium text-slate-700">{label}</span>
+    <TextArea {...props} className={`w-full ${props.className ?? ''}`} rows={3} aria-invalid={Boolean(error)} />
+    {error ? <span className="text-sm text-red-600">{error}</span> : null}
+  </label>
+);
 
 export const UserBasicDetails = ({
   register,
@@ -26,90 +51,73 @@ export const UserBasicDetails = ({
     </div>
 
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <Input
+      <FieldInput
         {...register('username')}
         label="Username"
-        labelPlacement="outside"
         placeholder="Enter username"
         autoComplete="off"
-        isInvalid={Boolean(errors.username)}
-        errorMessage={errors.username?.message}
+        error={errors.username?.message}
       />
-      <Input
+      <FieldInput
         {...register('email')}
         label="Email"
-        labelPlacement="outside"
         placeholder="Enter email address"
         autoComplete="off"
         data-lpignore="true"
-        isInvalid={Boolean(errors.email)}
-        errorMessage={errors.email?.message}
+        error={errors.email?.message}
       />
-      <Input
+      <FieldInput
         {...register('first_name')}
         label="First Name"
-        labelPlacement="outside"
         placeholder="Enter first name"
         autoComplete="off"
-        isInvalid={Boolean(errors.first_name)}
-        errorMessage={errors.first_name?.message}
+        error={errors.first_name?.message}
       />
-      <Input
+      <FieldInput
         {...register('last_name')}
         label="Last Name"
-        labelPlacement="outside"
         placeholder="Enter last name"
         autoComplete="off"
-        isInvalid={Boolean(errors.last_name)}
-        errorMessage={errors.last_name?.message}
+        error={errors.last_name?.message}
       />
       {userType === 'laboratory' ? (
-        <Input
+        <FieldInput
           {...register('department')}
           label="Department"
-          labelPlacement="outside"
           placeholder="Enter department"
           autoComplete="off"
-          isInvalid={Boolean(errors.department)}
-          errorMessage={errors.department?.message}
+          error={errors.department?.message}
         />
       ) : null}
       {userType === 'laboratory' ? (
-        <Textarea
+        <FieldTextArea
           {...register('sign_base64')}
           label="Signature"
-          labelPlacement="outside"
           placeholder="Paste signature base64 string if applicable"
-          minRows={3}
-          isInvalid={Boolean(errors.sign_base64)}
-          errorMessage={errors.sign_base64?.message}
+          error={errors.sign_base64?.message}
         />
       ) : null}
     </div>
 
     {mode === 'create' ? (
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input
+        <FieldInput
           {...register('password')}
           type="password"
           label="Password"
-          labelPlacement="outside"
           placeholder="Enter password"
           autoComplete="new-password"
           data-lpignore="true"
-          isInvalid={Boolean(errors.password)}
-          errorMessage={errors.password?.message}
+          error={errors.password?.message}
         />
-        <Input
+        <FieldInput
           {...register('confirmPassword')}
           type="password"
           label="Confirm Password"
-          labelPlacement="outside"
           placeholder="Confirm password"
           autoComplete="new-password"
           data-lpignore="true"
-          isInvalid={Boolean(errors.confirmPassword)}
-          errorMessage={errors.confirmPassword?.message}
+          error={errors.confirmPassword?.message}
         />
       </div>
     ) : null}

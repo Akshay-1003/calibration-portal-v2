@@ -1,5 +1,5 @@
 import { Controller, type Control, type FieldErrors } from 'react-hook-form';
-import { Select, SelectItem } from '@heroui-v2/react';
+import { Label, ListBox, Select } from '@heroui/react';
 import { userRoleOptions, userStatusOptions, customerRoleOptions } from './permissionConfig';
 import type { ManagedUserFormValues } from './userManagementSchema';
 
@@ -37,19 +37,24 @@ export const UserRoleSelector = ({
             name="organization_id"
             render={({ field }) => (
               <Select
-                label="Organization"
-                labelPlacement="outside"
+                className="w-full"
                 placeholder="Select organization"
-                selectedKeys={field.value ? [field.value] : []}
-                onSelectionChange={(keys) => field.onChange((Array.from(keys)[0] as string) ?? '')}
+                selectedKey={field.value || null}
+                onSelectionChange={(key) => field.onChange(key ?? '')}
                 isInvalid={Boolean(errors.organization_id)}
-                errorMessage={errors.organization_id?.message}
               >
-                {organizationOptions.map((organization) => (
-                  <SelectItem key={organization.id} textValue={organization.name}>
-                    {organization.name}
-                  </SelectItem>
-                ))}
+                <Label>Organization</Label>
+                <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {organizationOptions.map((organization) => (
+                      <ListBox.Item key={organization.id} id={organization.id} textValue={organization.name}>
+                        {organization.name}<ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+                {errors.organization_id?.message && <p className="text-xs text-danger">{errors.organization_id.message}</p>}
               </Select>
             )}
           />
@@ -59,20 +64,27 @@ export const UserRoleSelector = ({
           name="role"
           render={({ field }) => (
             <Select
-              label="Role"
-              labelPlacement="outside"
+              className="w-full"
               placeholder="Select role"
-              selectedKeys={field.value ? [field.value] : []}
-              onSelectionChange={(keys) => field.onChange((Array.from(keys)[0] as string) ?? '')}
+              selectedKey={field.value || null}
+              onSelectionChange={(key) => field.onChange(key ?? '')}
               isInvalid={Boolean(errors.role)}
-              errorMessage={errors.role?.message}
-                description={roleOptions.find((option) => option.key === field.value)?.description}
-              >
-              {roleOptions.map((role) => (
-                <SelectItem key={role.key} textValue={role.label}>
-                  {role.label}
-                </SelectItem>
-              ))}
+            >
+              <Label>Role</Label>
+              <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {roleOptions.map((role) => (
+                    <ListBox.Item key={role.key} id={role.key} textValue={role.label}>
+                      {role.label}<ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+              {roleOptions.find((option) => option.key === field.value)?.description && (
+                <p className="text-xs text-default-500">{roleOptions.find((option) => option.key === field.value)?.description}</p>
+              )}
+              {errors.role?.message && <p className="text-xs text-danger">{errors.role.message}</p>}
             </Select>
           )}
         />
@@ -82,19 +94,24 @@ export const UserRoleSelector = ({
           name="status"
           render={({ field }) => (
             <Select
-              label="User Status"
-              labelPlacement="outside"
+              className="w-full"
               placeholder="Select status"
-              selectedKeys={field.value ? [field.value] : []}
-              onSelectionChange={(keys) => field.onChange((Array.from(keys)[0] as string) ?? 'active')}
+              selectedKey={field.value || null}
+              onSelectionChange={(key) => field.onChange(key ?? 'active')}
               isInvalid={Boolean(errors.status)}
-              errorMessage={errors.status?.message}
             >
-              {userStatusOptions.map((status) => (
-                <SelectItem key={status.key} textValue={status.label}>
-                  {status.label}
-                </SelectItem>
-              ))}
+              <Label>User Status</Label>
+              <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {userStatusOptions.map((status) => (
+                    <ListBox.Item key={status.key} id={status.key} textValue={status.label}>
+                      {status.label}<ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+              {errors.status?.message && <p className="text-xs text-danger">{errors.status.message}</p>}
             </Select>
           )}
         />

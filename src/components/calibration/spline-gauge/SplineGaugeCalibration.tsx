@@ -149,11 +149,8 @@ export function SplineGaugeCalibration({
                     <td className="px-3 bg-gray-100 border-r border-gray-200">
                       <Input
                         value={specValue(specifications, row.key)}
-                        isReadOnly
-                        classNames={{
-                          inputWrapper: "h-10 bg-gray-100 border border-gray-300 rounded-none",
-                          input: "text-sm",
-                        }}
+                        disabled
+                        className="h-10 rounded-none border border-gray-300 bg-gray-100 text-sm"
                         placeholder="-"
                       />
                     </td>
@@ -170,11 +167,8 @@ export function SplineGaugeCalibration({
                                 {...field}
                                 type="number"
                                 step="any"
-                                isDisabled={isReadOnly}
-                                classNames={{
-                                  inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                                  input: "text-sm text-center",
-                                }}
+                                disabled={isReadOnly}
+                                className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm"
                                 placeholder="0.0000"
                               />
                             )}
@@ -196,11 +190,8 @@ export function SplineGaugeCalibration({
                               {...field}
                               type="number"
                               step="any"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                                input: "text-sm text-center font-medium",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm font-medium"
                               placeholder="0"
                             />
                             <p className="text-xs text-red-500 text-center font-semibold">

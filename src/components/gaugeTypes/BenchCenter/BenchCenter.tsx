@@ -54,14 +54,8 @@ export default function BenchCenter({ readOnly = false, initialData }: BenchCent
             <Input
               {...register("specifications.range")}
               placeholder="0"
-              size="sm"
-              radius="sm"
               aria-label="Range"
-              classNames={{
-                inputWrapper:
-                  "bg-white shadow-none border border-gray-300 hover:border-gray-400 focus:border-primary focus:ring-1 focus:ring-primary transition",
-              }}
-              className="w-full sm:w-[140px]"
+              className="w-full sm:w-[140px] border border-gray-300 bg-white shadow-none"
             />
             {formUnit && <span className="text-xs font-medium shrink-0">{formUnit}</span>}
           </div>
@@ -73,14 +67,8 @@ export default function BenchCenter({ readOnly = false, initialData }: BenchCent
             <Input
               {...register("specifications.base_width")}
               placeholder="100"
-              size="sm"
-              radius="sm"
               aria-label="Base Width"
-              classNames={{
-                inputWrapper:
-                  "bg-white shadow-none border border-gray-300 hover:border-gray-400 focus:border-primary focus:ring-1 focus:ring-primary transition",
-              }}
-              className="w-full sm:w-[140px]"
+              className="w-full sm:w-[140px] border border-gray-300 bg-white shadow-none"
             />
             {formUnit && <span className="text-xs font-medium shrink-0">{formUnit}</span>}
           </div>

@@ -3,16 +3,16 @@
  * Manages user data and CRUD operations
  */
 
-import { createBaseStore } from './baseStore';
+import { createBaseStore, type BaseStoreState } from './baseStore';
 import { userService, type CreateUserData, type UpdateUserData, type UserResponse } from '../services/userService';
 import { toast } from 'sonner';
 
-interface UserStoreState {
+interface UserStoreState extends BaseStoreState {
   items: UserResponse[];
   loading: boolean;
   error: string | null;
   actions: {
-    fetchAll: (forceRefresh?: boolean) => Promise<void>;
+    fetchAll: (forceRefresh?: boolean) => Promise<UserResponse[] | undefined>;
     create: (data: CreateUserData) => Promise<UserResponse | null>;
     update: (id: string, data: UpdateUserData) => Promise<UserResponse | null>;
     delete: (id: string) => Promise<void>;
@@ -43,7 +43,7 @@ export const useUserStore = createBaseStore<UserStoreState>(
         fetchAll: async (forceRefresh = false) => {
           // Check cache first
           if (!forceRefresh) {
-            const cached = cache.get<UserResponse[]>(cacheKey);
+            const cached = cache.get(cacheKey) as UserResponse[] | null;
             if (cached) {
               set((state: UserStoreState) => ({ ...state, items: cached }));
               return;
@@ -197,7 +197,7 @@ export const useUserStore = createBaseStore<UserStoreState>(
           const cacheKeyForUser = `user_${id}`;
 
           // Check cache first
-          const cached = cache.get<UserResponse>(cacheKeyForUser);
+          const cached = cache.get(cacheKeyForUser) as UserResponse | null;
           if (cached) {
             return cached;
           }

@@ -4,9 +4,10 @@ import { cn } from '../../../lib/utils';
 interface LoaderProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  text?: string;
 }
 
-export const Loader: React.FC<LoaderProps> = ({ size = 'md', className }) => {
+export const Loader: React.FC<LoaderProps> = ({ size = 'md', className, text }) => {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -14,13 +15,16 @@ export const Loader: React.FC<LoaderProps> = ({ size = 'md', className }) => {
   };
 
   return (
-    <div
-      className={cn(
-        'animate-spin rounded-full border-2 border-gray-300 border-t-blue-600',
-        sizeClasses[size],
-        className
-      )}
-    />
+    <div className="flex items-center gap-2">
+      <div
+        className={cn(
+          'animate-spin rounded-full border-2 border-gray-300 border-t-blue-600',
+          sizeClasses[size],
+          className
+        )}
+      />
+      {text ? <span className="text-sm text-gray-500">{text}</span> : null}
+    </div>
   );
 };
 
@@ -54,10 +58,12 @@ export const TableLoader: React.FC<TableLoaderProps> = ({
 interface PageLoaderProps {
   message?: string;
   className?: string;
+  text?: string;
 }
 
 export const PageLoader: React.FC<PageLoaderProps> = ({ 
-  message = 'Loading...', 
+  message = 'Loading...',
+  text,
   className 
 }) => {
   return (
@@ -66,7 +72,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({
       className
     )}>
       <Loader size="lg" />
-      <p className="text-gray-500">{message}</p>
+      <p className="text-gray-500">{text ?? message}</p>
     </div>
   );
 };

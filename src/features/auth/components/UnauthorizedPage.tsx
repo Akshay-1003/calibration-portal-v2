@@ -21,7 +21,7 @@ export const UnauthorizedPage: React.FC = () => {
           You don't have permission to access this resource.
         </p>
         <Button
-          color="primary"
+          variant="primary"
           onPress={() => navigate(-1)}
         >
           Go Back
@@ -30,7 +30,6 @@ export const UnauthorizedPage: React.FC = () => {
     </div>
   );
 };
-
 
 
 

@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { Input, Button } from '@heroui/react';
+import { Button, InputGroup, Label } from '@heroui/react';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { resetPasswordSchema, type ResetPasswordFormData } from '../../../lib/validations/schemas';
 import { toast } from 'sonner';
@@ -163,17 +163,17 @@ export const ResetPasswordForm: React.FC = () => {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Password Field with Strength Indicator */}
         <div className="space-y-2">
-          <Input
+          <Label htmlFor="reset-password">New Password</Label>
+          <InputGroup variant="secondary">
+          <InputGroup.Input
+            id="reset-password"
             type={showPassword ? 'text' : 'password'}
-            label="New Password"
             placeholder="Create a strong password"
             {...register('password')}
-            isInvalid={!!errors.password}
-            errorMessage={errors.password?.message}
             autoComplete="new-password"
             autoFocus
-            variant="bordered"
-            endContent={
+          />
+          <InputGroup.Suffix>
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
@@ -186,12 +186,9 @@ export const ResetPasswordForm: React.FC = () => {
                   <EyeIcon className="h-5 w-5" />
                 )}
               </button>
-            }
-            classNames={{
-              input: 'text-gray-900 dark:text-gray-100',
-              label: 'text-gray-700 dark:text-gray-300',
-            }}
-          />
+          </InputGroup.Suffix>
+          </InputGroup>
+          {errors.password?.message && <p className="text-xs text-danger">{errors.password.message}</p>}
 
           {/* Password Strength Indicator */}
           {password && password.length > 0 && passwordStrength && (
@@ -221,16 +218,17 @@ export const ResetPasswordForm: React.FC = () => {
         </div>
 
         {/* Confirm Password Field */}
-        <Input
+        <div className="space-y-1">
+        <Label htmlFor="reset-confirm-password">Confirm Password</Label>
+        <InputGroup variant="secondary">
+        <InputGroup.Input
+          id="reset-confirm-password"
           type={showConfirmPassword ? 'text' : 'password'}
-          label="Confirm Password"
           placeholder="Re-enter your password"
           {...register('confirmPassword')}
-          isInvalid={!!errors.confirmPassword}
-          errorMessage={errors.confirmPassword?.message}
           autoComplete="new-password"
-          variant="bordered"
-          endContent={
+        />
+        <InputGroup.Suffix>
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
@@ -243,12 +241,10 @@ export const ResetPasswordForm: React.FC = () => {
                 <EyeIcon className="h-5 w-5" />
               )}
             </button>
-          }
-          classNames={{
-            input: 'text-gray-900 dark:text-gray-100',
-            label: 'text-gray-700 dark:text-gray-300',
-          }}
-        />
+        </InputGroup.Suffix>
+        </InputGroup>
+        {errors.confirmPassword?.message && <p className="text-xs text-danger">{errors.confirmPassword.message}</p>}
+        </div>
 
         {/* Error Message */}
         {errors.root && (
@@ -264,9 +260,8 @@ export const ResetPasswordForm: React.FC = () => {
         {/* Submit Button */}
         <Button
           type="submit"
-          className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-          isLoading={isSubmitting}
-          disabled={isSubmitting}
+            className="w-full h-10 rounded-md text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-white"
+          isDisabled={isSubmitting}
           size="lg"
         >
           {isSubmitting ? 'Resetting Password...' : 'Reset Password'}
@@ -285,7 +280,3 @@ export const ResetPasswordForm: React.FC = () => {
     </motion.div>
   );
 };
-
-
-
-

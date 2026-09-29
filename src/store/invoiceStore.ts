@@ -123,6 +123,7 @@ export interface InvoiceDraftDetails {
   billing_items: InvoiceBillingItem[];
   packing?: number;
   courier?: number;
+  discount?: number;
   cgst?: number;
   sgst?: number;
   grand_total?: number;

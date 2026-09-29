@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { Building2, Loader2, RotateCcw } from 'lucide-react';
-import { Select, SelectItem } from '@heroui-v2/react';
+import { Building2, RotateCcw } from 'lucide-react';
+import { Label, ListBox, Select } from '@heroui/react';
 import { toast } from 'sonner';
 import { apiService } from '../../services/apiService';
 import { useAuth } from '../../features/auth';
@@ -38,8 +38,7 @@ export function LaboratoryContextSwitcher() {
     ? laboratories
     : [{ id: user.organization_id, name: user.organization_name || 'Active laboratory', is_active: true }, ...laboratories];
 
-  const handleSelectionChange = async (keys: string | Set<React.Key>) => {
-    const selectedKey = typeof keys === 'string' ? keys : Array.from(keys)[0];
+  const handleSelectionChange = async (selectedKey: React.Key | null) => {
     if (!selectedKey || String(selectedKey) === user?.organization_id) {
       return;
     }
@@ -68,30 +67,37 @@ export function LaboratoryContextSwitcher() {
 
       <Select
         aria-label="Select laboratory context"
-        size="sm"
-        selectedKeys={user?.organization_id ? new Set([user.organization_id]) : new Set()}
-        placeholder={isPlatformSession ? 'Platform access' : user?.organization_name || 'Active laboratory'}
+        selectedKey={user?.organization_id ?? null}
         isDisabled={isLoading || laboratoriesQuery.isLoading || !isPlatformSession}
         onSelectionChange={handleSelectionChange}
-        classNames={{
-          trigger: 'min-h-9 border border-sidebar-border bg-sidebar text-sidebar-foreground',
-          value: 'text-xs',
-          popoverContent: 'z-[100] min-w-[240px]',
-        }}
-        startContent={laboratoriesQuery.isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Building2 className="h-4 w-4" />}
+        className="w-full"
       >
-        {laboratoryOptions.map((laboratory) => (
-          <SelectItem
-            key={laboratory.id}
-            textValue={laboratory.name}
-            isDisabled={laboratory.is_active === false}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="truncate">{laboratory.name}</span>
-              {laboratory.is_active === false ? <span className="text-xs text-danger">Inactive</span> : null}
-            </div>
-          </SelectItem>
-        ))}
+        <Label className="sr-only">Laboratory context</Label>
+        <Select.Trigger className="min-h-9 border border-sidebar-border bg-sidebar text-sidebar-foreground">
+          <Building2 className="h-4 w-4" />
+          <Select.Value>
+            {isPlatformSession ? 'Platform access' : user?.organization_name || 'Active laboratory'}
+          </Select.Value>
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover className="z-[100] min-w-[240px]">
+          <ListBox>
+            {laboratoryOptions.map((laboratory) => (
+              <ListBox.Item
+                key={laboratory.id}
+                id={laboratory.id}
+                textValue={laboratory.name}
+                isDisabled={laboratory.is_active === false}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <span className="truncate">{laboratory.name}</span>
+                  {laboratory.is_active === false ? <span className="text-xs text-danger">Inactive</span> : null}
+                </div>
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
       </Select>
 
       {hasLaboratoryContext ? (

@@ -645,12 +645,12 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
   const getCellStyles = (column: InvoicePdfTableColumn, isLastColumn: boolean) => [
     styles.td,
     { width: column.width },
-    column.key === 'gauge_name' ? styles.tdGauge : null,
+    column.key === 'gauge_name' ? styles.tdGauge : undefined,
     column.key === 'identification_number' || column.key === 'dc_no' || column.key === 'hsn'
       ? styles.tdCompact
-      : null,
-    column.key === 'hsn' ? { whiteSpace: 'nowrap' } : null,
-    column.key === 'specification' ? styles.tdSpec : null,
+      : undefined,
+    column.key === 'hsn' ? { whiteSpace: 'nowrap' } : undefined,
+    column.key === 'specification' ? styles.tdSpec : undefined,
     column.key === 'repair_new' ||
     column.key === 'calibration_charge' ||
     column.key === 'qty' ||
@@ -658,15 +658,15 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
     column.key === 'discount' ||
     column.key === 'amount'
       ? styles.tdRight
-      : null,
+      : undefined,
     column.key === 'sr_no' ||
     column.key === 'identification_number' ||
     column.key === 'dc_no' ||
     column.key === 'specification' ||
     column.key === 'hsn'
       ? styles.tdCenter
-      : null,
-    isLastColumn ? styles.noBorderRight : null,
+      : undefined,
+    isLastColumn ? styles.noBorderRight : undefined,
   ];
 
   const renderPage = (page: InvoicePdfPage, pageIndex: number) => {
@@ -728,7 +728,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                 style={[
                   styles.th,
                   { width: column.width },
-                  index === tableColumns.length - 1 ? styles.noBorderRight : null,
+                  index === tableColumns.length - 1 ? styles.noBorderRight : undefined,
                 ]}
               >
                 {column.label}
@@ -740,7 +740,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
             return (
               <View
                 key={`${item.sr_no}-${index}`}
-                style={[styles.tableRow, item.row_kind === 'instrument' ? styles.instrumentRow : null]}
+                style={[styles.tableRow, item.row_kind === 'instrument' ? styles.instrumentRow : undefined]}
                 wrap={false}
               >
                 {tableColumns.map((column, columnIndex) => (
@@ -748,7 +748,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                     key={column.key}
                     style={[
                       ...getCellStyles(column, columnIndex === tableColumns.length - 1),
-                      item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : null,
+                      item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : undefined,
                     ]}
                   >
                     {getItemCellValue(item, column, startIndex + index + 1)}
@@ -769,7 +769,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                     style={[
                       styles.tableTotalCell,
                       { width: cell.width, textAlign: cell.align },
-                      cellIndex === totalRowCells.length - 1 ? styles.noBorderRight : null,
+                      cellIndex === totalRowCells.length - 1 ? styles.noBorderRight : undefined,
                     ]}
                   >
                     {cell.value}
@@ -797,14 +797,14 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                         key={String(label)}
                         style={[
                           styles.bankRow,
-                          index === array.length - 1 ? { borderBottom: '0 solid transparent' } : null,
+                          index === array.length - 1 ? { borderBottom: '0 solid transparent' } : undefined,
                         ]}
                       >
                         <Text style={styles.bankLabel}>{label}</Text>
                         <Text
                           style={[
                             styles.bankValue,
-                            label !== 'BANK NAME' ? { letterSpacing: 0.3 } : null,
+                            label !== 'BANK NAME' ? { letterSpacing: 0.3 } : undefined,
                           ]}
                         >
                           {value}
@@ -819,17 +819,17 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       key={row.key}
                       style={[
                         styles.totalsRow,
-                        row.emphasis === 'subtotal' ? styles.totalsSubtotalCell : null,
+                        row.emphasis === 'subtotal' ? styles.totalsSubtotalCell : undefined,
                         index === array.length - 1
                           ? { borderBottom: '0 solid transparent', minHeight: 0 }
-                          : null,
+                          : undefined,
                       ]}
                     >
                       <Text
                         style={[
                           styles.totalsLabel,
-                          row.emphasis === 'subtotal' ? styles.totalsSubtotalText : null,
-                          row.emphasis === 'total' ? styles.totalsGrandText : null,
+                          row.emphasis === 'subtotal' ? styles.totalsSubtotalText : undefined,
+                          row.emphasis === 'total' ? styles.totalsGrandText : undefined,
                         ]}
                       >
                         {row.label}
@@ -837,8 +837,8 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       <Text
                         style={[
                           styles.totalsValue,
-                          row.emphasis === 'subtotal' ? styles.totalsSubtotalText : null,
-                          row.emphasis === 'total' ? styles.totalsGrandText : null,
+                          row.emphasis === 'subtotal' ? styles.totalsSubtotalText : undefined,
+                          row.emphasis === 'total' ? styles.totalsGrandText : undefined,
                         ]}
                       >
                         {formatCurrency(Number(row.value))}

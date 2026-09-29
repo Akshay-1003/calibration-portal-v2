@@ -5,19 +5,43 @@ import { useForm, FormProvider, Controller } from "react-hook-form";
 import {
   Input,
   Select,
-  SelectItem,
   Button,
   Autocomplete,
-  AutocompleteItem,
-  ListboxSection,
+  ListBox,
   Accordion,
-  AccordionItem,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import { gaugeRegistrationSchema, zodResolver, type GaugeRegistrationFormData } from "../../lib/validations";
 import { apiClient } from "../../services/api";
 import { toast } from "sonner";
 import type { GaugeMaster, CertificateType } from "../../store/useStore";
 import { useDebounce } from "../../hooks/useDebounce";
+
+type SelectOption = { value: string; label: string };
+
+const V3Select = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  ariaLabel,
+  disabled = false,
+}: {
+  value: string | undefined;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder: string;
+  ariaLabel: string;
+  disabled?: boolean;
+}) => (
+  <Select className="w-full" selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : "")} isDisabled={disabled} placeholder={placeholder} aria-label={ariaLabel}>
+    <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{options.map((option) => (
+      <ListBox.Item key={option.value} id={option.value} textValue={option.label}>
+        {option.label}<ListBox.ItemIndicator />
+      </ListBox.Item>
+    ))}</ListBox></Select.Popover>
+  </Select>
+);
 
 const GaugeSpecificationRenderer = React.lazy(() =>
   import("../specifications/GaugeSpecificationRenderer").then((module) => ({
@@ -406,8 +430,8 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
 
 
   const stripProcessField = (values: GaugeRegistrationFormData) => {
-    const subtypeValues = { ...values };
-    delete subtypeValues.process;
+    const { process: processField, ...subtypeValues } = values;
+    void processField;
     return subtypeValues;
   };
 
@@ -540,11 +564,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Gauge Name <span className="text-danger">*</span>
               </label>
-              <Autocomplete
-                selectedKey={watch("master_gauge_id") || null}
-                aria-label="Gauge Name"
-                disableAnimation
-                onSelectionChange={(key) => {
+              <Autocomplete className="w-full" selectedKey={watch("master_gauge_id") || null} aria-label="Gauge Name" onSelectionChange={(key) => {
                   const value = key as string | null;
                   if (value) {
                     setValue("master_gauge_id", value, {
@@ -570,66 +590,43 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                     }, 100);
                   }
                 }}
-                placeholder={
-                  gaugeMasterLoading
-                    ? "Loading gauges..."
-                    : watch("certificate_type_id")
-                      ? `Search gauge name (${getCertificateTypeName(watch("certificate_type_id"))})`
-                      : "Search or select gauge name"
-                }
-                isDisabled={gaugeMasterLoading || (!!watch("certificate_type_id") && sortedCertificateTypeIds.length === 0)}
-                allowsCustomValue={false}
-                inputProps={{
-                  classNames: {
-                    input: "text-sm",
-                    inputWrapper: errors.master_gauge_id
-                      ? "border-danger"
-                      : "",
-                  },
-                }}
-                listboxProps={{
-                  disableAnimation: true,
-                  emptyContent: sortedCertificateTypeIds.length === 0
-                    ? (watch("certificate_type_id")
-                      ? `No gauges available for ${getCertificateTypeName(watch("certificate_type_id"))}`
-                      : "No gauges available")
-                    : "No results found",
-                }}
-                popoverProps={{
-                  shouldBlockScroll: false,
-                  placement: "bottom-start",
-                  offset: 4,
-                }}
               >
+                <Autocomplete.Trigger>
+                  <Autocomplete.Filter><Input placeholder={gaugeMasterLoading ? "Loading gauges..." : "Search or select gauge name"} aria-label="Gauge Name" /></Autocomplete.Filter>
+                  <Autocomplete.Indicator />
+                </Autocomplete.Trigger>
+                <Autocomplete.Popover>
+                  <ListBox>
                 {sortedCertificateTypeIds.length === 0 ? (
-                  <AutocompleteItem key="no-gauges" isDisabled textValue="No gauges available">
+                  <ListBox.Item id="no-gauges" isDisabled textValue="No gauges available">
                     {watch("certificate_type_id")
                       ? `No gauges available for ${getCertificateTypeName(watch("certificate_type_id"))}`
                       : "No gauges available"}
-                  </AutocompleteItem>
+                  </ListBox.Item>
                 ) : (
                   sortedCertificateTypeIds.map((certTypeId) => {
                     const gauges = filteredGaugesByCertificateType[certTypeId] || [];
                     if (gauges.length === 0) return null;
 
                     return (
-                      <ListboxSection
+                      <ListBox.Section
                         key={certTypeId}
-                        title={getCertificateTypeName(certTypeId)}
-                        showDivider
                       >
+                        <div className="px-2 py-1 text-xs font-semibold text-muted">{getCertificateTypeName(certTypeId)}</div>
                         {gauges.map((gauge) => (
-                          <AutocompleteItem
+                          <ListBox.Item
                             key={gauge.id}
                             textValue={gauge.name}
                           >
                             {gauge.name}
-                          </AutocompleteItem>
+                          </ListBox.Item>
                         ))}
-                      </ListboxSection>
+                      </ListBox.Section>
                     );
                   }).filter(Boolean)
                 )}
+                  </ListBox>
+                </Autocomplete.Popover>
               </Autocomplete>
               {errors.master_gauge_id && (
                 <p className="text-danger text-sm mt-1">
@@ -642,22 +639,10 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Class
               </label>
-              <Select
-                selectedKeys={watch("gauge_class") ? [watch("gauge_class")] : []}
-                aria-label="Class"
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string;
-                  setValue("gauge_class", value, {
-                    shouldValidate: true,
-                  });
-                }}
-                placeholder="Select class"
-              >
-                <SelectItem key="no_type">No Type</SelectItem>
-                <SelectItem key="digital">Digital</SelectItem>
-                <SelectItem key="vernier">Vernier</SelectItem>
-                <SelectItem key="dial">Dial</SelectItem>
-              </Select>
+              <V3Select value={watch("gauge_class")} ariaLabel="Class" placeholder="Select class" onChange={(value) => setValue("gauge_class", value, { shouldValidate: true })} options={[
+                { value: "no_type", label: "No Type" }, { value: "digital", label: "Digital" },
+                { value: "vernier", label: "Vernier" }, { value: "dial", label: "Dial" },
+              ]} />
             </div>
 
             <div>
@@ -669,11 +654,10 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                 control={form.control}
                 render={({ field }) => (
                   <Input
+                    className="w-full"
                     {...field}
                     placeholder="Enter gauge condition"
                     aria-label="Gauge Condition"
-                    isInvalid={!!errors.gauge_condition}
-                    errorMessage={errors.gauge_condition?.message}
                   />
                 )}
               />
@@ -689,11 +673,10 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                 control={form.control}
                 render={({ field }) => (
                   <Input
+                    className="w-full"
                     {...field}
                     placeholder="Enter identification number"
                     aria-label="Identification Number"
-                    isInvalid={!!errors.identification_number}
-                    errorMessage={errors.identification_number?.message}
                   />
                 )}
               />
@@ -708,6 +691,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                 control={form.control}
                 render={({ field }) => (
                   <Input
+                    className="w-full"
                     {...field}
                     placeholder="Enter make"
                     aria-label="Make"
@@ -725,11 +709,10 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                 control={form.control}
                 render={({ field }) => (
                   <Input
+                    className="w-full"
                     {...field}
                     placeholder="Enter manufacturer serial number"
                     aria-label="Manufacturer Serial Number"
-                    isInvalid={!!errors.manf_serial_number}
-                    errorMessage={errors.manf_serial_number?.message}
 
                   />
                 )}
@@ -747,28 +730,14 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                   control={form.control}
                   render={({ field }) => (
                     <Input
+                      className="w-full"
                       {...field}
                       placeholder="Enter calibration frequency"
                       aria-label="Make"
-                      isInvalid={!!errors.calibration_frequency}
-                      errorMessage={errors.calibration_frequency?.message}
                     />
                   )}
                 />
-                <Select
-                  selectedKeys={watch("calibration_frequency_unit") ? [watch("calibration_frequency_unit")] : []}
-                  aria-label="Calibration Frequency Unit"
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue("calibration_frequency_unit", value as "months" | "years", {
-                      shouldValidate: true,
-                    });
-                  }}
-                  placeholder="Unit"
-                >
-                  <SelectItem key="months">months</SelectItem>
-                  <SelectItem key="years">years</SelectItem>
-                </Select>
+                <V3Select value={watch("calibration_frequency_unit")} ariaLabel="Calibration Frequency Unit" placeholder="Unit" onChange={(value) => setValue("calibration_frequency_unit", value as "months" | "years", { shouldValidate: true })} options={[{ value: "months", label: "months" }, { value: "years", label: "years" }]} />
               </div>
             </div>
 
@@ -777,33 +746,19 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Calibration under
               </label>
-              <Select
-                selectedKeys={watch("calibration_done_under") ? [watch("calibration_done_under")] : []}
-                aria-label="Calibration under"
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string;
-                  setValue("calibration_done_under", value as "nabl" | "non_nabl", {
-                    shouldValidate: true,
-                  });
-                }}
-                placeholder="Select calibration type"
-                isInvalid={!!errors.calibration_done_under}
-                errorMessage={errors.calibration_done_under?.message}
-              >
-                <SelectItem key="nabl">NABL</SelectItem>
-                <SelectItem key="non_nabl">Non NABL</SelectItem>
-              </Select>
+              <V3Select value={watch("calibration_done_under")} ariaLabel="Calibration under" placeholder="Select calibration type" onChange={(value) => setValue("calibration_done_under", value as "nabl" | "non_nabl", { shouldValidate: true })} options={[{ value: "nabl", label: "NABL" }, { value: "non_nabl", label: "Non NABL" }]} />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Gauge Type <span className="text-danger">*</span>
               </label>
-              <Select
-                selectedKeys={watch("certificate_type_id") ? [watch("certificate_type_id")] : []}
-                aria-label="Gauge Type"
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string;
+              <V3Select
+                value={watch("certificate_type_id")}
+                ariaLabel="Gauge Type"
+                placeholder={certificateTypeLoading ? "Loading gauge types..." : "Select gauge type"}
+                disabled={certificateTypeLoading}
+                onChange={(value) => {
                   setValue("certificate_type_id", value, {
                     shouldValidate: true,
                   });
@@ -820,44 +775,18 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                     }
                   }
                 }}
-                placeholder={certificateTypeLoading ? "Loading gauge types..." : "Select gauge type"}
-                isDisabled={certificateTypeLoading}
-                isInvalid={!!errors.certificate_type_id}
-                errorMessage={errors.certificate_type_id?.message}
-              >
-                {certificateTypes.map(certType => (
-                  <SelectItem key={certType.id}>
-                    {certType.name}
-                  </SelectItem>
-                ))}
-              </Select>
+                options={certificateTypes.map((certType) => ({ value: certType.id, label: certType.name }))}
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Unit <span className="text-danger">*</span>
               </label>
-              <Select
-                selectedKeys={watch("unit") ? [watch("unit")] : []}
-                aria-label="Unit"
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string;
-                  setValue("unit", value as "mm" | "µm" | "inch" | "kg/cm2" | "bar" | "Pa" | "degree", {
-                    shouldValidate: true
-                  });
-                }}
-                placeholder="Select unit"
-                isInvalid={!!errors.unit}
-                errorMessage={errors.unit?.message}
-              >
-                <SelectItem key="mm">mm</SelectItem>
-                <SelectItem key="µm">µm</SelectItem>
-                <SelectItem key="inch">inch</SelectItem>
-                <SelectItem key="kg/cm2">kg/cm2</SelectItem>
-                <SelectItem key="bar">bar</SelectItem>
-                <SelectItem key="pa">Pa</SelectItem>
-                <SelectItem key="degree">degree</SelectItem>
-              </Select>
+              <V3Select value={watch("unit")} ariaLabel="Unit" placeholder="Select unit" onChange={(value) => setValue("unit", value as "mm" | "µm" | "inch" | "kg/cm2" | "bar" | "Pa" | "degree", { shouldValidate: true })} options={[
+                { value: "mm", label: "mm" }, { value: "µm", label: "µm" }, { value: "inch", label: "inch" },
+                { value: "kg/cm2", label: "kg/cm2" }, { value: "bar", label: "bar" }, { value: "pa", label: "pa" }, { value: "degree", label: "degree" },
+              ]} />
             </div>
 
             {/* Row 4 */}
@@ -865,21 +794,9 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Calibration Location
               </label>
-              <Select
-                selectedKeys={watch("calibration_location_type") ? [watch("calibration_location_type")] : []}
-                aria-label="Calibration Location Type"
-                onSelectionChange={(keys) => {
-                  const value = Array.from(keys)[0] as string;
-                  setValue("calibration_location_type", value as "permanent_facility" | "mobile_facility" | "customer_site", {
-                    shouldValidate: true,
-                  });
-                }}
-                placeholder="Select location type"
-              >
-                <SelectItem key="permanent_facility">Permanent Facility</SelectItem>
-                <SelectItem key="mobile_facility">Mobile Facility</SelectItem>
-                <SelectItem key="customer_site">Customer Site</SelectItem>
-              </Select>
+              <V3Select value={watch("calibration_location_type")} ariaLabel="Calibration Location Type" placeholder="Select location type" onChange={(value) => setValue("calibration_location_type", value as "permanent_facility" | "mobile_facility" | "customer_site", { shouldValidate: true })} options={[
+                { value: "permanent_facility", label: "Permanent Facility" }, { value: "mobile_facility", label: "Mobile Facility" }, { value: "customer_site", label: "Customer Site" },
+              ]} />
             </div>
           </div>
 
@@ -887,7 +804,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
           {specificationDataformat && (
             <Suspense
               fallback={
-                <div className="space-y-4 rounded-lg border border-gray-200 p-4 animate-pulse">
+                <div className="space-y-4 rounded-md border border-gray-200 p-4 animate-pulse">
                   <div className="h-6 w-48 rounded bg-gray-200" />
                   <div className="h-24 rounded bg-gray-100" />
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -914,22 +831,23 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                   <Button
                     type="button"
                     size="sm"
-                    color="primary"
-                    variant="flat"
+                    variant="primary"
                     onPress={handleAddSubtype}
                   >
                     Add Attachment
                   </Button>
                 </div>
                 {subtypes.length > 0 ? (
-                  <Accordion variant="splitted" className="space-y-2">
+                  <Accordion variant="surface" className="space-y-2">
                     {subtypes.map((subtypeData, index) => (
-                      <AccordionItem
-                        key={index}
-                        aria-label={`Subtype ${index + 1}`}
-                        title={<span className="text-gray-700 text-sm">Attachment {index + 1}{subtypeData.identification_number ? ` - ${subtypeData.identification_number}` : ''}</span>}
-                        className="font-semibold text-sm "
-                      >
+                      <Accordion.Item key={index} id={`subtype-${index}`} className="font-semibold text-sm">
+                        <Accordion.Heading>
+                          <Accordion.Trigger>
+                            <span className="text-gray-700 text-sm">Attachment {index + 1}{subtypeData.identification_number ? ` - ${subtypeData.identification_number}` : ''}</span>
+                            <Accordion.Indicator />
+                          </Accordion.Trigger>
+                        </Accordion.Heading>
+                        <Accordion.Panel><Accordion.Body>
                         <div className="py-2">
                           <SubtypeFormWrapper
                             key={`subtype-${index}`}
@@ -961,15 +879,15 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                             <Button
                               type="button"
                               size="sm"
-                              color="danger"
-                              variant="light"
+                              variant="danger"
                               onPress={() => handleRemoveSubtype(index)}
                             >
                               Remove
                             </Button>
                           </div>
                         </div>
-                      </AccordionItem>
+                        </Accordion.Body></Accordion.Panel>
+                      </Accordion.Item>
                     ))}
                   </Accordion>
                 ) : (
@@ -986,11 +904,10 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Process *
                 </label>
-                <Select
-                  selectedKeys={watch("process") ? [watch("process")] : []}
-                  aria-label="Process"
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
+                <V3Select
+                  value={watch("process")}
+                  ariaLabel="Process"
+                  onChange={(value) => {
                     // Map UI value to schema value
                     const processValue = value === "calibration_and_repairing"
                       ? "calibration_and_repairing"
@@ -1000,14 +917,8 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
                     });
                   }}
                   placeholder="Select process"
-                  isInvalid={!!errors.process}
-                  errorMessage={errors.process?.message}
-                >
-                  <SelectItem key="calibration">Calibration</SelectItem>
-                  <SelectItem key="repair">Repair</SelectItem>
-                  <SelectItem key="calibration_and_repairing">Repair & Calibration</SelectItem>
-                  <SelectItem key="data_save">Data Save</SelectItem>
-                </Select>
+                  options={[{ value: "calibration", label: "Calibration" }, { value: "repair", label: "Repair" }, { value: "calibration_and_repairing", label: "Repair & Calibration" }, { value: "data_save", label: "Data Save" }]}
+                />
               </div>
             </div>
           )}
@@ -1017,8 +928,8 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
             <div className="flex gap-3 pt-4 border-t mt-4">
               <Button
                 type="submit"
-                color="primary"
-                isLoading={isSubmitting}
+                variant="primary"
+                isDisabled={isSubmitting}
               >
                 {isSubmitting
                   ? isEditing
@@ -1041,7 +952,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               {isEditing && onCancel && (
                 <Button
                   type="button"
-                  variant="light"
+                  variant="secondary"
                   onPress={onCancel}
                 >
                   Cancel Edit
@@ -1050,7 +961,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               {onCancel && (
                 <Button
                   type="button"
-                  variant="light"
+                  variant="secondary"
                   onPress={onCancel}
                 >
                   Close

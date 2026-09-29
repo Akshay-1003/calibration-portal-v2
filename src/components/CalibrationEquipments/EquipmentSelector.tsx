@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { Select, SelectItem } from "@heroui-v2/react";
+import React, { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Label, ListBox, Popover } from "@heroui/react";
 import { useEquipmentsWithQuery } from "../../hooks/useEquipmentsWithQuery";
 
 type Equipment = {
@@ -23,6 +24,7 @@ const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
   className,
 }) => {
   const { equipments, loading: equipmentLoading } = useEquipmentsWithQuery();
+  const [isOpen, setIsOpen] = useState(false);
 
   const items = useMemo(
     () =>
@@ -35,29 +37,18 @@ const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
 
   return (
     <div className="">
-      <label className="block text-xs font-semibold text-gray-700 uppercase mb-1.5">Equipment Details *</label>
-      <Select
-        className={className}
-        placeholder="Select equipment"
-        selectionMode="multiple"
-        aria-label="Equipment Selector"
-        selectedKeys={value}
-        isLoading={loading || equipmentLoading}
-        onSelectionChange={(keys) =>
-          onChange(Array.from(keys) as string[])
-        }
-        variant="bordered"
-        classNames={{
-          trigger: `
-          h-auto
-          items-start
-          py-2
-        `,
-          value: "w-full",
-        }}
-        renderValue={(items) => (
-          <div className="flex flex-wrap gap-2">
-            {items.map((item) => (
+      <div className={className}>
+        <Label className="mb-1.5 block text-xs font-semibold uppercase text-gray-700">Equipment Details *</Label>
+        <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
+          <Popover.Trigger>
+            <button
+              type="button"
+              className="flex min-h-10 w-full items-center justify-between gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-left disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Equipment Selector"
+              disabled={loading || equipmentLoading}
+            >
+              <div className="flex w-full flex-wrap gap-2">
+                {items.filter((item) => value.includes(item.key)).map((item) => (
               <span
                 key={item.key}
                 className="
@@ -71,18 +62,39 @@ const EquipmentSelector: React.FC<EquipmentSelectorProps> = ({
                 whitespace-nowrap
               "
               >
-                {item.textValue}
+                {item.label}
               </span>
-            ))}
-          </div>
-        )}
-      >
-        {items.map((item) => (
-          <SelectItem key={item.key} textValue={item.label}>
-            <div className="text-sm">{item.label}</div>
-          </SelectItem>
-        ))}
-      </Select>
+                ))}
+                {value.length === 0 && <span className="text-sm text-gray-500">Select equipment</span>}
+              </div>
+              <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" aria-hidden="true" />
+            </button>
+          </Popover.Trigger>
+          <Popover.Content className="min-w-[320px]">
+            <Popover.Dialog>
+              <ListBox
+                items={items}
+                selectionMode="multiple"
+                selectedKeys={new Set(value)}
+                onSelectionChange={(keys) => {
+                  if (keys === 'all') {
+                    onChange(items.map((item) => item.key));
+                  } else {
+                    onChange(Array.from(keys, String));
+                  }
+                }}
+              >
+                {(item) => (
+                  <ListBox.Item id={item.key} textValue={item.label}>
+                    <div className="text-sm">{item.label}</div>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                )}
+              </ListBox>
+            </Popover.Dialog>
+          </Popover.Content>
+        </Popover>
+      </div>
     </div>
   );
 };

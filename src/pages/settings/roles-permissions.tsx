@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Card,
-  CardBody,
   Button,
   Select,
-  SelectItem,
-} from '@heroui-v2/react';
+  ListBox,
+  Label,
+} from '@heroui/react';
 import {
   ArrowPathIcon,
   UsersIcon,
@@ -111,62 +111,70 @@ export const SettingsRolesPermissions = () => {
 
         <div className="flex flex-wrap gap-2">
           <Button
-            variant="flat"
-            startContent={<ArrowPathIcon className="h-4 w-4" />}
+            variant="outline"
             onPress={() => permissionsQuery.refetch()}
             isDisabled={!selectedUserId}
           >
-            Refresh
+            <ArrowPathIcon className="h-4 w-4" />
+            <span>Refresh</span>
           </Button>
           <Button
-            color="success"
-            variant="flat"
+            variant="secondary"
             onPress={handleInitialize}
-            isLoading={initializePermissionsMutation.isPending}
             isDisabled={!selectedUserId}
           >
-            Initialize
+            {initializePermissionsMutation.isPending ? 'Initializing...' : 'Initialize'}
           </Button>
           <Button
-            color="warning"
-            variant="flat"
+            variant="danger-soft"
             onPress={handleReset}
-            isLoading={resetPermissionsMutation.isPending}
             isDisabled={!selectedUserId}
           >
-            Reset
+            {resetPermissionsMutation.isPending ? 'Resetting...' : 'Reset'}
           </Button>
           <Button
-            color="primary"
+            variant="primary"
             onPress={handleSave}
-            isLoading={updateUserPermissionsMutation.isPending}
             isDisabled={!selectedUserId || !hasUnsavedChanges}
           >
-            Save Permissions
+            {updateUserPermissionsMutation.isPending ? 'Saving...' : 'Save Permissions'}
           </Button>
         </div>
       </div>
 
       <Card className="border border-slate-200">
-        <CardBody className="p-6">
+        <Card.Content className="p-6">
           <div className="grid gap-4 md:grid-cols-[minmax(0,360px)_1fr]">
             <div className="space-y-3">
-              <label className="text-sm font-medium text-slate-700">Select User</label>
+              <Label className="text-sm font-medium text-slate-700">Select User</Label>
               <Select
                 aria-label="Select user for permissions"
-                selectedKeys={selectedUserId ? [selectedUserId] : []}
-                onSelectionChange={(keys) => setSelectedUserId((Array.from(keys)[0] as string) ?? '')}
+                selectedKey={selectedUserId || null}
+                onSelectionChange={(key) => setSelectedUserId(key == null ? '' : String(key))}
                 placeholder="Choose a user"
-                startContent={<UsersIcon className="h-4 w-4 text-slate-500" />}
-                isLoading={usersQuery.isLoading}
+                isDisabled={usersQuery.isLoading}
               >
-                {users.map((user) => (
-                  <SelectItem key={user.id} textValue={`${user.first_name} ${user.last_name} ${user.email}`}>
-                    {`${user.first_name} ${user.last_name}`.trim()} ({user.email})
-                  </SelectItem>
-                ))}
+                <Select.Trigger>
+                  <UsersIcon className="h-4 w-4 text-slate-500" />
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {users.map((user) => (
+                      <ListBox.Item
+                        key={user.id}
+                        id={user.id}
+                        textValue={`${user.first_name} ${user.last_name} ${user.email}`}
+                      >
+                        {`${user.first_name} ${user.last_name}`.trim()} ({user.email})
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
               </Select>
-              {usersQuery.error && (
+              {Boolean(usersQuery.error) && (
                 <p className="text-xs text-red-500">
                   Users could not be loaded. Refresh the page or check the users API response.
                 </p>
@@ -183,7 +191,7 @@ export const SettingsRolesPermissions = () => {
               )}
             </div>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       <UserPermissionEditor

@@ -9,27 +9,19 @@ import {
 } from "@heroicons/react/24/outline";
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Selection,
-  SortDescriptor,
+  Label,
+  ListBox,
+  Popover,
   Pagination,
   Select,
-  SelectItem,
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Listbox,
-  ListboxItem,
-} from "@heroui-v2/react";
+  Chip,
+} from "@heroui/react";
+import { getTableColumnKey } from './tableColumnKey';
+import type { Selection, SortDescriptor } from "@react-types/shared";
 
 import { LinkedGauge } from "../../types";
-import { Chip } from "@heroui-v2/react";
 import { SpecificationChips } from "../gaugeTypes/SpecificationChips";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
@@ -93,7 +85,7 @@ const getStatusBadge = (status: "inward_received" | "calibration_completed") => 
   const config = statusConfig[status] || statusConfig.inward_received;
 
   return (
-    <Chip variant="flat" color={config.color as any}>
+    <Chip variant="soft" color="accent">
       {config.label}
     </Chip>
   );
@@ -334,13 +326,8 @@ export function LinkedGaugesTable({
     });
   }, [items, sortDescriptor, getComparableValue]);
 
-  const tableItems = React.useMemo(() => {
-    if (isServerPagination && loading) {
-      return [];
-    }
-
-    return sortedItems;
-  }, [isServerPagination, loading, sortedItems]);
+  // Keep fetched rows visible during background refetches.
+  const tableItems = sortedItems;
 
   const renderCell = React.useCallback(
     (gauge: any, columnKey: React.Key, index: number) => {
@@ -408,8 +395,7 @@ export function LinkedGaugesTable({
           return (
             <Button
               size="sm"
-              variant="flat"
-              color="primary"
+              variant="primary"
               className="h-7 px-3 text-xs font-medium"
               onPress={() => onInwardNoClick && onInwardNoClick(gauge)}
               isDisabled={!onInwardNoClick}
@@ -441,7 +427,7 @@ export function LinkedGaugesTable({
                 <Button
                   isIconOnly
                   size="sm"
-                  variant="light"
+                  variant="ghost"
                   className="h-8 w-8 min-w-8 rounded-lg hover:bg-blue-50 flex items-center justify-center border border-blue-300"
                   onPress={() => onEdit && onEdit(gauge.gauge_id)}
                   aria-label="Edit gauge"
@@ -453,7 +439,7 @@ export function LinkedGaugesTable({
                 <Button
                   isIconOnly
                   size="sm"
-                  variant="light"
+                  variant="ghost"
                   className="h-8 w-8 min-w-8 rounded-lg hover:bg-red-50 flex items-center justify-center border border-red-300"
                   onPress={() => requestDelete(gauge)}
                   aria-label="Delete gauge"
@@ -472,8 +458,7 @@ export function LinkedGaugesTable({
               {onNablCalibration && (
                 <Button
                   size="sm"
-                  variant="solid"
-                  color="primary"
+                  variant="primary"
                   className="h-8 px-2 min-w-[52px] font-semibold"
                   onPress={() => onNablCalibration(gauge)}
                   aria-label="NABL calibration"
@@ -486,8 +471,7 @@ export function LinkedGaugesTable({
                 <Button
                   isIconOnly
                   size="sm"
-                  variant="solid"
-                  color="warning"
+                  variant="secondary"
                   className="h-8 px-2 min-w-[70px] font-semibold"
                   onPress={() => onNonNablCalibration(gauge)}
                   aria-label="Non-NABL calibration"
@@ -578,53 +562,18 @@ export function LinkedGaugesTable({
       <div className="flex flex-col gap-4 bg-white">
         {filters}
         <div className="flex items-end justify-between gap-3">
-          <Input
-            isClearable
-            className="w-full sm:max-w-[44%]"
-            placeholder={searchPlaceholder}
-            startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
-            value={filterValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
-            classNames={{
-              inputWrapper: "border-gray-300 hover:border-gray-400 focus-within:border-blue-500",
-            }}
-          />
+          <Input className="w-full sm:max-w-[44%]" placeholder={searchPlaceholder} value={filterValue} onChange={(event) => onSearchChange(event.target.value)} />
+          {filterValue ? <Button type="button" variant="ghost" aria-label="Clear linked gauge search" onPress={onClear}><MagnifyingGlassIcon className="w-4 h-4" /></Button> : null}
           <div className="flex items-center gap-2">
 
-            <Popover placement="bottom-end" showArrow>
-              <PopoverTrigger>
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  variant="flat"
-                  className="hidden sm:flex font-medium"
-                >
+            <Popover>
+              <Popover.Trigger>
+                <Button variant="secondary" className="hidden sm:flex font-medium">
                   Columns
+                  <ChevronDownIcon className="text-small" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1">
-                <Listbox
-                  aria-label="Table Columns"
-                  disallowEmptySelection
-                  selectedKeys={visibleColumns}
-                  selectionMode="multiple"
-                  onSelectionChange={setVisibleColumns}
-                  variant="flat"
-                >
-                  {columns.map((column) => (
-                    <ListboxItem
-                      key={column.uid}
-                      textValue={capitalize(column.name)}
-                      className="capitalize rounded-md"
-                      classNames={{
-                        base: "data-[hover=true]:bg-gray-100",
-                      }}
-                    >
-                      {capitalize(column.name)}
-                    </ListboxItem>
-                  ))}
-                </Listbox>
-              </PopoverContent>
+              </Popover.Trigger>
+              <Popover.Content className="w-56 p-1"><Popover.Dialog><ListBox aria-label="Table Columns" selectedKeys={visibleColumns} selectionMode="multiple" onSelectionChange={setVisibleColumns}>{columns.map((column) => <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>{capitalize(column.name)}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Popover.Dialog></Popover.Content>
             </Popover>
           </div>
         </div>
@@ -643,51 +592,31 @@ export function LinkedGaugesTable({
         </span>
 
         {/* Pagination */}
-        <Pagination
-          color="primary"
-          isCompact
-          showControls
-          page={page}
-          total={pages}
-          onChange={(nextPage) => {
+        <Pagination className="scale-90"><Pagination.Content>
+          <Pagination.Previous isDisabled={page <= 1} onPress={() => {
             if (controlledOnPageChange) {
-              controlledOnPageChange(nextPage);
+              controlledOnPageChange(Math.max(1, page - 1));
             } else {
-              setLocalPage(nextPage);
+              setLocalPage(Math.max(1, page - 1));
             }
-          }}
-          className="scale-90"
-          classNames={{
-            item: "bg-white border-gray-300",
-            cursor: "bg-blue-600 text-white",
-          }}
-        />
+          }}><Pagination.PreviousIcon /></Pagination.Previous>
+          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
+          <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
+        </Pagination.Content></Pagination>
 
         {/* Right Controls */}
         <div className="flex items-center gap-2">
           {/* Small Select */}
-          <Select
-            label="Rows"
-            selectedKeys={new Set([String(rowsPerPage)])}
-            onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
-            className="min-w-[140px]"
-            classNames={{
-              trigger: "bg-white border-gray-300 h-8",
-            }}
-          >
-            <SelectItem key="10" textValue="10">10</SelectItem>
-            <SelectItem key="20" textValue="20">20</SelectItem>
-            <SelectItem key="50" textValue="30">50</SelectItem>
-            <SelectItem key="100" textValue="40">100</SelectItem>
+          <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="min-w-[140px]">
+            <Label>Rows</Label><Select.Trigger className="bg-white border-gray-300 h-8"><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>{['10','20','50','100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
           </Select>
 
           {/* Small Buttons */}
           <Button
             isDisabled={page === 1}
             size="sm"
-            variant="light"
+            variant="ghost"
             className="h-8 px-3 text-xs font-medium min-w-[60px]"
             onPress={onPreviousPage}
           >
@@ -697,7 +626,7 @@ export function LinkedGaugesTable({
           <Button
             isDisabled={page === pages}
             size="sm"
-            variant="light"
+            variant="ghost"
             className="h-8 px-3 text-xs font-medium min-w-[60px]"
             onPress={onNextPage}
           >
@@ -711,43 +640,29 @@ export function LinkedGaugesTable({
   return (
     <div className="p-2">
       <div className="industrial-table-wrapper">
-        <Table
-          aria-label="Linked gauges table"
-          isHeaderSticky
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0", base: "min-w-full" }}
-
-          selectedKeys={selectedKeys}
-          sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement="outside"
-          onSelectionChange={setSelectedKeys}
-          onSortChange={setSortDescriptor}
-        >
-          <TableHeader columns={columns.filter((col) => visibleColumns === "all" || Array.from(visibleColumns).includes(col.uid))}>
+        <div className="mb-4">{topContent}</div>
+        <Table aria-label="Linked gauges table" className="min-w-full">
+          <Table.ScrollContainer className="max-h-[calc(100vh-320px)]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
+          <Table.Header columns={columns.filter((col) => visibleColumns === "all" || Array.from(visibleColumns).includes(col.uid))}>
             {(column) => (
-              <TableColumn key={column.uid} align={column.uid === "actions" || column.uid === "sr_no" ? "center" : "start"} allowsSorting={column.sortable}>
+              <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
-            emptyContent={emptyContent}
+          </Table.Header>
+          <Table.Body
             items={tableItems}
-            isLoading={loading}
-            loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}
+            renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? "Loading..." : emptyContent}</div>}
           >
             {(item) => {
               const index = tableItems.indexOf(item);
               return (
-                <TableRow key={getRowKey(item)}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}
-                </TableRow>
+                <Table.Row id={getRowKey(item)} columns={columns}>{(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey), index)}</Table.Cell>}</Table.Row>
               );
             }}
-          </TableBody>
+          </Table.Body></Table.Content></Table.ScrollContainer>
         </Table>
+        {bottomContent}
       </div>
       <DeleteConfirmModal
         isOpen={deleteOpen}

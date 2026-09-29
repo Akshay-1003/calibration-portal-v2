@@ -31,6 +31,7 @@ export interface CertificateData {
   equipment_ids: string[];          // array of equipment IDs (strings)
   id: string;
   certificate_no: string;
+  location?: string;
 }
 
 export interface GaugeSpecificationInputs {
@@ -93,7 +94,7 @@ export interface GaugeData {
 
 // Invoice Billing Component
 export interface InvoiceBillingComponent {
-  process: 'calibration' | 'repair' | 'inspection' | 'verification' | 'spare_part';
+  process: string;
   quantity: number;
   rate: number;
   amount: number;
@@ -112,14 +113,15 @@ export interface InvoiceBillingComponent {
 // Invoice Billing Item
 // Note: specifications can be null in API responses, but we convert to empty object {} when building payloads
 export interface InvoiceBillingItem {
-  source_type?: 'outward' | 'manual';
+  source_type?: string;
   gauge_id: string | null;
   inward_id: string | null;
+  inward_date?: string | null;
   master_gauge_id: string | null;
   master_gauge_name: string;
   identification_number: string;
   inward_gauge_lab_id: string;
-  specifications: Record<string, unknown> | null; // Can be null in API responses
+  specifications: Record<string, unknown> | string | null; // Can be null in API responses
   billing_components: InvoiceBillingComponent[];
   total: number;
   instrument_quantity?: number;

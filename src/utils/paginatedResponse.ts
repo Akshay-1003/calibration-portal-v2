@@ -69,27 +69,38 @@ export const extractPaginatedList = <T>(
   const items = mapItem ? rawItems.map(mapItem) : (rawItems as T[]);
 
   const root = isRecord(payload) ? payload : null;
-  const pagination = root && isRecord(root.pagination) ? root.pagination : null;
+  const nestedData = root && isRecord(root.data) ? root.data : null;
+  const pagination =
+    root && isRecord(root.pagination)
+      ? root.pagination
+      : nestedData && isRecord(nestedData.pagination)
+        ? nestedData.pagination
+        : null;
 
   const total =
     toSafeNumber(root?.total) ??
     toSafeNumber(root?.total_count) ??
+    toSafeNumber(nestedData?.total) ??
+    toSafeNumber(nestedData?.total_count) ??
     toSafeNumber(pagination?.total) ??
     items.length;
 
   const page =
     toSafeNumber(root?.page) ??
+    toSafeNumber(nestedData?.page) ??
     toSafeNumber(pagination?.page) ??
     fallbackPage;
 
   const resolvedLimit =
     toSafeNumber(root?.limit) ??
+    toSafeNumber(nestedData?.limit) ??
     toSafeNumber(pagination?.limit) ??
     fallbackLimit ??
     items.length;
 
   const totalPages =
     toSafeNumber(root?.totalPages) ??
+    toSafeNumber(nestedData?.totalPages) ??
     toSafeNumber(pagination?.totalPages) ??
     (resolvedLimit > 0 ? Math.max(Math.ceil(total / resolvedLimit), 1) : 1);
 

@@ -1,22 +1,17 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   Button,
-  Input,
+  InputGroup,
+  ListBox,
   Pagination,
   Select,
-  SelectItem,
   Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
-} from '@heroui-v2/react';
-import type { Selection } from '@heroui-v2/react';
-import { MagnifyingGlassIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+} from '@heroui/react';
+import { MagnifyingGlassIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import type { RateCardEntry } from '../../pages/masters/PartyMaster/rate-card';
 import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
 import '../../styles/industrial-table.css';
+import { getTableColumnKey } from './tableColumnKey';
 
 type RateCardTableEntry = RateCardEntry & {
   _internalId?: string;
@@ -152,8 +147,8 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
   const showingFrom = filteredItems.length > 0 ? (page - 1) * rowsPerPage + 1 : 0;
   const showingTo = Math.min(page * rowsPerPage, filteredItems.length);
 
-  const onRowsPerPageChange = useCallback((selection: Selection) => {
-    const nextValue = Number(Array.from(selection)[0] as string);
+  const onRowsPerPageChange = useCallback((selection: React.Key | null) => {
+    const nextValue = Number(selection);
     setRowsPerPage(Number.isFinite(nextValue) ? nextValue : 10);
     setPage(1);
   }, []);
@@ -236,7 +231,7 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
             <Button
               type="button"
               size="sm"
-              variant="bordered"
+              variant="outline"
               className="h-8 rounded-lg border-slate-300 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
               onPress={() => onEdit(entry)}
             >
@@ -263,22 +258,27 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
   return (
     <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
       <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 md:flex-row md:items-center md:justify-between">
-        <Input
-          isClearable
-          aria-label="Search rate card entries"
-          className="w-full md:max-w-[460px]"
-          placeholder="Search by gauge, rate type, specification..."
-          value={filterValue}
-          onClear={() => setFilterValue('')}
-          onValueChange={(value) => {
-            setFilterValue(value);
-            setPage(1);
-          }}
-          startContent={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
-          classNames={{
-            inputWrapper: 'min-h-9 h-9 rounded-lg border border-slate-200 bg-white shadow-none',
-          }}
-        />
+        <InputGroup variant="secondary" className="w-full md:max-w-[460px]">
+          <InputGroup.Prefix>
+            <MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />
+          </InputGroup.Prefix>
+          <InputGroup.Input
+            aria-label="Search rate card entries"
+            placeholder="Search by gauge, rate type, specification..."
+            value={filterValue}
+            onChange={(event) => {
+              setFilterValue(event.target.value);
+              setPage(1);
+            }}
+          />
+          {filterValue && (
+            <InputGroup.Suffix>
+              <button type="button" aria-label="Clear search" onClick={() => setFilterValue('')}>
+                <XMarkIcon className="h-4 w-4 text-slate-400" />
+              </button>
+            </InputGroup.Suffix>
+          )}
+        </InputGroup>
 
         <div className="flex items-center justify-between gap-3 md:justify-end">
           <span className="text-sm text-slate-500">
@@ -290,70 +290,67 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
             </span>
             <Select
               aria-label="Rows per page"
-              selectedKeys={new Set([String(rowsPerPage)])}
+              selectedKey={String(rowsPerPage)}
               onSelectionChange={onRowsPerPageChange}
-              size="sm"
               className="w-[88px]"
-              classNames={{
-                trigger: 'min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none',
-              }}
             >
-              <SelectItem key="10">10</SelectItem>
-              <SelectItem key="20">20</SelectItem>
-              <SelectItem key="50">50</SelectItem>
-              <SelectItem key="100">100</SelectItem>
+              <Select.Trigger className="min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none">
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {['10', '20', '50', '100'].map((size) => (
+                    <ListBox.Item key={size} id={size} textValue={size}>
+                      {size}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
             </Select>
           </div>
         </div>
       </div>
 
       <div className="industrial-table-wrapper overflow-x-auto px-0 pb-0 pt-0">
-        <Table
-          aria-label="Rate card entries table"
-          isHeaderSticky
-          removeWrapper
-          classNames={{
-            base: 'min-w-full',
-            table: 'min-w-[1150px] w-full table-auto',
-          }}
-        >
-          <TableHeader columns={columns}>
+        <Table aria-label="Rate card entries table" className="min-w-full">
+          <Table.ScrollContainer className="min-w-[1150px]">
+            <Table.Content className="w-full table-auto">
+          <Table.Header columns={columns}>
             {(column) => (
-              <TableColumn
-                key={column.uid}
-                align={column.uid === 'actions' || column.uid === 'sr_no' ? 'center' : 'start'}
+              <Table.Column
+                id={column.uid}
+                isRowHeader={column.uid === columns[0]?.uid}
                 className={`${COLUMN_LAYOUT[column.uid]} bg-slate-100 px-3 py-3 text-[11px] font-semibold tracking-[0.08em] text-slate-600`}
               >
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
+          </Table.Header>
+          <Table.Body
             items={tableRows}
-            isLoading={loading}
-            loadingContent={
-              <div className="py-8 text-center text-sm text-slate-500">
-                Loading rate card entries...
-              </div>
-            }
-            emptyContent={
+            renderEmptyState={() => (
               <div className="py-10 text-center text-sm text-slate-500">
-                No rate card entries added yet.
+                {loading ? 'Loading rate card entries...' : 'No rate card entries added yet.'}
               </div>
-            }
+            )}
           >
             {(row) => (
-              <TableRow key={row.key}>
-                {(columnKey) => (
-                  <TableCell
-                    className={`px-3 py-3 align-middle ${COLUMN_LAYOUT[columnKey as TableColumnKey]}`}
-                  >
-                    {renderCell(row, columnKey as TableColumnKey)}
-                  </TableCell>
-                )}
-              </TableRow>
+              <Table.Row id={row.key} columns={columns}>
+                {(columnKey) => {
+                  const key = getTableColumnKey(columnKey) as TableColumnKey;
+                  return (
+                    <Table.Cell className={`px-3 py-3 align-middle ${COLUMN_LAYOUT[key]}`}>
+                      {renderCell(row, key)}
+                    </Table.Cell>
+                  );
+                }}
+              </Table.Row>
             )}
-          </TableBody>
+          </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
       </div>
 
@@ -363,19 +360,31 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
             Showing {showingFrom} to {showingTo} of {filteredItems.length} entries
           </span>
 
-          <Pagination
-            aria-label="Rate card pagination"
-            total={totalPages}
-            page={page}
-            onChange={setPage}
-            size="sm"
-            showControls
-            classNames={{
-              wrapper: 'gap-0',
-              item: 'h-8 w-8 border border-slate-200 bg-white text-[12px] text-slate-600',
-              cursor: 'bg-slate-900 text-white shadow-sm',
-            }}
-          />
+          <Pagination aria-label="Rate card pagination" size="sm">
+            <Pagination.Content className="gap-1">
+              <Pagination.Previous
+                aria-label="Previous page"
+                isDisabled={page <= 1}
+                onPress={() => setPage((current) => Math.max(current - 1, 1))}
+              >
+                <Pagination.PreviousIcon />
+              </Pagination.Previous>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}>
+                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>
+                    {pageNumber}
+                  </Pagination.Link>
+                </Pagination.Item>
+              ))}
+              <Pagination.Next
+                aria-label="Next page"
+                isDisabled={page >= totalPages}
+                onPress={() => setPage((current) => Math.min(current + 1, totalPages))}
+              >
+                <Pagination.NextIcon />
+              </Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
       )}
 

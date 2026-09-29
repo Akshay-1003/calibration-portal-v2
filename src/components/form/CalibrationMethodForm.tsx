@@ -5,6 +5,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { ListBox, Select } from '@heroui/react';
 import { toast } from 'sonner';
 import { calibrationMethodFormSchema, zodResolver, type CalibrationMethodFormData } from '../../lib/validations';
 
@@ -21,7 +22,7 @@ interface ToleranceMethodData {
 }
 
 interface CalibrationMethodFormProps {
-  onCalculate: (method: 'grade' | 'tolerance', data: any) => void;
+  onCalculate: (method: 'grade' | 'tolerance', data: GradeMethodData | ToleranceMethodData) => void;
   loading?: boolean;
 }
 
@@ -48,6 +49,12 @@ export const CalibrationMethodForm: React.FC<CalibrationMethodFormProps> = ({
   loading = false,
 }) => {
   const [activeTab, setActiveTab] = useState<'grade' | 'tolerance'>('grade');
+  const [gradeData, setGradeData] = useState<GradeMethodData>({ diameter: '', grade: '' });
+  const [toleranceData, setToleranceData] = useState<ToleranceMethodData>({
+    basic_size: '',
+    upperTolerance: '',
+    lowerTolerance: '',
+  });
   
   const {
     register,
@@ -130,19 +137,27 @@ export const CalibrationMethodForm: React.FC<CalibrationMethodFormProps> = ({
           
           <div>
             <Label htmlFor="grade" className="block text-sm font-medium text-gray-700 mb-2">Grade <span className="text-red-500 ml-1">*</span></Label>
-            <select
-              id="grade"
-              value={gradeData.grade}
-              onChange={(e) => handleGradeDataChange('grade', e.target.value)}
-              className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            <Select
+              className="w-full"
+              selectedKey={gradeData.grade || null}
+              onSelectionChange={(key) => handleGradeDataChange('grade', key ? String(key) : '')}
+              aria-label="Grade"
             >
-              <option value="">Select grade</option>
-              {GRADES.map((grade) => (
-                <option key={grade} value={grade}>
-                  {grade}
-                </option>
-              ))}
-            </select>
+              <Select.Trigger className="w-full">
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {GRADES.map((grade) => (
+                    <ListBox.Item key={grade} id={grade} textValue={grade}>
+                      {grade}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
+            </Select>
           </div>
         </div>
         

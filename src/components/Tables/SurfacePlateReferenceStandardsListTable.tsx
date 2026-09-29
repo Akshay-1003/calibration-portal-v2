@@ -4,24 +4,17 @@ import React from "react";
 import type { Key } from "@react-types/shared";
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
+  Label,
+  ListBox,
+  Popover,
   Pagination,
   Select,
-  SelectItem,
-  Selection,
-  SortDescriptor,
   Chip,
-} from "@heroui-v2/react";
+} from "@heroui/react";
+import type { Selection, SortDescriptor } from "@react-types/shared";
+import { getTableColumnKey } from './tableColumnKey';
 import {
   MagnifyingGlassIcon,
   ChevronDownIcon,
@@ -148,7 +141,7 @@ export default function SurfacePlateReferenceStandardsListTable({
           );
         case "shape":
           return (
-            <Chip size="sm" variant="flat" color="primary" className="capitalize">
+            <Chip size="sm" variant="soft" color="accent" className="capitalize">
               {item.shape}
             </Chip>
           );
@@ -169,7 +162,7 @@ export default function SurfacePlateReferenceStandardsListTable({
             <div className="flex items-center justify-center gap-2">
               <Button
                 size="sm"
-                variant="bordered"
+                variant="outline"
                 className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7 min-w-0 px-2"
                 onPress={() => onEdit(item.id)}
               >
@@ -177,7 +170,7 @@ export default function SurfacePlateReferenceStandardsListTable({
               </Button>
               <Button
                 size="sm"
-                variant="bordered"
+                variant="outline"
                 className="bg-white border border-red-600 text-red-600 hover:bg-red-100 h-7 min-w-0 px-2"
                 onPress={() => onDelete(item.id)}
               >
@@ -188,9 +181,7 @@ export default function SurfacePlateReferenceStandardsListTable({
         default:
           return (
             <span className="text-[13px]">
-              {key === "length" || key === "width"
-                ? formatToleranceValue(Number(item[key as keyof SurfacePlateReferenceStandardRecord] ?? 0))
-                : String(item[key as keyof SurfacePlateReferenceStandardRecord] ?? "N/A")}
+              {String(item[key as keyof SurfacePlateReferenceStandardRecord] ?? "N/A")}
             </span>
           );
       }
@@ -207,7 +198,7 @@ export default function SurfacePlateReferenceStandardsListTable({
           </p>
           <p className="text-xs text-default-500">{error}</p>
           {onRefresh && (
-            <Button size="sm" variant="bordered" onPress={onRefresh}>
+            <Button size="sm" variant="secondary" onPress={onRefresh}>
               Try Again
             </Button>
           )}
@@ -225,39 +216,42 @@ export default function SurfacePlateReferenceStandardsListTable({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search by gauge, shape, length, or width..."
-            startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
             value={filterValue}
-            onValueChange={setFilterValue}
-            onClear={() => setFilterValue("")}
+            onChange={(event) => setFilterValue(event.target.value)}
           />
+          {filterValue ? (
+            <Button type="button" variant="ghost" aria-label="Clear surface plate search" onPress={() => setFilterValue("")}>
+              <MagnifyingGlassIcon className="w-4 h-4" />
+            </Button>
+          ) : null}
           <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small w-4 h-4" />}
-                  variant="flat"
-                >
+            <Popover>
+              <Popover.Trigger>
+                <Button variant="secondary" className="hidden sm:flex">
                   Columns
+                  <ChevronDownIcon className="text-small w-4 h-4" />
                 </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                disallowEmptySelection
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {surfacePlateReferenceStandardColumns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+              </Popover.Trigger>
+              <Popover.Content className="w-64 p-1">
+                <Popover.Dialog>
+                  <ListBox
+                    aria-label="Table Columns"
+                    selectedKeys={visibleColumns}
+                    selectionMode="multiple"
+                    onSelectionChange={setVisibleColumns}
+                  >
+                    {surfacePlateReferenceStandardColumns.map((column) => (
+                      <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>
+                        {capitalize(column.name)}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Popover.Dialog>
+              </Popover.Content>
+            </Popover>
           </div>
         </div>
       </div>
@@ -277,33 +271,32 @@ export default function SurfacePlateReferenceStandardsListTable({
         </div>
 
         <div className="flex-1 flex justify-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            showShadow
-            page={page}
-            total={totalPages}
-            onChange={onPageChange}
-          />
+          <Pagination>
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={page >= totalPages} onPress={() => onPageChange(Math.min(totalPages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         <div className="flex-1 flex justify-end">
           <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
-            onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0];
-              onRowsPerPageChange(Number(value));
-            }}
-            labelPlacement="outside-left"
-            size="sm"
+            selectedKey={String(rowsPerPage)}
+            onSelectionChange={(key) => onRowsPerPageChange(Number(key))}
             className="w-[160px]"
           >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+            <Label>Rows per page</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {['10', '20', '50', '100'].map((size) => (
+                  <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
           </Select>
         </div>
       </div>
@@ -313,44 +306,41 @@ export default function SurfacePlateReferenceStandardsListTable({
 
   return (
     <div className="p-2 industrial-table-wrapper">
-      <Table
-        aria-label="Surface plate reference standards table"
-        isHeaderSticky
-        sortDescriptor={sortDescriptor}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        classNames={{
-          wrapper: "max-h-[calc(100vh-340px)]",
-          th: "bg-white text-[12px] text-default-500 font-semibold uppercase",
-          td: "text-[13px]",
-        }}
-      >
-        <TableHeader columns={headerColumns}>
-          {(column) => (
-            <TableColumn key={column.uid} align={column.uid === "actions" ? "center" : "start"} allowsSorting={column.sortable}>
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody
-          items={sortedItems}
-          isLoading={loading}
-          loadingContent="Loading surface plate reference standards..."
-          emptyContent={emptyContent}
-        >
-          {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-            </TableRow>
-          )}
-        </TableBody>
+      <div className="mb-4">{topContent}</div>
+      <Table aria-label="Surface plate reference standards table" className="min-w-full">
+        <Table.ScrollContainer className="max-h-[calc(100vh-340px)]">
+          <Table.Content
+            sortDescriptor={sortDescriptor}
+            selectedKeys={selectedKeys}
+            selectionMode="multiple"
+            onSelectionChange={setSelectedKeys}
+            onSortChange={setSortDescriptor}
+          >
+            <Table.Header columns={headerColumns}>
+              {(column) => (
+                <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === headerColumns[0]?.uid}>
+                  {column.name}
+                </Table.Column>
+              )}
+            </Table.Header>
+            <Table.Body
+              items={sortedItems}
+              renderEmptyState={() => (
+                <div className="py-8 text-center text-sm text-default-500">
+                  {loading ? "Loading surface plate reference standards..." : emptyContent}
+                </div>
+              )}
+            >
+              {(item) => (
+                <Table.Row id={item.id} columns={headerColumns}>
+                  {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>}
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table.Content>
+        </Table.ScrollContainer>
       </Table>
+      {bottomContent}
     </div>
   );
 }

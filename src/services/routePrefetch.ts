@@ -91,7 +91,7 @@ export const prefetchCriticalRoutes = async (): Promise<void> => {
       return;
     }
 
-    window.setTimeout(run, 200);
+    globalThis.setTimeout(run, 200);
   });
 };
 
@@ -108,5 +108,5 @@ export const scheduleIdlePrefetch = (paths: string[]): void => {
     return;
   }
 
-  window.setTimeout(run, 200);
+  globalThis.setTimeout(run, 200);
 };

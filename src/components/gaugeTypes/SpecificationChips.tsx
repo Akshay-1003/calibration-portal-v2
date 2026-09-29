@@ -99,14 +99,11 @@ export const SpecificationChips: React.FC<SpecificationChipsProps> = ({
           <Chip
             key={`${specType.type}-${index}`}
             size={size}
-            variant={variant}
-            classNames={{
-              base: cn(
-                'border max-w-full',
-                colorConfig.classNames || 'bg-gray-100 text-gray-700 border-gray-300'
-              ),
-              content: 'text-xs font-medium px-1.5 py-0.5 max-w-[190px] truncate inline-block',
-            }}
+            variant={variant === 'flat' ? 'soft' : variant === 'bordered' ? 'secondary' : 'primary'}
+            className={cn(
+              'border max-w-full text-xs font-medium px-1.5 py-0.5 max-w-[190px] truncate inline-block',
+              colorConfig.classNames || 'bg-gray-100 text-gray-700 border-gray-300'
+            )}
             title={specType.fullValue || fullDisplayText || specType.label}
           >
             {displayText}
@@ -116,11 +113,8 @@ export const SpecificationChips: React.FC<SpecificationChipsProps> = ({
       {remainingCount > 0 && (
         <Chip
           size={size}
-          variant={variant}
-          classNames={{
-            base: 'bg-gray-100 text-gray-600 border-gray-300',
-            content: 'text-xs font-medium px-1.5 py-0.5',
-          }}
+          variant={variant === 'flat' ? 'soft' : variant === 'bordered' ? 'secondary' : 'primary'}
+          className="bg-gray-100 text-gray-600 border-gray-300 text-xs font-medium px-1.5 py-0.5"
           title={`${remainingCount} more specification type${remainingCount > 1 ? 's' : ''}`}
         >
           +{remainingCount}

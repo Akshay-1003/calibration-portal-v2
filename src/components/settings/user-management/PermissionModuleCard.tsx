@@ -1,4 +1,4 @@
-import { Card, CardBody, CardHeader, Chip, Switch } from '@heroui-v2/react';
+import { Card, Chip, Switch } from '@heroui/react';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import type { PermissionAction, PermissionModule } from '../../../features/auth/types/auth.types';
 
@@ -24,7 +24,7 @@ export const PermissionModuleCard = ({
 
   return (
     <Card className="border border-slate-200 shadow-sm">
-      <CardHeader className="border-b border-slate-200 pb-3">
+      <Card.Header className="border-b border-slate-200 pb-3">
         <div className="flex w-full items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -34,13 +34,13 @@ export const PermissionModuleCard = ({
             <p className="mt-1 text-sm text-slate-500">{module.description}</p>
           </div>
 
-          <Chip color={canView ? 'success' : 'default'} variant="flat">
+          <Chip color={canView ? 'success' : 'default'} variant="soft">
             {canEdit ? 'Enabled' : canView ? 'View Only' : 'Hidden'}
           </Chip>
         </div>
-      </CardHeader>
+      </Card.Header>
 
-      <CardBody className="grid gap-3 p-5 md:grid-cols-2">
+      <Card.Content className="grid gap-3 p-5 md:grid-cols-2">
         <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
           <div>
             <p className="text-sm font-medium text-slate-900">View access</p>
@@ -52,8 +52,10 @@ export const PermissionModuleCard = ({
             aria-label={`${module.label} view access`}
             isSelected={canView}
             isDisabled={isDisabled}
-            onValueChange={(checked) => onToggle(module.key, 'view', checked)}
-          />
+            onChange={(checked) => onToggle(module.key, 'view', checked)}
+          >
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+          </Switch>
         </div>
 
         <div className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
@@ -67,10 +69,12 @@ export const PermissionModuleCard = ({
             aria-label={`${module.label} management access`}
             isSelected={canEdit}
             isDisabled={isDisabled}
-            onValueChange={(checked) => onToggle(module.key, 'edit', checked)}
-          />
+            onChange={(checked) => onToggle(module.key, 'edit', checked)}
+          >
+            <Switch.Control><Switch.Thumb /></Switch.Control>
+          </Switch>
         </div>
-      </CardBody>
+      </Card.Content>
     </Card>
   );
 };

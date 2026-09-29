@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { useForm, Controller, type Resolver } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 import { UserIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { useOrganizations, type Organization } from "../../hooks/useOrganizations";
+import { useOrganizations, type Organization, type OrganizationFormData as HookOrganizationFormData } from "../../hooks/useOrganizations";
 import type { OrganizationDirectory } from "../../hooks/queries/organizations";
 import { toast } from "sonner";
 import { organizationSchema, zodResolver, type OrganizationFormData } from "../../lib/validations";
@@ -15,16 +15,13 @@ import { Country, State } from "country-state-city";
 
 import {
   Autocomplete,
-  AutocompleteItem,
   Input,
   Button,
   Card,
-  CardHeader,
-  CardBody,
+  ListBox,
   Select,
-  SelectItem,
   Checkbox,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 
 interface PartyMasterFormProps {
   mode?: 'create' | 'edit';
@@ -35,17 +32,56 @@ interface PartyMasterFormProps {
   onCancel?: () => void;
 }
 
-const INPUT_CLASS_NAMES = {
-  inputWrapper: "border border-gray-300 hover:border-gray-400 focus:border-primary bg-white",
-};
+type Option = { key: string; label: string };
 
-const SELECT_CLASS_NAMES = {
-  trigger: "border border-gray-300 hover:border-gray-400 focus:border-primary bg-white",
-};
+const FormSelect = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Option[];
+  placeholder: string;
+}) => (
+  <Select className="w-full" selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')} placeholder={placeholder}>
+    <Select.Trigger className="w-full"><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{options.map((option) => (
+      <ListBox.Item key={option.key} id={option.key} textValue={option.label}>
+        {option.label}<ListBox.ItemIndicator />
+      </ListBox.Item>
+    ))}</ListBox></Select.Popover>
+  </Select>
+);
 
-const AUTOCOMPLETE_CLASS_NAMES = {
-  inputWrapper: "border border-gray-300 hover:border-gray-400 focus-within:border-primary bg-white",
-};
+const FormAutocomplete = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Option[];
+  placeholder: string;
+  disabled?: boolean;
+}) => (
+  <Autocomplete className="w-full" selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')} isDisabled={disabled}>
+    <Autocomplete.Trigger>
+      <Autocomplete.Filter>
+        <Input aria-label={placeholder} value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} />
+      </Autocomplete.Filter>
+      <Autocomplete.Indicator />
+    </Autocomplete.Trigger>
+    <Autocomplete.Popover><ListBox>{options.map((option) => (
+      <ListBox.Item key={option.key} id={option.key} textValue={option.label}>
+        {option.label}<ListBox.ItemIndicator />
+      </ListBox.Item>
+    ))}</ListBox></Autocomplete.Popover>
+  </Autocomplete>
+);
 
 const PartyMasterForm = ({
   mode = 'create',
@@ -241,15 +277,14 @@ const PartyMasterForm = ({
         }))
         .filter((contact) => contact.name || contact.email || contact.phone);
 
-      const submitData: OrganizationFormData = {
-        ...data,
+      const submitData: HookOrganizationFormData = {
+        name: data.name,
         description: data.description?.trim() || '',
         parent_id: data.parent_id?.trim() || '',
         gst: data.gst?.trim() || '',
         gst_type: data.gst_type?.trim() || '',
         contacts: normalizedContacts,
         address: {
-          ...data.address,
           address_line_1: data.address.address_line_1?.trim() || '',
           address_line_2: data.address.address_line_2?.trim() || '',
           city: data.address.city?.trim() || '',
@@ -257,9 +292,13 @@ const PartyMasterForm = ({
           zip_code: data.address.zip_code?.trim() || '',
           country: data.address.country?.trim() || '',
         },
-        archived: data.archived ?? false,
         contract: {
-          ...data.contract,
+          calibration_method: data.contract.calibration_method,
+          reporting_method: data.contract.reporting_method,
+          collection_mode: data.contract.collection_mode,
+          dispatch_mode: data.contract.dispatch_mode,
+          conformity_statement: data.contract.conformity_statement,
+          conformity_accepted: data.contract.conformity_accepted,
           specific_requirements: data.contract.specific_requirements?.trim() || '',
         },
       };
@@ -335,18 +374,17 @@ const PartyMasterForm = ({
     return (
       <div className="max-w-6xl mx-auto p-6">
         <Card className="border border-danger-200 bg-danger-50">
-          <CardBody className="p-6">
+          <Card.Content className="p-6">
             <div className="flex flex-col gap-4">
           <p className="text-danger-600 text-sm font-medium">{organizationLabel} not found or failed to load.</p>
               <Button
-                variant="flat"
-                color="primary"
+                variant="secondary"
                 onPress={returnToList}
               >
                 Back to {directory === 'laboratories' ? 'Laboratories' : 'Clients'}
               </Button>
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     );
@@ -355,9 +393,9 @@ const PartyMasterForm = ({
   return (
     <div className="max-w-6xl mx-auto space-y-4">
       <Card className="shadow-sm border border-gray-200">
-        <CardHeader className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
+        <Card.Header className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-600 rounded-lg">
+            <div className="p-2 bg-blue-600 rounded-md">
               <UserIcon className="h-6 w-6 text-white" />
             </div>
             <div>
@@ -366,9 +404,9 @@ const PartyMasterForm = ({
               </h1>
             </div>
           </div>
-        </CardHeader>
+        </Card.Header>
 
-        <CardBody className="p-4">
+        <Card.Content className="p-4">
           <form
             key={isEditMode ? `edit-${organization?.id || 'new'}` : 'create'}
             onSubmit={handleSubmit(onSubmit)}
@@ -380,37 +418,15 @@ const PartyMasterForm = ({
                 required
                 className="xl:col-span-2"
               >
-                <Input
-                  {...register('name')}
-                  placeholder={`Enter ${organizationLabel.toLowerCase()} name`}
-                  isInvalid={!!errors.name}
-                  errorMessage={errors.name?.message}
-                  classNames={INPUT_CLASS_NAMES}
-                />
+                <Input {...register('name')} placeholder={`Enter ${organizationLabel.toLowerCase()} name`} aria-invalid={!!errors.name} />
               </FormField>
 
               <FormField label="GST No">
-                <Input
-                  {...register('gst')}
-                  placeholder="GST number"
-                  classNames={INPUT_CLASS_NAMES}
-                />
+                <Input {...register('gst')} placeholder="GST number" />
               </FormField>
 
               <FormField label="GST Type">  
-                 <Select
-                  placeholder="Select GST Type"
-                  selectedKeys={watch('gst_type') ? [watch('gst_type')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue('gst_type', value, { shouldDirty: true });
-                  }}
-                  classNames={SELECT_CLASS_NAMES}
-                >
-                    <SelectItem key='Cgst_Sgst'>CGST/SGST</SelectItem>
-                    <SelectItem key='Igst'>IGST</SelectItem>
-
-                </Select>
+                <FormSelect value={watch('gst_type') || ''} onChange={(value) => setValue('gst_type', value, { shouldDirty: true })} placeholder="Select GST Type" options={[{ key: 'Cgst_Sgst', label: 'CGST/SGST' }, { key: 'Igst', label: 'IGST' }]} />
               </FormField>
             </div>
 
@@ -420,11 +436,10 @@ const PartyMasterForm = ({
                 <Button
                   type="button"
                   onPress={addContact}
-                  variant="flat"
-                  color="primary"
+                  variant="secondary"
                   size="sm"
-                  startContent={<PlusIcon className="h-4 w-4" />}
                 >
+                  <PlusIcon className="h-4 w-4" />
                   Add Contact
                 </Button>
               </div>
@@ -436,13 +451,12 @@ const PartyMasterForm = ({
                   {contacts.map((_, index) => (
                     <div
                       key={index}
-                      className="grid grid-cols-1 gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end"
+                      className="grid grid-cols-1 gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end"
                     >
                       <FormField label={index === 0 ? "Name" : undefined}>
                         <Input
                           {...register(`contacts.${index}.name`)}
                           placeholder="Contact name"
-                          classNames={INPUT_CLASS_NAMES}
                         />
                       </FormField>
 
@@ -450,7 +464,6 @@ const PartyMasterForm = ({
                         <Input
                           {...register(`contacts.${index}.email`)}
                           placeholder="contact@example.com / NA"
-                          classNames={INPUT_CLASS_NAMES}
                         />
                       </FormField>
 
@@ -458,15 +471,13 @@ const PartyMasterForm = ({
                         <Input
                           {...register(`contacts.${index}.phone`)}
                           placeholder="Phone number / -"
-                          classNames={INPUT_CLASS_NAMES}
                         />
                       </FormField>
 
                       <Button
                         type="button"
                         onPress={() => removeContact(index)}
-                        variant="flat"
-                        color="danger"
+                        variant="danger-soft"
                         size="sm"
                         isIconOnly
                         aria-label={`Remove contact ${index + 1}`}
@@ -489,9 +500,6 @@ const PartyMasterForm = ({
                 <Input
                   {...register('address.address_line_1')}
                   placeholder="Enter address"
-                  isInvalid={!!errors.address?.address_line_1}
-                  errorMessage={errors.address?.address_line_1?.message}
-                  classNames={INPUT_CLASS_NAMES}
                 />
               </FormField>
 
@@ -499,7 +507,6 @@ const PartyMasterForm = ({
                 <Input
                   {...register('address.city')}
                   placeholder="City / NA"
-                  classNames={INPUT_CLASS_NAMES}
                 />
               </FormField>
 
@@ -508,23 +515,13 @@ const PartyMasterForm = ({
                   name="address.state"
                   control={control}
                   render={({ field }) => (
-                    <Autocomplete
-                      aria-label="State"
-                      selectedKey={field.value || null}
-                      inputValue={field.value || ''}
-                      onInputChange={(value) => field.onChange(value)}
-                      onSelectionChange={(key) => field.onChange((key as string | null) || '')}
+                    <FormAutocomplete
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      options={states.map((state) => ({ key: state.name, label: state.name }))}
                       placeholder={selectedCountry ? "Search and select state" : "Select country first"}
-                      allowsCustomValue
-                      isDisabled={!selectedCountry}
-                      classNames={AUTOCOMPLETE_CLASS_NAMES}
-                    >
-                      {states.map((state) => (
-                        <AutocompleteItem key={state.name} textValue={state.name}>
-                          {state.name}
-                        </AutocompleteItem>
-                      ))}
-                    </Autocomplete>
+                      disabled={!selectedCountry}
+                    />
                   )}
                 />
               </FormField>
@@ -533,7 +530,6 @@ const PartyMasterForm = ({
                 <Input
                   {...register('address.zip_code')}
                   placeholder="ZIP / -"
-                  classNames={INPUT_CLASS_NAMES}
                 />
               </FormField>
 
@@ -542,28 +538,15 @@ const PartyMasterForm = ({
                   name="address.country"
                   control={control}
                   render={({ field }) => (
-                    <Autocomplete
-                      aria-label="Country"
-                      selectedKey={field.value || null}
-                      inputValue={field.value || ''}
-                      onInputChange={(value) => field.onChange(value)}
-                      onSelectionChange={(key) => {
-                        const nextValue = (key as string | null) || '';
+                    <FormAutocomplete
+                      value={field.value || ''}
+                      onChange={(nextValue) => {
                         field.onChange(nextValue);
-                        if (nextValue !== selectedCountryName) {
-                          setValue('address.state', '', { shouldDirty: true });
-                        }
+                        if (nextValue !== selectedCountryName) setValue('address.state', '', { shouldDirty: true });
                       }}
+                      options={countries.map((country) => ({ key: country.name, label: country.name }))}
                       placeholder="Search and select country"
-                      allowsCustomValue
-                      classNames={AUTOCOMPLETE_CLASS_NAMES}
-                    >
-                      {countries.map((country) => (
-                        <AutocompleteItem key={country.name} textValue={country.name}>
-                          {country.name}
-                        </AutocompleteItem>
-                      ))}
-                    </Autocomplete>
+                    />
                   )}
                 />
               </FormField>
@@ -573,20 +556,7 @@ const PartyMasterForm = ({
                 required
                 error={errors.contract?.calibration_method?.message}
               >
-                <Select
-                  placeholder="Select method"
-                  selectedKeys={watch('contract.calibration_method') ? [watch('contract.calibration_method')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue('contract.calibration_method', value, { shouldDirty: true });
-                  }}
-                  isInvalid={!!errors.contract?.calibration_method}
-                  errorMessage={errors.contract?.calibration_method?.message}
-                  classNames={SELECT_CLASS_NAMES}
-                >
-                  <SelectItem key="lab_method">Lab Method</SelectItem>
-                  <SelectItem key="standard_method">Standard Method</SelectItem>
-                </Select>
+                <FormSelect value={watch('contract.calibration_method') || ''} onChange={(value) => setValue('contract.calibration_method', value, { shouldDirty: true })} placeholder="Select method" options={[{ key: 'lab_method', label: 'Lab Method' }, { key: 'standard_method', label: 'Standard Method' }]} />
               </FormField>
 
               <FormField
@@ -594,20 +564,7 @@ const PartyMasterForm = ({
                 required
                 error={errors.contract?.reporting_method?.message}
               >
-                <Select
-                  placeholder="Select method"
-                  selectedKeys={watch('contract.reporting_method') ? [watch('contract.reporting_method')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue('contract.reporting_method', value, { shouldDirty: true });
-                  }}
-                  isInvalid={!!errors.contract?.reporting_method}
-                  errorMessage={errors.contract?.reporting_method?.message}
-                  classNames={SELECT_CLASS_NAMES}
-                >
-                  <SelectItem key="lab_format">Lab Format</SelectItem>
-                  <SelectItem key="standard_format">Standard Format</SelectItem>
-                </Select>
+                <FormSelect value={watch('contract.reporting_method') || ''} onChange={(value) => setValue('contract.reporting_method', value, { shouldDirty: true })} placeholder="Select method" options={[{ key: 'lab_format', label: 'Lab Format' }, { key: 'standard_format', label: 'Standard Format' }]} />
               </FormField>
 
               <FormField
@@ -615,21 +572,7 @@ const PartyMasterForm = ({
                 required
                 error={errors.contract?.collection_mode?.message}
               >
-                <Select
-                  placeholder="Select mode"
-                  selectedKeys={watch('contract.collection_mode') ? [watch('contract.collection_mode')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue('contract.collection_mode', value, { shouldDirty: true });
-                  }}
-                  isInvalid={!!errors.contract?.collection_mode}
-                  errorMessage={errors.contract?.collection_mode?.message}
-                  classNames={SELECT_CLASS_NAMES}
-                >
-                  <SelectItem key="by_hand">By Hand</SelectItem>
-                  <SelectItem key="by_courier">Courier</SelectItem>
-                  <SelectItem key="pickup">Pickup</SelectItem>
-                </Select>
+                <FormSelect value={watch('contract.collection_mode') || ''} onChange={(value) => setValue('contract.collection_mode', value, { shouldDirty: true })} placeholder="Select mode" options={[{ key: 'by_hand', label: 'By Hand' }, { key: 'by_courier', label: 'Courier' }, { key: 'pickup', label: 'Pickup' }]} />
               </FormField>
 
               <FormField
@@ -637,42 +580,24 @@ const PartyMasterForm = ({
                 required
                 error={errors.contract?.dispatch_mode?.message}
               >
-                <Select
-                  placeholder="Select mode"
-                  selectedKeys={watch('contract.dispatch_mode') ? [watch('contract.dispatch_mode')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string;
-                    setValue('contract.dispatch_mode', value, { shouldDirty: true });
-                  }}
-                  isInvalid={!!errors.contract?.dispatch_mode}
-                  errorMessage={errors.contract?.dispatch_mode?.message}
-                  classNames={SELECT_CLASS_NAMES}
-                >
-                  <SelectItem key="by_hand">By Hand</SelectItem>
-                  <SelectItem key="by_courier">Courier</SelectItem>
-                  <SelectItem key="pickup">Pickup</SelectItem>
-                </Select>
+                <FormSelect value={watch('contract.dispatch_mode') || ''} onChange={(value) => setValue('contract.dispatch_mode', value, { shouldDirty: true })} placeholder="Select mode" options={[{ key: 'by_hand', label: 'By Hand' }, { key: 'by_courier', label: 'Courier' }, { key: 'pickup', label: 'Pickup' }]} />
               </FormField>
 
               <FormField label="Specific Requirements" className="md:col-span-2 xl:col-span-4">
                 <Input
                   {...register('contract.specific_requirements')}
                   placeholder="Optional notes / - / NA"
-                  classNames={INPUT_CLASS_NAMES}
                 />
               </FormField>
 
-              <div className="md:col-span-2 xl:col-span-4 flex flex-col gap-3 rounded-lg border border-gray-200 bg-gray-50 p-3 md:flex-row md:items-center md:gap-6">
+              <div className="md:col-span-2 xl:col-span-4 flex flex-col gap-3 rounded-md border border-gray-200 bg-gray-50 p-3 md:flex-row md:items-center md:gap-6">
                 <Controller
                   name="contract.conformity_statement"
                   control={control}
                   render={({ field }) => (
                     <Checkbox
                       isSelected={field.value || false}
-                      onValueChange={field.onChange}
-                      classNames={{
-                        label: "text-sm text-gray-700",
-                      }}
+                      onChange={field.onChange}
                     >
                       Confirmatory Required
                     </Checkbox>
@@ -684,10 +609,7 @@ const PartyMasterForm = ({
                   render={({ field }) => (
                     <Checkbox
                       isSelected={field.value || false}
-                      onValueChange={field.onChange}
-                      classNames={{
-                        label: "text-sm text-gray-700",
-                      }}
+                      onChange={field.onChange}
                     >
                       Confirmatory Accepted (If applicable, the decision rule has been discussed, understood, and accepted)
 
@@ -699,16 +621,16 @@ const PartyMasterForm = ({
 
             {error && (
               <Card className="border border-danger-200 bg-danger-50">
-                <CardBody className="p-4">
+                <Card.Content className="p-4">
                   <p className="text-danger-600 text-sm">{error}</p>
-                </CardBody>
+                </Card.Content>
               </Card>
             )}
 
             <div className="flex justify-end gap-3 pt-5 border-t border-gray-200">
               <Button
                 type="button"
-                variant="flat"
+                variant="outline"
                 onPress={returnToList}
                 className="min-w-[100px]"
               >
@@ -716,18 +638,18 @@ const PartyMasterForm = ({
               </Button>
               <Button
                 type="submit"
-                color="primary"
-                isLoading={loading || isSubmitting}
+                variant="primary"
+                isDisabled={loading || isSubmitting}
                 className="min-w-[150px]"
-                startContent={!loading && !isSubmitting && <UserIcon className="h-4 w-4" />}
               >
+                {!loading && !isSubmitting && <UserIcon className="h-4 w-4" />}
                 {loading || isSubmitting
                   ? (isEditMode ? 'Updating...' : 'Creating...')
                   : (isEditMode ? `Update ${organizationLabel}` : `Create ${organizationLabel}`)}
               </Button>
             </div>
           </form>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

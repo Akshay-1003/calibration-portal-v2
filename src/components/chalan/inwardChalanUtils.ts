@@ -269,7 +269,7 @@ export const transformInwardToChalanData = (
       "-";
 
     // Get calibration frequency (for Cal. Freq. column)
-    const calFreq = getCalibrationFrequencyDisplay(item as Record<string, unknown>);
+    const calFreq = getCalibrationFrequencyDisplay({ ...item });
 
     // Get frequency (same as calFreq, for Frequency column)
     const frequency = calFreq;
@@ -326,7 +326,7 @@ export const transformInwardToChalanData = (
 
     // Chalan Information
     inward_chalan_number: String(inwardEntry.inward_no || inwardEntry.id || "N/A"),
-    chalan_date: formatDate(inwardEntry.inward_date || inwardEntry.created_at),
+    chalan_date: formatDate(inwardEntry.inward_date || inwardEntry.created_at || undefined),
     inward_no: String(inwardEntry.inward_no || inwardEntry.id || "N/A"),
     client_dc_no: inwardEntry.client_dc_no || "-",
     client_dc_date: formatDate(inwardEntry.client_dc_date),

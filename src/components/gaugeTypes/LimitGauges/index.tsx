@@ -42,6 +42,7 @@ interface SpecificationData {
 }
 
 interface FormData {
+    unit?: string;
     specifications?: SpecificationData;
 }
 
@@ -54,7 +55,13 @@ type SpecPayload = TolerancePayload | GradePayload | DirectPayload;
 interface ApiSpecResponse {
     go?: { basic_size: number; specification_limit_max: number; specification_limit_min: number; wear_limit?: number };
     no_go?: { basic_size: number; specification_limit_max: number; specification_limit_min: number };
+    inputs?: { inputs: { basic_size: number; lower_tolerance: number } };
 }
+
+const fixedNumber = (value?: number | null): number | undefined => {
+    const formatted = fixedTo4Digit(value);
+    return formatted === "" ? undefined : Number(formatted);
+};
 
 interface CalculationRequestOptions {
     showSuccessToast?: boolean;
@@ -166,17 +173,19 @@ const LimitGuageTable: React.FC<LimitGuageTableProps> = ({
             const resp = await apiClient.post("/od-limit/specifications", payloadWithDiameterType) as ApiSpecResponse;
             if (resp?.go) {
                 setValue("specifications.go" as const, {
-                    basic_size: fixedTo4Digit(resp.go.basic_size),
-                    specification_limit_max: fixedTo4Digit(resp.go.specification_limit_max),
-                    specification_limit_min: fixedTo4Digit(resp.go.specification_limit_min),
-                    wear_limit: resp.go.wear_limit == null ? (fixedTo4Digit(resp.inputs.inputs.basic_size - Math.abs( resp.inputs.inputs.lower_tolerance ))) : fixedTo4Digit(resp.go.wear_limit),
+                    basic_size: fixedNumber(resp.go.basic_size),
+                    specification_limit_max: fixedNumber(resp.go.specification_limit_max),
+                    specification_limit_min: fixedNumber(resp.go.specification_limit_min),
+                    wear_limit: resp.go.wear_limit == null && resp.inputs
+                      ? fixedNumber(resp.inputs.inputs.basic_size - Math.abs(resp.inputs.inputs.lower_tolerance))
+                      : fixedNumber(resp.go.wear_limit),
                 });
             }
             if (resp?.no_go) {
                 setValue("specifications.no_go" as const, {
-                    basic_size: fixedTo4Digit(resp.no_go.basic_size),
-                    specification_limit_max: fixedTo4Digit(resp.no_go.specification_limit_max),
-                    specification_limit_min: fixedTo4Digit(resp.no_go.specification_limit_min),
+                    basic_size: fixedNumber(resp.no_go.basic_size),
+                    specification_limit_max: fixedNumber(resp.no_go.specification_limit_max),
+                    specification_limit_min: fixedNumber(resp.no_go.specification_limit_min),
                 });
             }
             if (options?.showSuccessToast) {
@@ -511,9 +520,9 @@ const LimitGuageTable: React.FC<LimitGuageTableProps> = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">Calibration Method</label>
                 <Select
                     value={method}
-                    onValueChange={(v: string) => {
+                    onValueChange={(v: string | null) => {
                         userInteractionRef.current = true;
-                        setValue("specifications.inputs.method" as const, v);
+                        setValue("specifications.inputs.method" as const, v ?? "");
                         if (v === "direct_go_no_go") toast.info("Direct method chosen; enter Go and No Go sizes.");
                     }}
                 >

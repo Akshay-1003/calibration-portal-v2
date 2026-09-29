@@ -94,9 +94,7 @@ export const createUserSchema = z.object({
     .min(1, 'Password is required')
     .min(8, 'Password must be at least 8 characters')
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number'),
-  role: z.enum(['admin', 'user', 'viewer', 'manager'], {
-    errorMap: () => ({ message: 'Please select a valid role' }),
-  }),
+  role: z.enum(['admin', 'user', 'viewer', 'manager'], { message: 'Please select a valid role' }),
   permissions: z.array(z.string()).optional(),
   status: z.enum(['active', 'inactive']).default('active'),
 });
@@ -110,9 +108,7 @@ export const updateUserSchema = z.object({
     .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain at least one uppercase letter, one lowercase letter, and one number')
     .optional()
     .or(z.literal('')),
-  role: z.enum(['admin', 'user', 'viewer', 'manager'], {
-    errorMap: () => ({ message: 'Please select a valid role' }),
-  }),
+  role: z.enum(['admin', 'user', 'viewer', 'manager'], { message: 'Please select a valid role' }),
   permissions: z.array(z.string()).optional(),
   status: z.enum(['active', 'inactive']).default('active'),
 });

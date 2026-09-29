@@ -85,7 +85,7 @@ class AuthService {
         }
       );
       
-      return parseCalibrationAccessTokenResponse(response.data);
+      return parseCalibrationAccessTokenResponse(response);
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Login failed'));
     }
@@ -106,19 +106,19 @@ class AuthService {
       );
       
       // Ensure response matches expected format
-      if ( !response.data.access_token) {
+      if ( !response.access_token) {
         throw new Error('Invalid response format from server');
       }
       
       // Backend sets refresh token in HttpOnly cookie automatically
-      if (!response.data.user) {
+      if (!response.user) {
         throw new Error('Invalid response format from server');
       }
 
       return {
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
-        user: this.normalizeUser(response.data.user),
+        access_token: response.access_token,
+        refresh_token: response.refresh_token,
+        user: this.normalizeUser(response.user),
       };
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Sign up failed'));
@@ -166,7 +166,7 @@ class AuthService {
         }
       );
 
-      return parseCalibrationAccessTokenResponse(response.data);
+      return parseCalibrationAccessTokenResponse(response);
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Token refresh failed'));
     }
@@ -186,11 +186,11 @@ class AuthService {
       );
       
       // Ensure response matches expected format
-      if (!response.data) {
+      if (!response) {
         throw new Error('Invalid user response format from server');
       }
       
-      return { user: this.normalizeUser(response.data) };
+      return { user: this.normalizeUser(response) };
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Failed to fetch user profile'));
     }
@@ -208,7 +208,7 @@ class AuthService {
         { withCredentials: true },
       );
 
-      return parseCalibrationAccessTokenResponse(response.data);
+      return parseCalibrationAccessTokenResponse(response);
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Unable to enter laboratory context'));
     }
@@ -240,13 +240,13 @@ class AuthService {
       );
       
       // Ensure response matches expected format
-      if (!response.data.access_token) {
+      if (!response.access_token) {
         throw new Error('Invalid response format from server');
       }
       
       return {
-        ...response.data,
-        user: response.data.user ? this.normalizeUser(response.data.user) : response.data.user,
+        ...response,
+        user: response.user ? this.normalizeUser(response.user) : response.user,
       };
     } catch (error: unknown) {
       throw new AuthRequestError(parseAuthError(error, 'Google login failed'));

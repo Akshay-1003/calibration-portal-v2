@@ -46,14 +46,23 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
 }
 
 export class ApiError extends Error {
+  status: number;
+  code?: string;
+  details?: any;
+  retryable: boolean;
+
   constructor(
-    public status: number,
+    status: number,
     message: string,
-    public code?: string,
-    public details?: any,
-    public retryable: boolean = false
+    code?: string,
+    details?: any,
+    retryable: boolean = false
   ) {
     super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
+    this.retryable = retryable;
     this.name = 'ApiError';
     Object.setPrototypeOf(this, ApiError.prototype);
   }
@@ -356,6 +365,5 @@ export default unifiedApiClient;
 // Export aliases for migration compatibility
 export const apiClient = unifiedApiClient;
 export const apiService = unifiedApiClient;
-
 
 

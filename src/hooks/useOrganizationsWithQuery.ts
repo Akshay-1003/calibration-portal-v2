@@ -55,7 +55,35 @@ export function useOrganizationsWithQuery(options?: UseOrganizationsWithQueryOpt
     {
       setData: (data) => {
         // Update Zustand store directly
-        useAppStore.setState({ organizations: data.organizations });
+        useAppStore.setState({
+          organizations: data.organizations.map((organization) => ({
+            ...organization,
+            contacts: organization.contacts.map((contact) => ({
+              name: contact.name ?? '',
+              email: contact.email ?? '',
+              phone: contact.phone ?? '',
+            })),
+            address: {
+              address_line_1: organization.address?.address_line_1 ?? '',
+              address_line_2: organization.address?.address_line_2 ?? '',
+              city: organization.address?.city ?? '',
+              state: organization.address?.state ?? '',
+              zip_code: organization.address?.zip_code ?? '',
+              country: organization.address?.country ?? '',
+            },
+            contract: organization.contract
+              ? {
+                  calibration_method: organization.contract.calibration_method,
+                  reporting_method: organization.contract.reporting_method,
+                  collection_mode: organization.contract.collection_mode,
+                  dispatch_mode: organization.contract.dispatch_mode,
+                  conformity_statement: organization.contract.conformity_statement,
+                  conformity_accepted: organization.contract.conformity_accepted,
+                  specific_requirements: organization.contract.specific_requirements ?? '',
+                }
+              : null,
+          })),
+        });
       },
       setLoading: (loading) => {
         useAppStore.setState((state) => {

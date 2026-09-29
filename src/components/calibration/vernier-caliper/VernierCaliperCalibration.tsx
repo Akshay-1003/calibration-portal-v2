@@ -370,7 +370,7 @@ export function VernierCaliperCalibration({
       : null;
     
     const hasObservationsData =
-      Boolean(observationsInput) &&
+      observationsInput !== null &&
       (getRowsLength(getMeasurementValue(observationsInput, "outside_measurement")) > 0 ||
         getRowsLength(getMeasurementValue(observationsInput, "inside_measurement")) > 0 ||
         getRowsLength(getMeasurementValue(observationsInput, "depth_measurement")) > 0);
@@ -637,16 +637,14 @@ export function VernierCaliperCalibration({
               <div>
                 <Input
                   {...controllerField}
+                  value={controllerField.value == null ? "" : String(controllerField.value)}
                   type="text"
                   inputMode="decimal"
                   aria-label={`${measurementType} Reading 1`}
-                  isDisabled={isSectionDisabled}
-                  classNames={{
-                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
+                  disabled={isSectionDisabled}
+                  className={`h-9 w-full min-w-[100px] border ${
                       fieldState.error ? "border-red-400 shadow-sm" : "border-slate-200"
-                    } ${inputBgColor} ${sectionStateClasses.input} hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                    input: "text-sm text-center font-medium text-slate-700",
-                  }}
+                    } ${inputBgColor} ${sectionStateClasses.input} text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                   onChange={(e) => {
                     controllerField.onChange(e);
                     calculateRow(index, measurementType);
@@ -690,16 +688,14 @@ export function VernierCaliperCalibration({
               <div>
                 <Input
                   {...controllerField}
+                  value={controllerField.value == null ? "" : String(controllerField.value)}
                   type="text"
                   inputMode="decimal"
                   aria-label={`${measurementType} Reading 2`}
-                  isDisabled={isSectionDisabled}
-                  classNames={{
-                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
+                  disabled={isSectionDisabled}
+                  className={`h-9 w-full min-w-[100px] border ${
                       fieldState.error ? "border-red-400 shadow-sm" : "border-slate-200"
-                    } ${inputBgColor} ${sectionStateClasses.input} hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                    input: "text-sm text-center font-medium text-slate-700",
-                  }}
+                    } ${inputBgColor} ${sectionStateClasses.input} text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                   onChange={(e) => {
                     controllerField.onChange(e);
                     calculateRow(index, measurementType);
@@ -743,16 +739,14 @@ export function VernierCaliperCalibration({
               <div>
                 <Input
                   {...controllerField}
+                  value={controllerField.value == null ? "" : String(controllerField.value)}
                   type="text"
                   inputMode="decimal"
                   aria-label={`${measurementType} Reading 3`}
-                  isDisabled={isSectionDisabled}
-                  classNames={{
-                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
+                  disabled={isSectionDisabled}
+                  className={`h-9 w-full min-w-[100px] border ${
                       fieldState.error ? "border-red-400 shadow-sm" : "border-slate-200"
-                    } ${inputBgColor} ${sectionStateClasses.input} hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                    input: "text-sm text-center font-medium text-slate-700",
-                  }}
+                    } ${inputBgColor} ${sectionStateClasses.input} text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                   onChange={(e) => {
                     controllerField.onChange(e);
                     calculateRow(index, measurementType);
@@ -793,14 +787,11 @@ export function VernierCaliperCalibration({
                   type="text"
                   inputMode="decimal"
                   aria-label={`${measurementType} Average Reading`}
-                  isDisabled={isSectionDisabled}
+                  disabled={isSectionDisabled}
                   value={formatDecimalDisplay(controllerField.value)}
-                  classNames={{
-                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${
+                  className={`h-9 w-full min-w-[100px] border ${
                       fieldState.error ? "border-red-400 shadow-sm" : "border-slate-200"
-                    } ${inputBgColor} ${sectionStateClasses.input} shadow-sm`,
-                    input: "text-sm text-center font-medium text-slate-600",
-                  }}
+                    } ${inputBgColor} ${sectionStateClasses.input} text-sm text-center font-medium text-slate-600 shadow-sm`}
                   onChange={(e) => {
                     controllerField.onChange(e);
                     const meanValue = parseNumber(e.target.value);
@@ -857,10 +848,7 @@ export function VernierCaliperCalibration({
                 ? row.observed_error.toFixed(3)
                 : formatDecimalDisplay(row?.observed_error)
             }
-            classNames={{
-              inputWrapper: `h-9 w-full min-w-[100px] border-1 border-slate-200 ${inputBgColor} ${sectionStateClasses.input} shadow-sm`,
-              input: "text-sm text-center font-medium text-slate-600",
-            }}
+            className={`h-9 w-full min-w-[100px] border border-slate-200 ${inputBgColor} ${sectionStateClasses.input} text-sm text-center font-medium text-slate-600 shadow-sm`}
           />
         </td>
       </>
@@ -889,13 +877,10 @@ export function VernierCaliperCalibration({
                     <Checkbox
                       isSelected={isTableSelected("outside_measurement")}
                       isDisabled={isReadOnly}
-                      onValueChange={(v: boolean) => {
+                      onChange={(v: boolean) => {
                         toggleTable("outside_measurement", v);
                       }}
-                      classNames={{
-                        label: "text-white text-xs font-semibold",
-                        base: "text-white",
-                      }}
+                      className="text-white text-xs font-semibold"
                     >
                       PRINT
                     </Checkbox>
@@ -909,13 +894,10 @@ export function VernierCaliperCalibration({
                     <Checkbox
                       isSelected={isTableSelected("inside_measurement")}
                       isDisabled={isReadOnly}
-                      onValueChange={(v: boolean) => {
+                      onChange={(v: boolean) => {
                         toggleTable("inside_measurement", v);
                       }}
-                      classNames={{
-                        label: "text-white text-xs font-semibold",
-                        base: "text-white",
-                      }}
+                      className="text-white text-xs font-semibold"
                     >
                       PRINT
                     </Checkbox>
@@ -929,13 +911,10 @@ export function VernierCaliperCalibration({
                     <Checkbox
                       isSelected={isTableSelected("depth_measurement")}
                       isDisabled={isReadOnly}
-                      onValueChange={(v: boolean) => {
+                      onChange={(v: boolean) => {
                         toggleTable("depth_measurement", v);
                       }}
-                      classNames={{
-                        label: "text-white text-xs font-semibold",
-                        base: "text-white",
-                      }}
+                      className="text-white text-xs font-semibold"
                     >
                       PRINT
                     </Checkbox>
@@ -994,10 +973,7 @@ export function VernierCaliperCalibration({
                           aria-label="Measured Dimension"
                           readOnly
                           value={measured_dimension.toString()}
-                          classNames={{
-                            inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-700",
-                          }}
+                          className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                         />
                       </td>
 
@@ -1034,12 +1010,11 @@ export function VernierCaliperCalibration({
                           <Checkbox
                             isSelected={Boolean(outsideRow?.set_as || insideRow?.set_as || depthRow?.set_as)}
                             isDisabled={isReadOnly}
-                            onValueChange={(value: boolean) => {
+                            onChange={(value: boolean) => {
                               setValue(setAsPath("outside_measurement", index), value, { shouldDirty: true });
                               setValue(setAsPath("inside_measurement", index), value, { shouldDirty: true });
                               setValue(setAsPath("depth_measurement", index), value, { shouldDirty: true });
                             }}
-                            size="sm"
                           >
                             Set
                           </Checkbox>
@@ -1086,7 +1061,7 @@ export function VernierCaliperCalibration({
             defaultValue={
               toReadingValue(
                 initialObservations?.parallelism?.externalJaw ??
-                  initialObservations?.parallelism_external_jaw
+                  (isObservationsObj(initialObservations) ? initialObservations.parallelism_external_jaw : undefined)
               )
             }
             render={({ field }) => (
@@ -1095,12 +1070,9 @@ export function VernierCaliperCalibration({
                   {...field}
                   type="text"
                   inputMode="decimal"
-                  isDisabled={isReadOnly}
+                  disabled={isReadOnly}
                   value={toDisplayValue(field.value)}
-                  classNames={{
-                    inputWrapper: "h-9 border-1 border-gray-300",
-                    input: "text-sm",
-                  }}
+                  className="h-9 border border-gray-300 text-sm"
                   onChange={(e) => {
                     field.onChange(e.target.value);
                   }}
@@ -1121,7 +1093,7 @@ export function VernierCaliperCalibration({
             defaultValue={
               toReadingValue(
                 initialObservations?.parallelism?.internalJaw ??
-                  initialObservations?.parallelism_internal_jaw
+                  (isObservationsObj(initialObservations) ? initialObservations.parallelism_internal_jaw : undefined)
               )
             }
             render={({ field }) => (
@@ -1130,12 +1102,9 @@ export function VernierCaliperCalibration({
                   {...field}
                   type="text"
                   inputMode="decimal"
-                  isDisabled={isReadOnly}
+                  disabled={isReadOnly}
                   value={toDisplayValue(field.value)}
-                  classNames={{
-                    inputWrapper: "h-9 border-1 border-gray-300",
-                    input: "text-sm",
-                  }}
+                  className="h-9 border border-gray-300 text-sm"
                   onChange={(e) => {
                     field.onChange(e.target.value);
                   }}
@@ -1156,7 +1125,7 @@ export function VernierCaliperCalibration({
             defaultValue={
               toReadingValue(
                 initialObservations?.parallelism?.insideJawWidth ??
-                  initialObservations?.inside_jaw_width
+                  (isObservationsObj(initialObservations) ? initialObservations.inside_jaw_width : undefined)
               )
             }
             render={({ field }) => (
@@ -1165,12 +1134,9 @@ export function VernierCaliperCalibration({
                   {...field}
                   type="text"
                   inputMode="decimal"
-                  isDisabled={isReadOnly}
+                  disabled={isReadOnly}
                   value={toDisplayValue(field.value)}
-                  classNames={{
-                    inputWrapper: "h-9 border-1 border-gray-300",
-                    input: "text-sm",
-                  }}
+                  className="h-9 border border-gray-300 text-sm"
                   onChange={(e) => {
                     field.onChange(e.target.value);
                   }}

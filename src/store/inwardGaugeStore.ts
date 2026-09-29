@@ -52,10 +52,10 @@ interface PaginationState {
 }
 
 const filterRecordByPrefix = <T>(
-  record: Record<string, T | undefined>,
+  record: Record<string, T>,
   prefix: string
-): Record<string, T | undefined> =>
-  Object.fromEntries(Object.entries(record).filter(([key]) => !key.startsWith(prefix))) as Record<string, T | undefined>;
+): Record<string, T> =>
+  Object.fromEntries(Object.entries(record).filter(([key]) => !key.startsWith(prefix))) as Record<string, T>;
 
 // Calibration History Type
 export interface CalibrationHistoryEntry {
@@ -191,7 +191,7 @@ const compositeGaugeCache = new CacheManager<CertificateGaugeData>({ ttl: API_CO
 
 if (process.env.NODE_ENV === "development") {
   // enable debug logging of caches
-  enableCacheDebugging({ gaugeCache, compositeGaugeCache } as Record<string, unknown>);
+  enableCacheDebugging({ gaugeCache, compositeGaugeCache });
 }
 
 /* -----------------------------
@@ -822,6 +822,7 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
 
         const linked: LinkedGauge = {
           id: gaugeInfo.id,
+          client_org_id: gaugeData.client_org_id,
           gauge_class: gaugeData.gauge_class,
           identification_number: gaugeData.identification_number,
           make: gaugeData.make,
@@ -829,11 +830,12 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
           inward_id: gaugeInfo.inward_id,
           client_org_name: gaugeInfo.client_org_name,
           master_gauge_name: gaugeInfo.master_gauge_name,
-          status: gaugeData.status,
+          status: gaugeInfo.status === 'calibration_completed' ? 'calibration_completed' : 'inward_received',
           inward_date: gaugeData.created_at,
           gauge_id: gaugeInfo.gauge_id,
           inward_gauge_lab_id: gaugeInfo.inward_gauge_lab_id,
-          specifications: gaugeData.specifications,
+          specifications: gaugeData.specifications ?? {},
+          inward_no: 0,
         };
 
         const prev = get().pendingInwardedGauges ?? [];
@@ -994,6 +996,7 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
 
         const linked: LinkedGauge = {
           id: gaugeInfo.id,
+          client_org_id: gaugeData.client_org_id,
           gauge_class: gaugeData.gauge_class,
           identification_number: gaugeData.identification_number,
           make: gaugeData.make,
@@ -1001,11 +1004,11 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
           inward_id: gaugeInfo.inward_id,
           client_org_name: gaugeInfo.client_org_name,
           master_gauge_name: gaugeInfo.master_gauge_name,
-          status: gaugeInfo.status,
+          status: gaugeInfo.status === 'calibration_completed' ? 'calibration_completed' : 'inward_received',
           inward_date: gaugeData.created_at,
           gauge_id: gaugeInfo.gauge_id,
           inward_gauge_lab_id: gaugeInfo.inward_gauge_lab_id,
-          specifications: gaugeData.specifications,
+          specifications: gaugeData.specifications ?? {},
           inward_no: 0,
         };
 
@@ -1086,7 +1089,7 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
           API_ENDPOINTS.GAUGES.INWARD_RECORD(gaugeInwardId, inwardId),
           updatedData
         );
-        const updatedRecord = resp as Partial<CombinedGaugeData>;
+        const updatedRecord: Partial<CertificateGaugeData> = resp;
         const updatedGaugeId = updatedRecord.gauge_id;
         if (updatedGaugeId) {
           compositeGaugeCache.set(
@@ -1163,7 +1166,7 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
           pendingInwardedGauges: updatedList,
           currentInwardGauges:
             get().currentInwardGauges?.id === gaugeInwardId
-              ? { ...get().currentInwardGauges, ...updatedRecord }
+              ? resp
               : get().currentInwardGauges,
           currentInwardById: updatedGaugeId
             ? {

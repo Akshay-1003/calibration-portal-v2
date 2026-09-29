@@ -40,7 +40,7 @@ const RepairMasterCreatePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mb-2">
-        <Button variant="flat" onClick={handleCancel} className="mb-4">
+        <Button variant="ghost" onClick={handleCancel} className="mb-4">
           ← Back to Repairs
         </Button>
       </div>

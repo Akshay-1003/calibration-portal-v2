@@ -30,7 +30,7 @@ export const TypeAReadingSection: React.FC<{
     
     // Create a stable string key for comparison
     const currentKey = typeAReadings 
-      ? JSON.stringify(typeAReadings.filter((v): v is string | number => v !== null && v !== undefined))
+      ? JSON.stringify(typeAReadings.filter((v) => v !== null && v !== undefined))
       : null;
     
     // Skip if values haven't actually changed
@@ -113,6 +113,7 @@ export const TypeAReadingSection: React.FC<{
                       <div>
                         <Input
                           {...field}
+                          value={field.value == null ? "" : String(field.value)}
                           type="number"
                           step="any"
                           disabled={disabled}
@@ -128,14 +129,11 @@ export const TypeAReadingSection: React.FC<{
                               syncToRepeatability(updatedTypeAReadings);
                             }
                           }}
-                          classNames={{
-                            inputWrapper: `h-9 px-2 border-1 rounded-md ${
-                              fieldState.error || errors?.observations?.type_a_readings?.[idx] 
-                                ? "border-red-500" 
-                                : "border-gray-300"
-                            } bg-white`,
-                            input: "text-sm text-center",
-                          }}
+                          className={`h-9 rounded-md border px-2 text-center text-sm ${
+                            fieldState.error || errors?.observations?.type_a_readings?.[idx]
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          } bg-white`}
                           placeholder="0.000"
                         />
                         {(fieldState.error || errors?.observations?.type_a_readings?.[idx]) && (

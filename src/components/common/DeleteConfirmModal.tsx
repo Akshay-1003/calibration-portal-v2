@@ -1,19 +1,12 @@
 import React from 'react';
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  Button,
-} from '@heroui-v2/react';
+import { Modal, Button } from '@heroui/react';
 
 export interface DeleteConfirmModalProps {
   isOpen: boolean;
   title?: string;
   message: React.ReactNode;
   confirmText?: string;
-  confirmColor?: React.ComponentProps<typeof Button>['color'];
+  confirmColor?: 'danger' | 'success' | 'primary';
   cancelText?: string;
   isConfirmLoading?: boolean;
   onConfirm: () => Promise<void> | void;
@@ -41,26 +34,27 @@ export function DeleteConfirmModal({
   }, [onConfirm, onClose]);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose}>
-      <ModalContent>
-        {() => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">{title}</ModalHeader>
-            <ModalBody>
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container>
+          <Modal.Dialog>
+            <Modal.Header>
+              <Modal.Heading>{title}</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body>
               <div className="text-sm text-gray-600">{message}</div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="flat" onPress={onClose} isDisabled={isConfirmLoading}>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="ghost" onPress={onClose} isDisabled={isConfirmLoading}>
                 {cancelText}
               </Button>
-              <Button color={confirmColor} onPress={handleConfirm} isLoading={isConfirmLoading}>
+              <Button variant={confirmColor === 'danger' ? 'danger' : 'primary'} onPress={handleConfirm} isDisabled={isConfirmLoading}>
                 {confirmText}
               </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 }
-

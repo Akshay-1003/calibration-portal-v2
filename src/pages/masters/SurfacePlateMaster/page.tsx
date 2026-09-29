@@ -44,8 +44,8 @@ const SurfacePlateMasterPage = () => {
         <Button
           onPress={() => navigate("/masters/surface-plate-master/create")}
           className="bg-blue-600 hover:bg-blue-700 text-white"
-          startContent={<PlusIcon className="h-4 w-4" />}
         >
+          <PlusIcon className="h-4 w-4" />
           Add New
         </Button>
       }

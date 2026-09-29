@@ -73,8 +73,8 @@ export default function RingGaugeCalibration({
 
       return {
         parameter: name,
-        x: { readings: normalizeReadings(source?.x?.readings) },
-        y: { readings: normalizeReadings(source?.y?.readings) },
+        x: { readings: normalizeReadings(source?.x?.readings).filter((value): value is number => value !== undefined) },
+        y: { readings: normalizeReadings(source?.y?.readings).filter((value): value is number => value !== undefined) },
       };
     };
 
@@ -131,7 +131,7 @@ useEffect(() => {
         const manualKey = `${index}-${axis}`;
         
         // Check if we have valid readings
-        const validReadings = readings.filter(r => r !== "" && r !== null && r !== undefined);
+        const validReadings = readings.filter(r => r !== null && r !== undefined);
         const hasValidReadings = validReadings.length > 0 && validReadings.every(r => parseNumber(r) !== null);
         
         // Get current mean value
@@ -222,11 +222,8 @@ useEffect(() => {
                               ? String(field.value)
                               : String(specifications?.basic_size ?? "")
                           }
-                          isDisabled
-                          classNames={{
-                            inputWrapper: "h-10 border-1 border-gray-300 bg-gray-100",
-                            input: "text-sm text-center font-medium",
-                          }}
+                          disabled
+                          className="h-10 border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                         />
                       )}
                     />
@@ -250,11 +247,8 @@ useEffect(() => {
                                 : toNumberOrUndefined(e.target.value)
                             )
                           }
-                          isDisabled={isReadOnly}
-                          classNames={{
-                            inputWrapper: "h-10 border-1 border-gray-300 bg-white",
-                            input: "text-sm text-center font-medium",
-                          }}
+                          disabled={isReadOnly}
+                          className="h-10 border border-gray-300 bg-white text-center text-sm font-medium"
                         />
                       )}
                     />
@@ -276,11 +270,8 @@ useEffect(() => {
                           step="any"
                           value={field.value?.toString() ?? ""}
                           onChange={(e) => field.onChange(e)}
-                          isDisabled={isReadOnly}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-white",
-                            input: "text-sm text-center",
-                          }}
+                          disabled={isReadOnly}
+                          className="h-9 border border-gray-300 bg-white text-center text-sm"
                           placeholder="0.000"
                         />
                       )}
@@ -296,12 +287,9 @@ useEffect(() => {
                       <Input
                         type="text"
                         inputMode="decimal"
-                        isDisabled={isReadOnly}
+                        disabled={isReadOnly}
                         value={field.value?.toString() ?? ""}
-                        classNames={{
-                          inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                          input: "text-sm text-center font-semibold",
-                        }}
+                        className="h-9 border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                         placeholder="0.000"
                         onFocus={() => {
                           meanEditingRef.current[`${i}-x`] = true;
@@ -353,11 +341,8 @@ useEffect(() => {
                           step="any"
                           value={field.value?.toString() ?? ""}
                           onChange={(e) => field.onChange(e)}
-                          isDisabled={isReadOnly}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-white",
-                            input: "text-sm text-center",
-                          }}
+                          disabled={isReadOnly}
+                          className="h-9 border border-gray-300 bg-white text-center text-sm"
                           placeholder="0.000"
                         />
                       )}
@@ -373,12 +358,9 @@ useEffect(() => {
                       <Input
                         type="text"
                         inputMode="decimal"
-                        isDisabled={isReadOnly}
+                        disabled={isReadOnly}
                         value={field.value?.toString() ?? ""}
-                        classNames={{
-                          inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                          input: "text-sm text-center font-semibold",
-                        }}
+                        className="h-9 border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                         placeholder="0.000"
                         onFocus={() => {
                           meanEditingRef.current[`${i}-y`] = true;

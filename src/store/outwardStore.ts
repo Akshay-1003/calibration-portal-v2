@@ -59,6 +59,7 @@ interface OutwardStore {
   // Loading states
   loading: {
     entry: boolean;
+    outwardEntries: boolean;
     outwardItems: boolean;
     inwardedItems: boolean;
     addingGauge: boolean;
@@ -133,6 +134,7 @@ export const useOutwardStore = create<OutwardStore>()(
       outwardEntries: [],
       loading: {
         entry: false,
+        outwardEntries: false,
         outwardItems: false,
         inwardedItems: false,
         addingGauge: false,
@@ -600,6 +602,7 @@ export const useOutwardStore = create<OutwardStore>()(
           state.pendingAddItems = [];
           state.loading = {
             entry: false,
+            outwardEntries: false,
             outwardItems: false,
             inwardedItems: false,
             addingGauge: false,

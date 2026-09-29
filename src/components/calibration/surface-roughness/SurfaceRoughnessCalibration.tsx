@@ -51,15 +51,15 @@ export function SurfaceRoughnessCalibration({
     rowsFieldArray.replace(makeDefaultRows(initialObservations?.rows));
 
     const raValues = makeDefaultRaValues(initialObservations?.ra_values);
-    const print = makeDefaultPrintFlags(initialObservations?.print);
+    const print = makeDefaultPrintFlags(initialObservations?.tables_to_print);
 
     raValues.forEach((value, idx) => {
       setValue(`observations.surface_roughness.ra_values.${idx}`, value, { shouldDirty: false });
     });
     print.forEach((value, idx) => {
-      setValue(`observations.surface_roughness.print.${idx}`, value, { shouldDirty: false });
+      setValue(`observations.surface_roughness.tables_to_print.${idx}`, value, { shouldDirty: false });
     });
-  }, [initialObservations?.rows, initialObservations?.ra_values, initialObservations?.print, rowsFieldArray, setValue]);
+  }, [initialObservations?.rows, initialObservations?.ra_values, initialObservations?.tables_to_print, rowsFieldArray, setValue]);
 
   const safeRows = rows.length === ROW_COUNT ? rows : makeDefaultRows(rows);
 
@@ -96,11 +96,8 @@ export function SurfaceRoughnessCalibration({
                         render={({ field }) => (
                           <Input
                             {...field}
-                            isReadOnly={isReadOnly}
-                            classNames={{
-                              inputWrapper: "h-8 w-[110px] bg-yellow-200 border border-gray-300 rounded-none",
-                              input: "text-sm text-center font-semibold",
-                            }}
+                            disabled={isReadOnly}
+                            className="h-8 w-[110px] rounded-none border border-gray-300 bg-yellow-200 text-center text-sm font-semibold"
                             placeholder="0"
                           />
                         )}
@@ -120,15 +117,14 @@ export function SurfaceRoughnessCalibration({
                     <div className="flex items-center justify-center gap-2">
                       <span>PRINT</span>
                       <Controller
-                        name={`observations.surface_roughness.print.${col}` as const}
+                        name={`observations.surface_roughness.tables_to_print.${col}` as const}
                         control={control}
                         defaultValue={true}
                         render={({ field }) => (
                           <Checkbox
                             isSelected={!!field.value}
-                            onValueChange={field.onChange}
+                            onChange={field.onChange}
                             isDisabled={isReadOnly}
-                            size="sm"
                           />
                         )}
                       />
@@ -159,11 +155,8 @@ export function SurfaceRoughnessCalibration({
                             {...field}
                             type="number"
                             step="any"
-                            isDisabled={isReadOnly}
-                            classNames={{
-                              inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                              input: "text-sm text-center",
-                            }}
+                            disabled={isReadOnly}
+                            className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm"
                             placeholder="0.0000"
                           />
                         )}

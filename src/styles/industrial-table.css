@@ -1,0 +1,48 @@
+
+
+.industrial-table-wrapper table {
+  border-collapse: collapse !important;
+  width: 100%;
+  border: none !important;
+}
+
+.industrial-table-wrapper thead th {
+  background-color: #f8fafc !important;
+  border: none !important;
+  border-bottom: 1px solid #cbd5e1 !important;
+  text-align: left;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  color: #475569 !important;
+  letter-spacing: 0.08em;
+  border-radius: 2px 2px 0 0 !important;
+}
+
+.industrial-table-wrapper thead th:first-child {
+  border-top-left-radius: 4px !important;
+}
+
+.industrial-table-wrapper thead th:last-child {
+  border-top-right-radius: 4px !important;
+}
+
+.industrial-table-wrapper tbody td {
+  border: none !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-size: 13px !important;
+  color: #111827 !important;
+  background: white !important;
+}
+
+.industrial-table-wrapper tbody tr:last-child td {
+  border-bottom: none !important;
+}
+
+.industrial-table-wrapper tbody tr:hover td {
+  background-color: #f8fafc !important;
+}
+
+.industrial-table-wrapper tbody tr[data-selected="true"] td {
+  background-color: #eff6ff !important;
+}

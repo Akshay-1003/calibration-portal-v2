@@ -19,7 +19,7 @@ export const accountBankDetailsSchema = z.object({
 export const accountDetailFormSchema = z.object({
   firm_name: z.string().trim().min(1, 'Firm name is required'),
   type: z.enum(accountDetailTypes, {
-    errorMap: () => ({ message: 'Type is required' }),
+    message: 'Type is required',
   }),
   gst_no: optionalTrimmedString,
   pan_no: optionalTrimmedString,

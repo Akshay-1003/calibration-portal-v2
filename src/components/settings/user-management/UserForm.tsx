@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Divider } from '@heroui-v2/react';
-import { Controller, useForm } from 'react-hook-form';
+import { Button } from '@heroui/react';
+import { Controller, useForm, type Resolver } from 'react-hook-form';
 import type { User, UserPermissionScope } from '../../../features/auth/types/auth.types';
 import { useAuth } from '../../../features/auth';
 import { normalizePermissionScope } from '../../../features/auth/utils/permissionHelpers';
@@ -74,7 +74,7 @@ export const UserForm = ({
     reset,
     formState: { errors, isDirty },
   } = useForm<ManagedUserFormValues>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as Resolver<ManagedUserFormValues, undefined, ManagedUserFormValues>,
     mode: 'onChange',
     defaultValues,
   });
@@ -133,7 +133,7 @@ export const UserForm = ({
 
       <UserBasicDetails register={register} errors={errors} mode={mode} userType={userType} />
 
-      <Divider />
+      <div className="h-px bg-slate-200" />
 
       <UserRoleSelector
         control={control}
@@ -142,7 +142,7 @@ export const UserForm = ({
         organizationOptions={organizationOptions}
       />
 
-      <Divider />
+      <div className="h-px bg-slate-200" />
 
       <Controller
         control={control}
@@ -166,11 +166,11 @@ export const UserForm = ({
       />
 
       <div className="flex justify-end gap-3 border-t border-slate-200 pt-4">
-        <Button variant="flat" onPress={onClose} isDisabled={isLoading}>
+        <Button variant="ghost" onPress={onClose} isDisabled={isLoading}>
           Cancel
         </Button>
-        <Button type="submit" color="primary" isLoading={isLoading} isDisabled={isLoading}>
-          {mode === 'create' ? 'Create User' : 'Save Changes'}
+        <Button type="submit" variant="primary" isDisabled={isLoading}>
+          {isLoading ? 'Saving...' : mode === 'create' ? 'Create User' : 'Save Changes'}
         </Button>
       </div>
     </form>

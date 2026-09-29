@@ -1,29 +1,21 @@
 "use client";
 
 import React from "react";
-import type { Key } from "@react-types/shared";
+import type { Key, Selection, SortDescriptor } from "@react-types/shared";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
+  ListBox,
   Pagination,
+  Popover,
+  Table,
 } from "@heroui/react";
 import { Badge } from "../ui/badge";
-import { MagnifyingGlassIcon, ChevronDownIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, TrashIcon } from "@heroicons/react/24/outline";
 import type { FormatNumber } from "../../types/formatNumber";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { getTableColumnKey } from './tableColumnKey';
 
 interface FormatNumberListTableProps {
   data: FormatNumber[];
@@ -100,6 +92,7 @@ export default function FormatNumberListTable({
   const [page, setPage] = React.useState(1);
 
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [columnsOpen, setColumnsOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<FormatNumber | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -219,8 +212,7 @@ export default function FormatNumberListTable({
           return (
             <Button
               size="sm"
-              color="danger"
-              variant="flat"
+              variant="danger-soft"
               onPress={() => requestDelete(item)}
               isIconOnly
             >
@@ -235,96 +227,93 @@ export default function FormatNumberListTable({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="industrial-table-wrapper space-y-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <Input
-          size="sm"
           className="max-w-xs"
           placeholder="Search format numbers..."
+          aria-label="Search format numbers"
           value={filterValue}
-          startContent={<MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />}
-          onValueChange={(value: string) => {
-            setFilterValue(value);
+          onChange={(event) => {
+            setFilterValue(event.target.value);
             setPage(1);
           }}
         />
         <div className="flex items-center gap-2">
           {onRefresh && (
-            <Button size="sm" variant="flat" onPress={onRefresh}>
+            <Button size="sm" variant="secondary" onPress={onRefresh}>
               Refresh
             </Button>
           )}
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                size="sm"
-                variant="flat"
-                endContent={<ChevronDownIcon className="h-4 w-4" />}
-              >
-                Columns
+          <Popover isOpen={columnsOpen} onOpenChange={setColumnsOpen}>
+            <Popover.Trigger>
+              <Button size="sm" variant="secondary" onPress={() => setColumnsOpen(true)}>
+                Columns <ChevronDownIcon className="h-4 w-4" />
               </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              aria-label="Select columns"
-              selectionMode="multiple"
-              selectedKeys={visibleColumns}
-              onSelectionChange={setVisibleColumns}
-              closeOnSelect={false}
-            >
-              {columns.map((column) => (
-                <DropdownItem key={column.uid}>{column.name}</DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
+            </Popover.Trigger>
+            <Popover.Content>
+              <Popover.Dialog>
+                <ListBox aria-label="Select columns" selectionMode="multiple" selectedKeys={visibleColumns} onSelectionChange={setVisibleColumns}>
+                  {columns.map((column) => (
+                    <ListBox.Item key={column.uid} id={column.uid} textValue={column.name}>
+                      {column.name}<ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Popover.Dialog>
+            </Popover.Content>
+          </Popover>
         </div>
       </div>
 
-      <Table
-        aria-label="Format Number Table"
-        sortDescriptor={sortDescriptor}
-        onSortChange={setSortDescriptor}
-        classNames={{ wrapper: "min-h-[200px]" }}
-      >
-        <TableHeader columns={headerColumns}>
+      <Table aria-label="Format Number Table" className="min-h-[200px]">
+        <Table.ScrollContainer>
+          <Table.Content sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor}>
+        <Table.Header columns={headerColumns}>
           {(column) => (
-            <TableColumn key={column.uid} allowsSorting={column.sortable}>
+            <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === headerColumns[0]?.uid}>
               {column.name}
-            </TableColumn>
+            </Table.Column>
           )}
-        </TableHeader>
-        <TableBody
+        </Table.Header>
+        <Table.Body
           items={sortedItems}
-          loadingState={loading ? "loading" : "idle"}
-          emptyContent={error ? error : "No format numbers found"}
+          renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? 'Loading...' : error ? error : 'No format numbers found'}</div>}
         >
           {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => <TableCell>{renderCell(item, columnKey)}</TableCell>}
-            </TableRow>
+            <Table.Row id={item.id} columns={headerColumns}>
+              {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>}
+            </Table.Row>
           )}
-        </TableBody>
+        </Table.Body>
+          </Table.Content>
+        </Table.ScrollContainer>
       </Table>
 
       <div className="flex items-center justify-between">
         <span className="text-sm text-default-500">
           {filteredItems.length} total entries
         </span>
-        <Pagination
-          page={page}
-          total={pages}
-          onChange={setPage}
-          showControls
-        />
+        <Pagination size="sm">
+          <Pagination.Content>
+            <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+              <Pagination.Item key={pageNumber}>
+                <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
+              </Pagination.Item>
+            ))}
+            <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}><Pagination.NextIcon /></Pagination.Next>
+          </Pagination.Content>
+        </Pagination>
       </div>
 
       <DeleteConfirmModal
         isOpen={deleteOpen}
         onClose={closeDelete}
         onConfirm={confirmDelete}
-        itemName={deleteTarget?.formatNumber || "format number"}
-        isLoading={isDeleting}
+        isConfirmLoading={isDeleting}
         title="Delete Format Number"
-        description="Are you sure you want to delete this format number? This action cannot be undone."
+        message="Are you sure you want to delete this format number? This action cannot be undone."
       />
     </div>
   );

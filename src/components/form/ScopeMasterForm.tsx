@@ -2,8 +2,9 @@
 
 import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
+import type { ComponentProps } from "react";
 import { useNavigate } from "react-router-dom";
-import { Input, DatePicker, Button, Autocomplete, AutocompleteItem } from "@heroui-v2/react";
+import { Calendar, DateField, DatePicker, Input, Button, Autocomplete, ListBox } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 import { toast } from "sonner";
 import {
@@ -25,6 +26,38 @@ interface ScopeMasterFormProps {
   onSuccess?: (data?: any, currentMode?: 'create' | 'edit') => void;
   onCancel?: () => void;
 }
+
+const LabeledInput = ({ label, ...props }: { label: string } & ComponentProps<typeof Input>) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <Input {...props} className={`w-full ${props.className ?? ''}`} />
+  </label>
+);
+
+const LabeledAutocomplete = ({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<{ key: string; label: string }>;
+  placeholder: string;
+}) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+  <Autocomplete className="w-full" selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')}>
+      <Autocomplete.Trigger>
+        <Autocomplete.Filter><Input aria-label={label} placeholder={placeholder} value={value} onChange={(event) => onChange(event.target.value)} /></Autocomplete.Filter>
+        <Autocomplete.Indicator />
+      </Autocomplete.Trigger>
+      <Autocomplete.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Popover>
+    </Autocomplete>
+  </label>
+);
 
 const ScopeMasterForm = ({
   gaugeMasterList,
@@ -113,8 +146,8 @@ const ScopeMasterForm = ({
   return (
     <FormDateProvider>
       <div className="w-full mx-auto">
-        <div className="shadow-lg border rounded-xl bg-card">
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+        <div className="shadow-sm border rounded-md bg-card">
+          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
             {mode === "edit" ? "Edit Scope Master" : "New Scope Master"}
           </div>
 
@@ -127,28 +160,7 @@ const ScopeMasterForm = ({
                 name="master_gauge_id"
                 control={control}
                 render={({ field }) => (
-                  <Autocomplete
-                    label="Master Gauge"
-                    labelPlacement="outside"
-                    selectedKey={field.value || null}
-                    onSelectionChange={(key) => {
-                      const selectedKey = key as string | null;
-                      field.onChange(selectedKey || "");
-                    }}
-                    placeholder="Search and select Master Gauge"
-                    allowsCustomValue={false}
-                    isInvalid={!!errors.master_gauge_id}
-                    errorMessage={errors.master_gauge_id?.message}
-                  >
-                    {gaugeMasterList.map((item) => (
-                      <AutocompleteItem
-                        key={item.id}
-                        textValue={item.name}
-                      >
-                        {item.name}
-                      </AutocompleteItem>
-                    ))}
-                  </Autocomplete>
+                  <LabeledAutocomplete label="Master Gauge" value={field.value || ''} onChange={field.onChange} placeholder="Search and select Master Gauge" options={gaugeMasterList.map((item) => ({ key: item.id, label: item.name }))} />
                 )}
               />
               <Controller
@@ -166,28 +178,7 @@ const ScopeMasterForm = ({
                   ];
 
                   return (
-                    <Autocomplete
-                      label="Unit"
-                      labelPlacement="outside"
-                      selectedKey={field.value || "mm"}
-                      onSelectionChange={(key) => {
-                        const selectedKey = key as string | null;
-                        field.onChange(selectedKey || "mm");
-                      }}
-                      placeholder="Select Unit"
-                      allowsCustomValue={false}
-                      isInvalid={!!errors.unit}
-                      errorMessage={errors.unit?.message}
-                    >
-                      {unitOptions.map((option) => (
-                        <AutocompleteItem
-                          key={option.key}
-                          textValue={option.label}
-                        >
-                          {option.label}
-                        </AutocompleteItem>
-                      ))}
-                    </Autocomplete>
+                    <LabeledAutocomplete label="Unit" value={field.value || 'mm'} onChange={(value) => field.onChange(value || 'mm')} placeholder="Select Unit" options={unitOptions} />
                   );
                 }}
               />
@@ -200,14 +191,12 @@ const ScopeMasterForm = ({
                   name="range.min"
                   control={control}
                   render={({ field }) => (
-                    <Input
+                    <LabeledInput
                       label={`Range From ${selectedUnit ? `(${selectedUnit})` : ''}`}
-                      labelPlacement="outside"
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Enter Range From"
-                      isInvalid={!!errors.range?.min}
-                      errorMessage={errors.range?.min?.message}
+                      aria-invalid={!!errors.range?.min}
                     />
                   )}
                 />
@@ -215,25 +204,22 @@ const ScopeMasterForm = ({
                   name="range.max"
                   control={control}
                   render={({ field }) => (
-                    <Input
+                    <LabeledInput
                       label={`Range To ${selectedUnit ? `(${selectedUnit})` : ''}`}
-                      labelPlacement="outside"
                       value={field.value}
                       onChange={field.onChange}
                       placeholder="Enter Range To"
-                      isInvalid={!!errors.range?.max}
-                      errorMessage={errors.range?.max?.message}
+                      aria-invalid={!!errors.range?.max}
                     />
                   )}
                 />
               </div>
               <div>
-                <Input
+                <LabeledInput
                   label="Uncertainty"
-                  labelPlacement="outside"
                   {...register("uncertainty")}
                   placeholder="Enter Uncertainty"
-                  isInvalid={!!errors.uncertainty}
+                  aria-invalid={!!errors.uncertainty}
                 />
                 {errors.uncertainty && (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -245,13 +231,11 @@ const ScopeMasterForm = ({
                 )}
               </div>
               <div>
-                <Input
+                <LabeledInput
                   label="Least Count"
-                  labelPlacement="outside"
                   {...register("least_count")}
                   placeholder="Enter Least Count"
-                  isInvalid={!!errors.least_count}
-                  errorMessage={errors.least_count?.message}
+                  aria-invalid={!!errors.least_count}
                 />
               </div>
             </div>
@@ -259,12 +243,11 @@ const ScopeMasterForm = ({
             {/* Confidence + Location + Validity */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <Input
+                <LabeledInput
                   label="Confidence level & coverage"
-                  labelPlacement="outside"
                   {...register("confidence_level_and_coverage")}
                   placeholder="Enter Confidence Level & Coverage"
-                  isInvalid={!!errors.confidence_level_and_coverage}
+                  aria-invalid={!!errors.confidence_level_and_coverage}
                 />
                 {errors.confidence_level_and_coverage && (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -287,28 +270,7 @@ const ScopeMasterForm = ({
                   ];
 
                   return (
-                    <Autocomplete
-                      label="Calibration Location "
-                      labelPlacement="outside"
-                      selectedKey={field.value || null}
-                      onSelectionChange={(key) => {
-                        const selectedKey = key as string | null;
-                        field.onChange(selectedKey || "");
-                      }}
-                      placeholder="Search and select Calibration Location"
-                      allowsCustomValue={false}
-                      isInvalid={!!errors.calibration_location}
-                      errorMessage={errors.calibration_location?.message}
-                    >
-                      {locationOptions.map((option) => (
-                        <AutocompleteItem
-                          key={option.key}
-                          textValue={option.label}
-                        >
-                          {option.label}
-                        </AutocompleteItem>
-                      ))}
-                    </Autocomplete>
+                    <LabeledAutocomplete label="Calibration Location" value={field.value || ''} onChange={field.onChange} placeholder="Search and select Calibration Location" options={locationOptions} />
                   );
                 }}
               />
@@ -318,14 +280,17 @@ const ScopeMasterForm = ({
                 control={control}
                 render={({ field }) => (
                   <div>
+                    <label className="flex flex-col gap-2 text-sm font-medium text-foreground">Valid Until
                     <DatePicker
-                      label="Valid Until"
-                      labelPlacement="outside"
                       value={field.value ? parseDate(field.value) : null}
-                      onChange={(d) => field.onChange(d?.toString() ?? "")}
-                      isInvalid={!!errors.valid_until}
-                      errorMessage={errors.valid_until?.message}
-                    />
+                      onChange={(d) => field.onChange(d ? String(d) : "")}
+                      aria-label="Valid Until"
+                      granularity="day"
+                      className="w-full"
+                    >
+                      <DateField.Group fullWidth><DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input><DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix></DateField.Group>
+                      <DatePicker.Popover><Calendar aria-label="Valid Until"><Calendar.Header><Calendar.NavButton slot="previous" /><Calendar.NavButton slot="next" /></Calendar.Header><Calendar.Grid><Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader><Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody></Calendar.Grid></Calendar></DatePicker.Popover>
+                    </DatePicker></label>
                   </div>
                 )}
               />
@@ -356,12 +321,11 @@ const ScopeMasterForm = ({
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Input
+                <LabeledInput
                   label="Remarks"
-                  labelPlacement="outside"
                   {...register("remarks")}
                   placeholder="Enter remarks"
-                  isInvalid={!!errors.remarks}
+                  aria-invalid={!!errors.remarks}
                 />
                 {errors.remarks && (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -373,12 +337,11 @@ const ScopeMasterForm = ({
                 )}
               </div>
               <div>
-                <Input
+                <LabeledInput
                   label="Master Equipment List"
-                  labelPlacement="outside"
                   {...register("master_equipments")}
                   placeholder="Enter master equipments"
-                  isInvalid={!!errors.master_equipments}
+                  aria-invalid={!!errors.master_equipments}
                 />
                 {errors.master_equipments && (
                   <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
@@ -394,11 +357,11 @@ const ScopeMasterForm = ({
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <Button type="submit" color="primary" isDisabled={isSubmitting}>
+              <Button type="submit" variant="primary" isDisabled={isSubmitting}>
                 {mode === "edit" ? "Update" : "Save"}
               </Button>
               <Button
-                variant="bordered"
+                variant="outline"
                 onPress={() => {
                   if (onCancel) {
                     onCancel();
@@ -421,4 +384,3 @@ const ScopeMasterForm = ({
 export default ScopeMasterForm;
 
 /* -------------------- HELPERS -------------------- */
-

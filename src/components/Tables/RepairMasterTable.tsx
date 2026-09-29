@@ -2,26 +2,22 @@
 
 import { useMemo, memo, useCallback } from 'react';
 import {
-    Table,
-    TableHeader,
-    TableColumn,
-    TableBody,
-    TableRow,
-    TableCell,
-    Input,
     Button,
+    Chip,
+    Input,
+    Label,
+    ListBox,
     Pagination,
     Select,
-    SelectItem,
-    Chip,
-} from '@heroui-v2/react';
+    Table,
+} from '@heroui/react';
 import {
     MagnifyingGlassIcon,
     TrashIcon,
     EyeIcon,
     PencilSquareIcon,
-    PlusIcon,
 } from '@heroicons/react/24/outline';
+import { getTableColumnKey } from './tableColumnKey';
 import type { RepairEntry, RepairTableState, RepairTableHandlers } from '../../types/repair';
 import '../../styles/industrial-table.css';
 
@@ -73,9 +69,9 @@ const statusColorMap: Record<string, 'success' | 'warning' | 'danger' | 'default
 };
 
 // Repair type color mapping
-const repairTypeColorMap: Record<string, 'primary' | 'secondary' | 'warning' | 'danger'> = {
-    calibration: 'primary',
-    maintenance: 'secondary',
+const repairTypeColorMap: Record<string, 'accent' | 'warning' | 'danger'> = {
+    calibration: 'accent',
+    maintenance: 'accent',
     replacement: 'warning',
     adjustment: 'danger',
 };
@@ -97,9 +93,8 @@ const ActionsCell = memo(({
             <Button
                 isIconOnly
                 size="sm"
-                variant="light"
-                color="primary"
-                onClick={() => onView(repair)}
+                variant="ghost"
+                onPress={() => onView(repair)}
                 aria-label={`View repair ${repair.repair_no}`}
             >
                 <EyeIcon className="h-4 w-4" />
@@ -107,9 +102,8 @@ const ActionsCell = memo(({
             <Button
                 isIconOnly
                 size="sm"
-                variant="light"
-                color="warning"
-                onClick={() => onEdit(repair)}
+                variant="ghost"
+                onPress={() => onEdit(repair)}
                 aria-label={`Edit repair ${repair.repair_no}`}
             >
                 <PencilSquareIcon className="h-4 w-4" />
@@ -117,9 +111,8 @@ const ActionsCell = memo(({
             <Button
                 isIconOnly
                 size="sm"
-                variant="light"
-                color="danger"
-                onClick={() => onDelete(repair)}
+                variant="ghost"
+                onPress={() => onDelete(repair)}
                 aria-label={`Delete repair ${repair.repair_no}`}
             >
                 <TrashIcon className="h-4 w-4" />
@@ -293,7 +286,7 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                     return (
                         <Chip
                             size="sm"
-                            variant="flat"
+                            variant="soft"
                             color={repairTypeColorMap[repair.repair_type] || 'default'}
                         >
                             {repair.repair_type.replace('_', ' ').toUpperCase()}
@@ -304,7 +297,7 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                     return (
                         <Chip
                             size="sm"
-                            variant="flat"
+                            variant="soft"
                             color={statusColorMap[repair.repair_status] || 'default'}
                         >
                             {repair.repair_status.replace('_', ' ').toUpperCase()}
@@ -353,10 +346,8 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                 <div className="text-gray-500 mb-2">No repairs found</div>
                 <Button
                     size="sm"
-                    color="primary"
-                    variant="flat"
-                    startContent={<PlusIcon className="h-4 w-4" />}
-                    onClick={onCreateRepair}
+                    variant="secondary"
+                    onPress={onCreateRepair}
                 >
                     Create First Repair
                 </Button>
@@ -370,9 +361,8 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                 <div className="text-gray-600 text-sm mb-4">{error}</div>
                 <Button
                     size="sm"
-                    color="primary"
-                    variant="flat"
-                    onClick={onRefresh}
+                    variant="secondary"
+                    onPress={onRefresh}
                 >
                     Try Again
                 </Button>
@@ -386,50 +376,46 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
 
                 <div className="flex items-center gap-4 flex-wrap">
                     <Select
-                        label="Client Organization"
-                        placeholder="Select client"
-                        selectedKeys={clientOrgId ? [clientOrgId] : []}
-                        onSelectionChange={(keys) => onClientOrgChange(Array.from(keys)[0] as string)}
+                        selectedKey={clientOrgId || null}
+                        onSelectionChange={(key) => onClientOrgChange(key ? String(key) : '')}
                         className="max-w-xs"
-                        isLoading={organizationsLoading}
+                        isDisabled={organizationsLoading}
                     >
-                        {organizations.map((org) => (
-                            <SelectItem key={org.id}>
-                                {org.name}
-                            </SelectItem>
-                        ))}
+                        <Label>Client Organization</Label>
+                        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                {organizations.map((org) => (
+                                    <ListBox.Item key={org.id} id={org.id} textValue={org.name}>
+                                        {org.name}<ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
 
-                    <Input
-                        type="date"
-                        label="Date From"
-                        value={dateFrom || ''}
-                        onChange={(e) => onDateFromChange(e.target.value)}
-                        className="max-w-xs"
-                    />
+                    <label className="flex max-w-xs flex-col gap-1 text-sm font-medium text-slate-700">
+                        Date From
+                        <Input type="date" value={dateFrom || ''} onChange={(e) => onDateFromChange(e.target.value)} />
+                    </label>
 
-                    <Input
-                        type="date"
-                        label="Date To"
-                        value={dateTo || ''}
-                        onChange={(e) => onDateToChange(e.target.value)}
-                        className="max-w-xs"
-                    />
+                    <label className="flex max-w-xs flex-col gap-1 text-sm font-medium text-slate-700">
+                        Date To
+                        <Input type="date" value={dateTo || ''} onChange={(e) => onDateToChange(e.target.value)} />
+                    </label>
 
                     <div className="flex gap-2">
                         <Button
                             size="sm"
-                            color="primary"
-                            variant="flat"
-                            onClick={onApplyFilters}
+                            variant="secondary"
+                            onPress={onApplyFilters}
                         >
                             Apply Filters
                         </Button>
                         <Button
                             size="sm"
-                            color="default"
-                            variant="flat"
-                            onClick={onClearFilters}
+                            variant="secondary"
+                            onPress={onClearFilters}
                         >
                             Clear
                         </Button>
@@ -438,14 +424,17 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                         <Input
-                            isClearable
                             className="w-full sm:max-w-[44%]"
                             placeholder="Search by repair no, client, gauge ID..."
-                            startContent={<MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />}
+                            aria-label="Search repairs"
                             value={searchValue}
-                            onValueChange={onSearchChange}
-                            onClear={onSearchClear}
+                            onChange={(event) => onSearchChange(event.target.value)}
                         />
+                        {searchValue ? (
+                            <Button type="button" variant="ghost" aria-label="Clear repair search" onPress={onSearchClear}>
+                                <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+                            </Button>
+                        ) : null}
 
                     </div>
                 </div>
@@ -477,28 +466,40 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                 <span className="text-small text-default-400">
                     Total {filteredItems.length} repairs
                 </span>
-                <Pagination
-                    isCompact
-                    showControls
-                    showShadow
-                    color="primary"
-                    page={page}
-                    total={Math.ceil(filteredItems.length / rowsPerPage)}
-                    onChange={onPageChange}
-                />
+                <Pagination size="sm">
+                    <Pagination.Content>
+                        <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(page - 1)}>
+                            <Pagination.PreviousIcon />
+                        </Pagination.Previous>
+                        {Array.from({ length: Math.max(Math.ceil(filteredItems.length / rowsPerPage), 1) }, (_, index) => index + 1).map((pageNumber) => (
+                            <Pagination.Item key={pageNumber}>
+                                <Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>
+                                    {pageNumber}
+                                </Pagination.Link>
+                            </Pagination.Item>
+                        ))}
+                        <Pagination.Next isDisabled={page >= Math.ceil(filteredItems.length / rowsPerPage)} onPress={() => onPageChange(page + 1)}>
+                            <Pagination.NextIcon />
+                        </Pagination.Next>
+                    </Pagination.Content>
+                </Pagination>
                 <div className="flex items-center gap-2">
                     <label className="text-small text-default-400">Rows per page:</label>
                     <Select
-                        color="primary"
-                        variant="flat"
-                        selectedKeys={[rowsPerPage.toString()]}
-                        onSelectionChange={(keys) => onRowsPerPageChange(Number(Array.from(keys)[0]))}
+                        selectedKey={rowsPerPage.toString()}
+                        onSelectionChange={(key) => onRowsPerPageChange(Number(key))}
                         className="max-w-[70px]"
-                        size="sm"
                     >
-                        <SelectItem key="10">10</SelectItem>
-                        <SelectItem key="25">25</SelectItem>
-                        <SelectItem key="50">50</SelectItem>
+                        <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                        <Select.Popover>
+                            <ListBox>
+                                {['10', '25', '50'].map((size) => (
+                                    <ListBox.Item key={size} id={size} textValue={size}>
+                                        {size}<ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                ))}
+                            </ListBox>
+                        </Select.Popover>
                     </Select>
                 </div>
             </div>
@@ -517,52 +518,47 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
         return (
             <div className="p-2">
                 <div className="industrial-table-wrapper">
-                    <Table
-                        aria-label="Repair entries table"
-                        isHeaderSticky
-                        bottomContent={bottomContent}
-                        bottomContentPlacement="outside"
-                        classNames={{
-                            wrapper: 'max-h-[calc(100vh-320px)] p-0',
-                            base: 'min-w-full',
-                            td: 'py-2',
-                            th: 'py-2',
-                        }}
-                        selectedKeys={selectedKeys}
-                        selectionMode="multiple"
-                        sortDescriptor={sortDescriptor}
-                        topContent={topContent}
-                        topContentPlacement="outside"
-                        onSelectionChange={(keys: any) => onSelectionChange(keys as Set<string>)}
-                        onSortChange={onSortChange}
-                    >
-                        <TableHeader columns={headerColumns}>
-                            {(column) => (
-                                <TableColumn
-                                    key={column.uid}
-                                    align={column.uid === 'actions' || column.uid === 'sr_no' ? 'center' : 'start'}
-                                    allowsSorting={column.sortable}
-                                    width={column.uid === 'sr_no' ? 60 : undefined}
-                                >
-                                    {column.name}
-                                </TableColumn>
-                            )}
-                        </TableHeader>
-                        <TableBody
-                            emptyContent={emptyContent}
-                            items={paginatedItems}
-                            isLoading={loading}
-                            loadingContent={loadingContent}
-                        >
-                            {paginatedItems.map((item, index) => (
-                                <TableRow key={item.id}>
-                                    {(columnKey) => (
-                                        <TableCell>{renderCell(item, columnKey as TableColumnKey, index)}</TableCell>
+                    <div className="mb-4">{topContent}</div>
+                    <Table aria-label="Repair entries table" className="min-w-full">
+                        <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+                            <Table.Content
+                                className="min-w-full"
+                                selectedKeys={selectedKeys}
+                                selectionMode="multiple"
+                                sortDescriptor={sortDescriptor}
+                                onSelectionChange={(keys) => onSelectionChange(keys as Set<string>)}
+                                onSortChange={onSortChange}
+                            >
+                                <Table.Header columns={headerColumns}>
+                                    {(column) => (
+                                        <Table.Column
+                                            id={column.uid}
+                                            className="py-2"
+                                            allowsSorting={column.sortable}
+                                            isRowHeader={column.uid === columns[0]?.uid}
+                                        >
+                                            {column.name}
+                                        </Table.Column>
                                     )}
-                                </TableRow>
-                            ))}
-                        </TableBody>
+                                </Table.Header>
+                                <Table.Body
+                                    items={paginatedItems}
+                                    renderEmptyState={() => loading ? loadingContent : emptyContent}
+                                >
+                                    {(item) => (
+                                        <Table.Row id={item.id} columns={headerColumns}>
+                                            {(columnKey) => (
+                                                <Table.Cell className="py-2">
+                                                    {renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, paginatedItems.indexOf(item))}
+                                                </Table.Cell>
+                                            )}
+                                        </Table.Row>
+                                    )}
+                                </Table.Body>
+                            </Table.Content>
+                        </Table.ScrollContainer>
                     </Table>
+                    {bottomContent}
                 </div>
             </div>
         );

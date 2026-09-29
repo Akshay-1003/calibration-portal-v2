@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
+import { z } from "zod";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { Button, Chip, Input } from "@heroui/react";
 import { useGaugeStore } from "../../store/gaugeStore";
@@ -65,7 +66,11 @@ export default function SurfacePlateReferenceStandardForm({
     reset,
     setValue,
     formState: { errors },
-  } = useForm<SurfacePlateReferenceStandardFormData>({
+  } = useForm<
+    z.input<typeof surfacePlateReferenceStandardFormSchema>,
+    unknown,
+    z.output<typeof surfacePlateReferenceStandardFormSchema>
+  >({
     resolver: zodResolver(surfacePlateReferenceStandardFormSchema),
     defaultValues,
     mode: "onChange",
@@ -128,7 +133,7 @@ export default function SurfacePlateReferenceStandardForm({
   return (
     <form className="space-y-5" onSubmit={handleSubmit(async (values) => onSubmit(values))}>
       {submitError ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
           {submitError}
         </div>
       ) : null}
@@ -138,22 +143,26 @@ export default function SurfacePlateReferenceStandardForm({
           name="master_gauge_name"
           control={control}
           render={({ field }) => (
-            <Input
-              {...field}
-              label="Master Gauge"
-              labelPlacement="outside"
-              placeholder={gaugeLoading ? "Loading..." : "Surface Plate"}
-              isReadOnly
-              isDisabled={isSubmitting || gaugeLoading}
-              isInvalid={Boolean(errors.master_gauge_name || errors.master_gauge_id)}
-              errorMessage={errors.master_gauge_name?.message ?? errors.master_gauge_id?.message}
-            />
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              Master Gauge
+              <Input
+                {...field}
+                className="w-full"
+                placeholder={gaugeLoading ? "Loading..." : "Surface Plate"}
+                readOnly
+                disabled={isSubmitting || gaugeLoading}
+                aria-invalid={Boolean(errors.master_gauge_name || errors.master_gauge_id)}
+              />
+              {errors.master_gauge_name?.message ?? errors.master_gauge_id?.message ? (
+                <span className="font-normal text-red-600">{errors.master_gauge_name?.message ?? errors.master_gauge_id?.message}</span>
+              ) : null}
+            </label>
           )}
         />
 
         <div className="space-y-2">
           <p className="text-sm font-medium text-foreground">Shape</p>
-          <Chip size="lg" variant="flat" color="primary" className="capitalize">
+          <Chip size="lg" variant="soft" color="accent" className="capitalize">
             {derivedShape}
           </Chip>
         </div>
@@ -162,17 +171,11 @@ export default function SurfacePlateReferenceStandardForm({
           name="length"
           control={control}
           render={({ field }) => (
-            <Input
-              {...field}
-              type="number"
-              step="any"
-              label="Length (mm)"
-              labelPlacement="outside"
-              placeholder="630"
-              isDisabled={isSubmitting}
-              isInvalid={Boolean(errors.length)}
-              errorMessage={errors.length?.message}
-            />
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              Length (mm)
+              <Input {...field} className="w-full" value={String(field.value ?? "")} type="number" step="any" placeholder="630" disabled={isSubmitting} aria-invalid={Boolean(errors.length)} />
+              {errors.length?.message ? <span className="font-normal text-red-600">{errors.length.message}</span> : null}
+            </label>
           )}
         />
 
@@ -180,17 +183,11 @@ export default function SurfacePlateReferenceStandardForm({
           name="width"
           control={control}
           render={({ field }) => (
-            <Input
-              {...field}
-              type="number"
-              step="any"
-              label="Width (mm)"
-              labelPlacement="outside"
-              placeholder="630"
-              isDisabled={isSubmitting}
-              isInvalid={Boolean(errors.width)}
-              errorMessage={errors.width?.message}
-            />
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              Width (mm)
+              <Input {...field} className="w-full" value={String(field.value ?? "")} type="number" step="any" placeholder="630" disabled={isSubmitting} aria-invalid={Boolean(errors.width)} />
+              {errors.width?.message ? <span className="font-normal text-red-600">{errors.width.message}</span> : null}
+            </label>
           )}
         />
 
@@ -198,20 +195,16 @@ export default function SurfacePlateReferenceStandardForm({
           name="unit"
           control={control}
           render={({ field }) => (
-            <Input
-              {...field}
-              label="Unit"
-              labelPlacement="outside"
-              placeholder="µm"
-              isDisabled={isSubmitting}
-              isInvalid={Boolean(errors.unit)}
-              errorMessage={errors.unit?.message}
-            />
+            <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+              Unit
+              <Input {...field} className="w-full" placeholder="µm" disabled={isSubmitting} aria-invalid={Boolean(errors.unit)} />
+              {errors.unit?.message ? <span className="font-normal text-red-600">{errors.unit.message}</span> : null}
+            </label>
           )}
         />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+      <div className="rounded-md border border-gray-200 bg-gray-50/60 p-4">
         <h4 className="text-sm font-semibold uppercase tracking-wide text-gray-600 mb-4">
           Tolerances
         </h4>
@@ -222,17 +215,11 @@ export default function SurfacePlateReferenceStandardForm({
               name={`tolerances.${gradeKey}`}
               control={control}
               render={({ field }) => (
-                <Input
-                  {...field}
-                  type="number"
-                  step="any"
-                  label={`Grade ${index}`}
-                  labelPlacement="outside"
-                  placeholder="0"
-                  isDisabled={isSubmitting}
-                  isInvalid={Boolean(errors.tolerances?.[gradeKey])}
-                  errorMessage={errors.tolerances?.[gradeKey]?.message}
-                />
+                <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+                  {`Grade ${index}`}
+                  <Input {...field} className="w-full" value={String(field.value ?? "")} type="number" step="any" placeholder="0" disabled={isSubmitting} aria-invalid={Boolean(errors.tolerances?.[gradeKey])} />
+                  {errors.tolerances?.[gradeKey]?.message ? <span className="font-normal text-red-600">{errors.tolerances[gradeKey]?.message}</span> : null}
+                </label>
               )}
             />
           ))}
@@ -240,11 +227,11 @@ export default function SurfacePlateReferenceStandardForm({
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <Button variant="flat" onPress={onCancel} isDisabled={isSubmitting}>
+        <Button variant="secondary" onPress={onCancel} isDisabled={isSubmitting}>
           Cancel
         </Button>
-        <Button color="primary" type="submit" isLoading={isSubmitting}>
-          {mode === "edit" ? "Update Standard" : "Create Standard"}
+        <Button variant="primary" type="submit" isDisabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : mode === "edit" ? "Update Standard" : "Create Standard"}
         </Button>
       </div>
     </form>

@@ -1,5 +1,6 @@
 "use client"
 
+import type { InputHTMLAttributes } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
@@ -9,8 +10,8 @@ import { Trash2, Plus } from "lucide-react"
 import { EquipmentHistoryRange } from "../../store/equipmentHistoryStore"
 import { useEquipmentsWithQuery } from "../../hooks/useEquipmentsWithQuery"
 import { useEquipmentHistoryStore } from "../../store/equipmentHistoryStore"
-import { Input, Button, DatePicker, Autocomplete, AutocompleteItem } from "@heroui-v2/react"
-import { parseDate } from "@internationalized/date"
+import { Autocomplete, Button, Calendar, DateField, DatePicker, Input, ListBox } from "@heroui/react"
+import { parseDate, type DateValue } from "@internationalized/date"
 import { equipmentHistorySchema, zodResolver, type EquipmentHistoryFormData } from "../../lib/validations"
 import { FormDateProvider } from "./FormDateProvider"
 
@@ -21,6 +22,34 @@ const extractDatePart = (dateString: string | null | undefined): string | null =
   const match = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
   return match ? match[1] : null;
 }
+
+const FieldInput = ({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <Input {...props} className={`w-full ${props.className ?? ''}`} aria-invalid={Boolean(error)} />
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+)
+
+const FormDatePicker = ({ label, value, onChange, error }: { label: string; value: DateValue | null; onChange: (value: DateValue | null) => void; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <DatePicker className="w-full" value={value} onChange={onChange} aria-label={label} granularity="day">
+      <DateField.Group fullWidth>
+        <DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+        <DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix>
+      </DateField.Group>
+      <DatePicker.Popover>
+        <Calendar aria-label={label}>
+          <Calendar.Header><Calendar.YearPickerTrigger><Calendar.YearPickerTriggerHeading /><Calendar.YearPickerTriggerIndicator /></Calendar.YearPickerTrigger><Calendar.NavButton slot="previous" /><Calendar.NavButton slot="next" /></Calendar.Header>
+          <Calendar.Grid><Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader><Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody></Calendar.Grid>
+          <Calendar.YearPickerGrid><Calendar.YearPickerGridBody>{({ year }) => <Calendar.YearPickerCell year={year} />}</Calendar.YearPickerGridBody></Calendar.YearPickerGrid>
+        </Calendar>
+      </DatePicker.Popover>
+    </DatePicker>
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+)
 
 
 interface EquipmentHistoryFormProps {
@@ -159,8 +188,8 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
   if (initialLoading) {
     return (
       <div className="w-full mx-auto">
-        <div className="shadow-lg border rounded-xl bg-card">
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+        <div className="shadow-sm border rounded-md bg-card">
+          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
             {mode === 'edit' ? 'Edit Equipment History' : 'Equipment History Form'}
           </div>
           <div className="p-8">
@@ -178,8 +207,8 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
     <FormDateProvider>
       <div className="w-full mx-auto">
      
-        <div className="shadow-lg border rounded-xl bg-card">
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+        <div className="shadow-sm border rounded-md bg-card">
+          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
             {mode === 'edit' ? 'Edit Equipment History' : 'Equipment History Form'}
           </div>
         <div className="p-4">
@@ -189,43 +218,40 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Master Equipment Name - Full Width */}
               <div className="md:col-span-2">
-                <Autocomplete
-                  label="Master Equipment Name"
-                  labelPlacement="outside"
-                  placeholder="Search and select an equipment"
-                  selectedKey={selectedEquipmentId || null}
-                  onSelectionChange={(key) => {
-                    setValue("master_equipment_id", key as string)
-                  }}
-                  isInvalid={!!errors.master_equipment_id}
-                  errorMessage={errors.master_equipment_id?.message}
-                  allowsCustomValue={false}
-                >
+                <Autocomplete className="w-full" selectedKey={selectedEquipmentId || null} onSelectionChange={(key) => setValue("master_equipment_id", key as string)}>
+                  <Autocomplete.Trigger>
+                    <Autocomplete.Filter><Input placeholder="Search and select an equipment" /></Autocomplete.Filter>
+                    <Autocomplete.Indicator />
+                  </Autocomplete.Trigger>
+                  <Autocomplete.Popover>
+                    <ListBox>
                   {equipments.map((equipment) => (
-                    <AutocompleteItem
-                      key={equipment.id}
+                    <ListBox.Item
+                      id={equipment.id}
                       textValue={`${equipment.equipment_name} (${equipment.code_no})`}
                     >
                       <div className="flex flex-col">
                         <span className="text-sm font-medium">{equipment.equipment_name}</span>
                         <span className="text-xs text-muted-foreground">{equipment.code_no}</span>
                       </div>
-                    </AutocompleteItem>
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
                   ))}
+                    </ListBox>
+                  </Autocomplete.Popover>
                 </Autocomplete>
+                {errors.master_equipment_id?.message ? <span className="text-sm font-normal text-red-600">{errors.master_equipment_id.message}</span> : null}
               </div>
 
               {/* Cal. by */}
-              <Input
+              <FieldInput
                 label="Cal. by"
-                labelPlacement="outside"
                 placeholder="Enter calibrated by"
                 {...register("cal_by", {
                   required: "Cal. by is required",
                   minLength: { value: 2, message: "Cal. by must be at least 2 characters" }
                 })}
-                isInvalid={!!errors.cal_by}
-                errorMessage={errors.cal_by?.message}
+                error={errors.cal_by?.message}
               />
 
               {/* Calibration Date */}
@@ -235,26 +261,17 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
                 render={({ field: { onChange, value } }) => {
                   const dateValue = value ? extractDatePart(value) : null;
                   return (
-                    <DatePicker
-                      label="Calibration Date"
-                      labelPlacement="outside"
-                      value={dateValue ? parseDate(dateValue) : null}
-                      onChange={(date) => onChange(date ? date.toString() : "")}
-                      isInvalid={!!errors.cal_date}
-                      errorMessage={errors.cal_date?.message}
-                    />
+                    <FormDatePicker label="Calibration Date" value={dateValue ? parseDate(dateValue) : null} onChange={(date) => onChange(date ? String(date) : "")} error={errors.cal_date?.message} />
                   );
                 }}
               />
 
               {/* Remark */}
-              <Input
+              <FieldInput
                 label="Remark"
-                labelPlacement="outside"
                 placeholder="Enter remark"
                 {...register("remark")}
-                isInvalid={!!errors.remark}
-                errorMessage={errors.remark?.message}
+                error={errors.remark?.message}
               />
 
               {/* Calibration Due Date */}
@@ -264,46 +281,33 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
                 render={({ field: { onChange, value } }) => {
                   const dateValue = value ? extractDatePart(value) : null;
                   return (
-                    <DatePicker
-                      label="Calibration Due Date"
-                      labelPlacement="outside"
-                      value={dateValue ? parseDate(dateValue) : null}
-                      onChange={(date) => onChange(date ? date.toString() : "")}
-                      isInvalid={!!errors.calibration_due_date}
-                      errorMessage={errors.calibration_due_date?.message}
-                    />
+                    <FormDatePicker label="Calibration Due Date" value={dateValue ? parseDate(dateValue) : null} onChange={(date) => onChange(date ? String(date) : "")} error={errors.calibration_due_date?.message} />
                   );
                 }}
               />
 
               {/* Format No. */}
-              <Input
+              <FieldInput
                 label="Format No."
-                labelPlacement="outside"
                 placeholder="Enter format number"
                 {...register("format_no")}
-                isInvalid={!!errors.format_no}
-                errorMessage={errors.format_no?.message}
+                error={errors.format_no?.message}
               />
 
               {/* Cal. Certificate no */}
-              <Input
+              <FieldInput
                 label="Cal. Certificate no"
-                labelPlacement="outside"
                 placeholder="Enter calibration certificate number"
                 {...register("cal_certificate_no")}
-                isInvalid={!!errors.cal_certificate_no}
-                errorMessage={errors.cal_certificate_no?.message}
+                error={errors.cal_certificate_no?.message}
               />
 
               {/* Traceability */}
-              <Input
+              <FieldInput
                 label="Traceability"
-                labelPlacement="outside"
                 placeholder="Enter traceability"
                 {...register("traceability")}
-                isInvalid={!!errors.traceability}
-                errorMessage={errors.traceability?.message}
+                error={errors.traceability?.message}
               />
             </div>
 
@@ -315,35 +319,32 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
                   type="button"
                   onPress={handleAddRange}
                   isDisabled={!newRange.range.trim() || !newRange.max_permissible_error.trim() || !newRange.uncertainty.trim()}
-                  color="primary"
+                  variant="primary"
                   size="sm"
-                  startContent={<Plus className="h-4 w-4" />}
                 >
+                  <Plus className="h-4 w-4" />
                   Add Range
                 </Button>
               </div>
 
               {/* Add New Range */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
-                <Input
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-md">
+                <FieldInput
                   label="Range"
-                  labelPlacement="outside"
                   value={newRange.range}
                   onChange={(e) => setNewRange({ ...newRange, range: e.target.value })}
                   placeholder="Enter range (e.g., 0-50 mm)"
                 />
 
-                <Input
+                <FieldInput
                   label="MAX Permissible Error"
-                  labelPlacement="outside"
                   value={newRange.max_permissible_error}
                   onChange={(e) => setNewRange({ ...newRange, max_permissible_error: e.target.value })}
                   placeholder="Enter max error (e.g., ±0.02 mm)"
                 />
 
-                <Input
+                <FieldInput
                   label="Uncertainty"
-                  labelPlacement="outside"
                   value={newRange.uncertainty}
                   onChange={(e) => setNewRange({ ...newRange, uncertainty: e.target.value })}
                   placeholder="Enter uncertainty"
@@ -354,11 +355,11 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
               {ranges.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-foreground">Current Ranges ({ranges.length})</h4>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-3 bg-card">
+                  <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-card">
                     {ranges.map((range, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                        className="flex items-center justify-between p-3 bg-muted/50 rounded-md border"
                       >
                         <div className="flex-1 grid grid-cols-3 gap-4">
                           <div className="text-sm">
@@ -376,7 +377,7 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
                         </div>
                         <Button
                           type="button"
-                          variant="light"
+                          variant="ghost"
                           size="sm"
                           onPress={() => handleRemoveRange(index)}
                           className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 ml-2"
@@ -392,10 +393,10 @@ const EquipmentHistoryForm = ({ mode = 'create', historyId, onSuccess, onCancel 
 
             {/* Actions */}
             <div className="flex gap-3 pt-2">
-              <Button type="submit" color="primary" isDisabled={loading || isSubmitting}>
-                {mode === "edit" ? "Update" : "Save"}
+              <Button type="submit" variant="primary" isDisabled={loading || isSubmitting}>
+                {loading || isSubmitting ? "Saving..." : mode === "edit" ? "Update" : "Save"}
               </Button>
-              <Button variant="bordered" onPress={onCancel || (() => navigate(-1))}>
+              <Button variant="outline" onPress={onCancel || (() => navigate(-1))}>
                 Cancel
               </Button>
             </div>

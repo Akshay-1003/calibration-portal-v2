@@ -224,11 +224,8 @@ export const MasterPeiceCalibration: React.FC<GaugeCalibrationProps> = ({
                       <Input
                         {...field}
                         value={toDisplay(field.value ?? specificationSizes[index] ?? "")}
-                        isReadOnly
-                        classNames={{
-                          inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                          input: "text-sm text-center font-medium",
-                        }}
+                        disabled
+                        className="h-9 border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                       />
                     )}
                   />
@@ -248,11 +245,8 @@ export const MasterPeiceCalibration: React.FC<GaugeCalibrationProps> = ({
                             value={toDisplay(field.value)}
                             type="number"
                             step="any"
-                            isDisabled={isReadOnly}
-                            classNames={{
-                              inputWrapper: "h-9 border-1 border-gray-300 bg-white",
-                              input: "text-sm text-center",
-                            }}
+                            disabled={isReadOnly}
+                            className="h-9 border border-gray-300 bg-white text-center text-sm"
                             placeholder="0.000"
                           />
                         )}
@@ -271,12 +265,9 @@ export const MasterPeiceCalibration: React.FC<GaugeCalibrationProps> = ({
                         {...field}
                         type="text"
                         inputMode="decimal"
-                        isDisabled={isReadOnly}
+                        disabled={isReadOnly}
                         value={toDisplay(field.value)}
-                        classNames={{
-                          inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                          input: "text-sm text-center font-semibold",
-                        }}
+                        className="h-9 border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                         placeholder="0.0000"
                         onFocus={() => {
                           meanEditingRef.current[index] = true;
@@ -319,12 +310,9 @@ export const MasterPeiceCalibration: React.FC<GaugeCalibrationProps> = ({
                     render={({ field }) => (
                       <Input
                         {...field}
-                        isReadOnly
+                        disabled
                         value={toDisplay(field.value)}
-                        classNames={{
-                          inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                          input: "text-sm text-center font-semibold",
-                        }}
+                        className="h-9 border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                         placeholder="0.000"
                       />
                     )}

@@ -1,4 +1,5 @@
 import React from "react";
+import backgroundUrl from "../../images/logo/bgScreen1.svg";
 
 interface AuthPageLayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,7 @@ export default function AuthPageLayout({
   showLogo = true,
 }: AuthPageLayoutProps) {
   React.useEffect(() => {
-    const href = '/images/logo/bgScreen1.svg';
+    const href = backgroundUrl;
     const existing = document.querySelector<HTMLLinkElement>('link[data-auth-preload="bg"]');
     if (existing) {
       return;
@@ -50,7 +51,7 @@ export default function AuthPageLayout({
     <div 
       className="relative min-h-screen flex"
       style={{
-        backgroundImage: 'url(/images/logo/bgScreen1.svg)',
+        backgroundImage: `url(${backgroundUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
@@ -60,8 +61,8 @@ export default function AuthPageLayout({
       <div className="absolute inset-0 bg-white/30 backdrop-blur-sm" />
 
       {/* Right Side - Form - Instant render, no animations */}
-      <div className="relative z-10 flex flex-1 items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">{children}</div>
+      <div className="relative z-10 flex min-w-0 flex-1 items-center justify-center px-4 py-12">
+        <div className="min-w-0 w-full max-w-[calc(100vw-2rem)] md:max-w-md">{children}</div>
       </div>
 
       {/* Left Side - Branding */}

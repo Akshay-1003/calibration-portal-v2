@@ -1,25 +1,26 @@
 "use client"
 import { useForm, Controller, useWatch } from "react-hook-form"
 import { useMemo, useCallback, useEffect, useRef, useState, memo } from "react"
-import { Input, Button, Card, CardHeader, CardBody, Checkbox, DatePicker, Select, SelectItem, Spinner } from "@heroui-v2/react"
+import { Calendar, DateField, DatePicker, Input, Button, Card, Checkbox, ListBox, Select, Spinner } from "@heroui/react"
+import { parseDate } from "@internationalized/date"
 import { FormField } from "../ui/form-field"
 import { useNavigate, useSearchParams, useParams } from "react-router-dom"
 import { toast } from "sonner"
 import { useOrganizations } from "../../hooks/useOrganizations"
 import { format } from "date-fns"
-import { parseDate } from "@internationalized/date"
-import { enhancedInwardFormSchema, zodResolver, type EnhancedInwardFormData } from "../../lib/validations"
+import { enhancedInwardFormSchema, zodResolver } from "../../lib/validations"
+import type { InwardFormData as InwardBaseFormData } from "../../types"
+import type { InwardEntry } from "../../types"
 import { ClipboardDocumentCheckIcon } from "@heroicons/react/24/outline"
 import { FormDateProvider } from "./FormDateProvider"
 import { useCreateInwardEntryMutation, useInwardEntryQuery, useUpdateInwardEntryMutation } from "../../hooks/queries/inwards";
 import { buildRegisterGaugeRoute } from "../../utils/inwardRoutes";
 
 // Use the type from validations with date adjustments for form handling
-type InwardFormData = Omit<EnhancedInwardFormData, 'client_dc_date' | 'inward_date' | 'received_date' | 'commit_date' | 'created_at' | 'updated_at'> & {
-  client_dc_date: Date | undefined;
-  inward_date: Date | undefined;
-  received_date: Date | undefined;
-  commit_date: Date | undefined;
+type InwardFormData = Omit<InwardBaseFormData, 'created_at' | 'updated_at'> & {
+  client_org_name: string;
+  billing_org_name: string;
+  delivery_org_name: string;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -31,6 +32,93 @@ type InwardApiRequest = Omit<InwardFormData, 'client_dc_date' | 'inward_date' | 
   received_date: string;
   commit_date: string;
 }
+
+const getFormErrorMessage = (error: unknown): string | undefined => {
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = error.message
+    return typeof message === 'string' ? message : undefined
+  }
+  return undefined
+}
+
+type SelectOption = { value: string; label: string }
+
+const V3Select = ({
+  value,
+  onChange,
+  options,
+  placeholder,
+  ariaLabel,
+  disabled = false,
+}: {
+  value: string | undefined;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  placeholder: string;
+  ariaLabel: string;
+  disabled?: boolean;
+}) => (
+  <Select selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : "")} isDisabled={disabled} placeholder={placeholder} aria-label={ariaLabel}>
+    <Select.Trigger className="w-full">
+      <Select.Value />
+      <Select.Indicator />
+    </Select.Trigger>
+    <Select.Popover>
+      <ListBox>
+        {options.map((option) => (
+          <ListBox.Item key={option.value} id={option.value} textValue={option.label}>
+            {option.label}
+            <ListBox.ItemIndicator />
+          </ListBox.Item>
+        ))}
+      </ListBox>
+    </Select.Popover>
+  </Select>
+)
+
+const V3DatePicker = ({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: Date | undefined;
+  onChange: (value: Date | undefined) => void;
+  ariaLabel: string;
+}) => (
+  <DatePicker
+    value={value ? parseDate(format(value, "yyyy-MM-dd")) : null}
+    onChange={(date) => onChange(date ? new Date(String(date)) : undefined)}
+    className="w-full"
+  >
+    <DateField.Group fullWidth>
+      <DateField.Input aria-label={ariaLabel}>
+        {(segment) => <DateField.Segment segment={segment} />}
+      </DateField.Input>
+      <DateField.Suffix>
+        <DatePicker.Trigger>
+          <DatePicker.TriggerIndicator />
+        </DatePicker.Trigger>
+      </DateField.Suffix>
+    </DateField.Group>
+    <DatePicker.Popover>
+      <Calendar aria-label={ariaLabel}>
+        <Calendar.Header>
+          <Calendar.NavButton slot="previous" />
+          <Calendar.Heading />
+          <Calendar.NavButton slot="next" />
+        </Calendar.Header>
+        <Calendar.Grid>
+          <Calendar.GridHeader>
+            {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
+          </Calendar.GridHeader>
+          <Calendar.GridBody>
+            {(date) => <Calendar.Cell date={date} />}
+          </Calendar.GridBody>
+        </Calendar.Grid>
+      </Calendar>
+    </DatePicker.Popover>
+  </DatePicker>
+)
 
 const InwardForm = () => {
   const navigate = useNavigate()
@@ -124,7 +212,7 @@ const InwardForm = () => {
         setValue("client_org_name", selectedOrg.name, { shouldValidate: false })
         setValue("billing_org_name", selectedOrg.name, { shouldValidate: false })
         setValue("delivery_org_name", selectedOrg.name, { shouldValidate: false })
-console.log('selectedOrg.contract',selectedOrg.contract);
+        console.log('selectedOrg.contract', selectedOrg.contract);
         // Auto-populate contract details if available
         if (selectedOrg.contract) {
           setValue("calibration_method", (selectedOrg.contract.calibration_method || "lab_method") as "lab_method" | "customer_specified_method" | "standard_method", { shouldValidate: false })
@@ -139,13 +227,6 @@ console.log('selectedOrg.contract',selectedOrg.contract);
       }
     }
   }, [organizations, setValue])
-  const todayCalendarProps = useMemo(() => ({
-    classNames: {
-      cellButton:
-        "data-[today=true]:bg-primary data-[today=true]:text-primary-foreground data-[today=true]:font-medium"
-    },
-  }), []);
-  
   // Convert form data to API format - memoized to prevent recreation
   // Excludes created_at, updated_at, deleted_at as they are auto-managed by backend
   const convertToApiFormat = useCallback((data: InwardFormData): InwardApiRequest => {
@@ -159,38 +240,38 @@ console.log('selectedOrg.contract',selectedOrg.contract);
     };
   }, []);
 
-  const mapInwardToFormData = useCallback((inwardData: Record<string, unknown>): Partial<InwardFormData> => {
+  const mapInwardToFormData = useCallback((inwardData: InwardEntry): Partial<InwardFormData> => {
     return {
-      client_org_id: inwardData.client_org_id || inwardData.clientOrgId || "",
-      billing_org_id: inwardData.billing_org_id || inwardData.billingOrgId || "",
-      delivery_org_id: inwardData.delivery_org_id || inwardData.deliveryOrgId || "",
-      other_access_org_id: inwardData.other_access_org_id || inwardData.otherAccessOrgId || "",
-      client_org_name: inwardData.client_org_name || inwardData.clientOrgName || "",
-      billing_org_name: inwardData.billing_org_name || inwardData.billingOrgName || "",
-      delivery_org_name: inwardData.delivery_org_name || inwardData.deliveryOrgName || "",
-      client_dc_no: inwardData.client_dc_no || inwardData.clientDcNo || "",
-      client_dc_date: (inwardData.client_dc_date || inwardData.clientDcDate) ? new Date(inwardData.client_dc_date || inwardData.clientDcDate) : undefined,
-      through: inwardData.through || "",
-      inward_date: (inwardData.inward_date || inwardData.inwardDate) ? new Date(inwardData.inward_date || inwardData.inwardDate) : undefined,
-      received_date: (inwardData.received_date || inwardData.receivedDate) ? new Date(inwardData.received_date || inwardData.receivedDate) : undefined,
-      commit_date: (inwardData.commit_date || inwardData.commitDate) ? new Date(inwardData.commit_date || inwardData.commitDate) : undefined,
-      calibration_method: inwardData.calibration_method || inwardData.calibrationMethod || "",
-      reporting_method: inwardData.reporting_method || inwardData.reportingMethod || "",
-      collection_mode: inwardData.collection_mode || inwardData.collectionMode || "",
-      dispatch_mode: inwardData.dispatch_mode || inwardData.dispatchMode || "",
-      conformity_statement: inwardData.conformity_statement ?? inwardData.conformityStatement ?? false,
-      conformity_accepted: inwardData.conformity_accepted ?? inwardData.conformityAccepted ?? false,
-      specific_requirements: inwardData.specific_requirements || inwardData.specificRequirements || "",
-      additional_requirements: inwardData.additional_requirements || inwardData.additionalRequirements || "",
-      rate_card: inwardData.rate_card || inwardData.rateCard || null,
+      client_org_id: inwardData.client_org_id,
+      billing_org_id: inwardData.billing_org_id,
+      delivery_org_id: inwardData.delivery_org_id,
+      other_access_org_id: inwardData.other_access_org_id,
+      client_org_name: inwardData.client_org_name,
+      billing_org_name: inwardData.billing_org_name,
+      delivery_org_name: inwardData.delivery_org_name,
+      client_dc_no: inwardData.client_dc_no,
+      client_dc_date: inwardData.client_dc_date ? new Date(String(inwardData.client_dc_date)) : undefined,
+      through: inwardData.through,
+      inward_date: inwardData.inward_date ? new Date(String(inwardData.inward_date)) : undefined,
+      received_date: inwardData.received_date ? new Date(String(inwardData.received_date)) : undefined,
+      commit_date: inwardData.commit_date ? new Date(String(inwardData.commit_date)) : undefined,
+      calibration_method: inwardData.calibration_method,
+      reporting_method: inwardData.reporting_method,
+      collection_mode: inwardData.collection_mode,
+      dispatch_mode: inwardData.dispatch_mode,
+      conformity_statement: inwardData.conformity_statement,
+      conformity_accepted: inwardData.conformity_accepted,
+      specific_requirements: inwardData.specific_requirements,
+      additional_requirements: inwardData.additional_requirements,
+      rate_card: inwardData.rate_card ?? null,
       archived: inwardData.archived ?? false,
-      created_at: typeof inwardData.created_at === 'string' ? inwardData.created_at : (typeof inwardData.createdAt === 'string' ? inwardData.createdAt as string : null),
-      updated_at: typeof inwardData.updated_at === 'string' ? inwardData.updated_at : (typeof inwardData.updatedAt === 'string' ? inwardData.updatedAt as string : null),
-      deleted_at: inwardData.deleted_at || inwardData.deletedAt || null,
-      lab_authorized_person_id: inwardData.lab_authorized_person_id || inwardData.labAuthorizedPersonId || "",
-      lab_authorized_person_designation: inwardData.lab_authorized_person_designation || inwardData.labAuthorizedPersonDesignation || "",
-      client_authorized_person_id: inwardData.client_authorized_person_id || inwardData.clientAuthorizedPersonId || "",
-      client_authorized_person_contact: inwardData.client_authorized_person_contact || inwardData.clientAuthorizedPersonContact || "",
+      created_at: inwardData.created_at,
+      updated_at: inwardData.updated_at,
+      deleted_at: inwardData.deleted_at ?? null,
+      lab_authorized_person_id: inwardData.lab_authorized_person_id,
+      lab_authorized_person_designation: inwardData.lab_authorized_person_designation,
+      client_authorized_person_id: inwardData.client_authorized_person_id,
+      client_authorized_person_contact: inwardData.client_authorized_person_contact,
     };
   }, [])
 
@@ -342,13 +423,9 @@ console.log('selectedOrg.contract',selectedOrg.contract);
   }
 
   // Memoize organization options to prevent re-renders
-  const organizationOptions = useMemo(() => {
-    return organizations.map(org => (
-      <SelectItem key={org.id} textValue={org.name} aria-label={`Select organization ${org.name}`}>
-        {org.name}
-      </SelectItem>
-    ));
-  }, [organizations]);
+  const organizationOptions = useMemo<SelectOption[]>(() => (
+    organizations.map((org) => ({ value: org.id, label: org.name }))
+  ), [organizations]);
 
   // Don't block render - show form immediately, loading states only in Select components
   return (
@@ -356,9 +433,9 @@ console.log('selectedOrg.contract',selectedOrg.contract);
       <div className="w-full p-2" role="main" aria-label={isEditMode ? "Edit Inward Challan Form" : "Create Inward Challan Form"}>
 
         <Card className="shadow-sm">
-          <CardHeader className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
+          <Card.Header className="pb-4 border-b border-gray-200 bg-blue-600 text-white">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-600 rounded-lg">
+              <div className="p-2 bg-blue-600 rounded-md">
                 <ClipboardDocumentCheckIcon className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -370,11 +447,11 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                 </p>
               </div>
             </div>
-          </CardHeader>
-          <CardBody className="p-4 border border-gray-200">
+          </Card.Header>
+          <Card.Content className="p-4 border border-gray-200">
             {loadingData ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
-                <Spinner size="lg" color="primary" aria-label="Loading inward entry data" />
+                <Spinner size="lg" color="accent" aria-label="Loading inward entry data" />
                 <p className="text-sm text-gray-600">Loading inward entry data...</p>
               </div>
             ) : (
@@ -392,28 +469,14 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.client_org_id?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select client organization"
-                      aria-describedby={errors.client_org_id ? "client-org-error" : undefined}
+                    <V3Select
+                      value={clientOrgId}
+                      options={organizationOptions}
+                      ariaLabel="Select client organization"
                       placeholder={orgLoading ? "Loading organizations..." : "Select Client Name"}
-                      isLoading={orgLoading}
-                      isDisabled={orgLoading || loadingData}
-                      selectedKeys={clientOrgId ? [clientOrgId] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        if (value) {
-                          handleOrganizationSelect(value, 'client')
-                        }
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      {organizationOptions}
-                    </Select>
+                      disabled={orgLoading || loadingData}
+                      onChange={(value) => handleOrganizationSelect(value, 'client')}
+                    />
                     {errors.client_org_id && (
                       <span id="client-org-error" className="sr-only" role="alert">
                         {errors.client_org_id.message}
@@ -427,28 +490,14 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.billing_org_id?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select billing organization"
-                      aria-describedby={errors.billing_org_id ? "billing-org-error" : undefined}
+                    <V3Select
+                      value={billingOrgId}
+                      options={organizationOptions}
+                      ariaLabel="Select billing organization"
                       placeholder={orgLoading ? "Loading organizations..." : "Select Billing To"}
-                      isLoading={orgLoading}
-                      isDisabled={orgLoading || loadingData}
-                      selectedKeys={billingOrgId ? [billingOrgId] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        if (value) {
-                          handleOrganizationSelect(value, 'billing')
-                        }
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      {organizationOptions}
-                    </Select>
+                      disabled={orgLoading || loadingData}
+                      onChange={(value) => handleOrganizationSelect(value, 'billing')}
+                    />
                     {errors.billing_org_id && (
                       <span id="billing-org-error" className="sr-only" role="alert">
                         {errors.billing_org_id.message}
@@ -462,28 +511,14 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.delivery_org_id?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select delivery organization"
-                      aria-describedby={errors.delivery_org_id ? "delivery-org-error" : undefined}
+                    <V3Select
+                      value={deliveryOrgId}
+                      options={organizationOptions}
+                      ariaLabel="Select delivery organization"
                       placeholder={orgLoading ? "Loading organizations..." : "Select Deliver To"}
-                      isLoading={orgLoading}
-                      isDisabled={orgLoading || loadingData}
-                      selectedKeys={deliveryOrgId ? [deliveryOrgId] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        if (value) {
-                          handleOrganizationSelect(value, 'delivery')
-                        }
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      {organizationOptions}
-                    </Select>
+                      disabled={orgLoading || loadingData}
+                      onChange={(value) => handleOrganizationSelect(value, 'delivery')}
+                    />
                     {errors.delivery_org_id && (
                       <span id="delivery-org-error" className="sr-only" role="alert">
                         {errors.delivery_org_id.message}
@@ -500,28 +535,14 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.other_access_org_id?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select other access organization"
-                      aria-describedby={errors.other_access_org_id ? "other-access-org-error" : undefined}
+                    <V3Select
+                      value={otherAccessOrgId}
+                      options={organizationOptions}
+                      ariaLabel="Select other access organization"
                       placeholder={orgLoading ? "Loading organizations..." : "Select Other Access To"}
-                      isLoading={orgLoading}
-                      isDisabled={orgLoading || loadingData}
-                      selectedKeys={otherAccessOrgId ? [otherAccessOrgId] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        if (value) {
-                          handleOrganizationSelect(value, 'other')
-                        }
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      {organizationOptions}
-                    </Select>
+                      disabled={orgLoading || loadingData}
+                      onChange={(value) => handleOrganizationSelect(value, 'other')}
+                    />
                     {errors.other_access_org_id && (
                       <span id="other-access-org-error" className="sr-only" role="alert">
                         {errors.other_access_org_id.message}
@@ -562,21 +583,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       name="client_dc_date"
                       control={control}
                       render={({ field: { onChange, value } }) => (
-                        <DatePicker
-                          label=""
-                          aria-label="Select client DC date"
-                          aria-describedby={errors.client_dc_date ? "client-dc-date-error" : undefined}
-                          aria-required="true"
-                          className="w-full"
-                          classNames={{
-                            base: "w-full",
-                            inputWrapper: "border border-input bg-background hover:bg-accent"
-                          }}
-                          calendarProps={value ? undefined : todayCalendarProps}
-
-                          value={value ? parseDate(format(value as Date, "yyyy-MM-dd")) : null}
-                          onChange={(date) => onChange(date ? new Date(date.toString()) : undefined)}
-                        />
+                        <V3DatePicker value={value as Date | undefined} onChange={onChange} ariaLabel="Select client DC date" />
                       )}
                     />
                     {errors.client_dc_date && (
@@ -599,20 +606,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       name="inward_date"
                       control={control}
                       render={({ field: { onChange, value } }) => (
-                        <DatePicker
-                          label=""
-                          aria-label="Select inward date"
-                          aria-describedby={errors.inward_date ? "inward-date-error" : undefined}
-                          aria-required="true"
-                          className="w-full"
-                          classNames={{
-                            base: "w-full",
-                            inputWrapper: "border border-input bg-background hover:bg-accent"
-                          }}
-                          value={value ? parseDate(format(value as Date, "yyyy-MM-dd")) : null}
-                          onChange={(date) => onChange(date ? new Date(date.toString()) : undefined)}
-                          calendarProps={value ? undefined : todayCalendarProps}
-                        />
+                        <V3DatePicker value={value as Date | undefined} onChange={onChange} ariaLabel="Select inward date" />
                       )}
                     />
                     {errors.inward_date && (
@@ -632,21 +626,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       name="received_date"
                       control={control}
                       render={({ field: { onChange, value } }) => (
-                        <DatePicker
-                          label=""
-                          aria-label="Select received date"
-                          aria-describedby={errors.received_date ? "received-date-error" : undefined}
-                          aria-required="true"
-                          className="w-full"
-                          classNames={{
-                            base: "w-full",
-                            inputWrapper: "border border-input bg-background hover:bg-accent"
-                          }}
-                          value={value ? parseDate(format(value as Date, "yyyy-MM-dd")) : null}
-                          onChange={(date) => onChange(date ? new Date(date.toString()) : undefined)}
-                          calendarProps={value ? undefined : todayCalendarProps}
-
-                        />
+                        <V3DatePicker value={value as Date | undefined} onChange={onChange} ariaLabel="Select received date" />
                       )}
                     />
                     {errors.received_date && (
@@ -682,26 +662,11 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.calibration_method?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select calibration method"
-                      aria-describedby={errors.calibration_method ? "calibration-method-error" : undefined}
-                      placeholder="Select Calibration Method"
-                      selectedKeys={calibrationMethod ? [calibrationMethod] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        setValue('calibration_method', value, { shouldValidate: false })
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      <SelectItem key="lab_method" textValue="Lab Method">Lab Method</SelectItem>
-                      <SelectItem key="customer_specified_method" textValue="Customer Specified Method">Customer Specified Method</SelectItem>
-                      <SelectItem key="standard_method" textValue="Standard Method">Standard Method</SelectItem>
-                    </Select>
+                    <V3Select value={calibrationMethod} ariaLabel="Select calibration method" placeholder="Select Calibration Method" onChange={(value) => setValue('calibration_method', value as InwardFormData['calibration_method'], { shouldValidate: false })} options={[
+                      { value: 'lab_method', label: 'Lab Method' },
+                      { value: 'customer_specified_method', label: 'Customer Specified Method' },
+                      { value: 'standard_method', label: 'Standard Method' },
+                    ]} />
                     {errors.calibration_method && (
                       <span id="calibration-method-error" className="sr-only" role="alert">
                         {errors.calibration_method.message}
@@ -715,26 +680,11 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.reporting_method?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select reporting method"
-                      aria-describedby={errors.reporting_method ? "reporting-method-error" : undefined}
-                      placeholder="Select Reporting Method"
-                      selectedKeys={reportingMethod ? [reportingMethod] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        setValue('reporting_method', value, { shouldValidate: false })
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      <SelectItem key="lab_format" textValue="Lab Format">Lab Format</SelectItem>
-                      <SelectItem key="customer_specified_format" textValue="Customer Specified Format">Customer Specified Format</SelectItem>
-                      <SelectItem key="standard_format" textValue="Standard Format">Standard Format</SelectItem>
-                    </Select>
+                    <V3Select value={reportingMethod} ariaLabel="Select reporting method" placeholder="Select Reporting Method" onChange={(value) => setValue('reporting_method', value as InwardFormData['reporting_method'], { shouldValidate: false })} options={[
+                      { value: 'lab_format', label: 'Lab Format' },
+                      { value: 'customer_specified_format', label: 'Customer Specified Format' },
+                      { value: 'standard_format', label: 'Standard Format' },
+                    ]} />
                     {errors.reporting_method && (
                       <span id="reporting-method-error" className="sr-only" role="alert">
                         {errors.reporting_method.message}
@@ -748,25 +698,10 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.collection_mode?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select collection mode"
-                      aria-describedby={errors.collection_mode ? "collection-mode-error" : undefined}
-                      placeholder="Select Collection Mode"
-                      selectedKeys={collectionMode ? [collectionMode] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        setValue('collection_mode', value, { shouldValidate: false })
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      <SelectItem key="by_hand">By Hand</SelectItem>
-                      <SelectItem key="by_courier">Courier</SelectItem>
-                    </Select>
+                    <V3Select value={collectionMode} ariaLabel="Select collection mode" placeholder="Select Collection Mode" onChange={(value) => setValue('collection_mode', value as InwardFormData['collection_mode'], { shouldValidate: false })} options={[
+                      { value: 'by_hand', label: 'By Hand' },
+                      { value: 'by_courier', label: 'Courier' },
+                    ]} />
                     {errors.collection_mode && (
                       <span id="collection-mode-error" className="sr-only" role="alert">
                         {errors.collection_mode.message}
@@ -783,25 +718,10 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                     required={true}
                     error={errors.dispatch_mode?.message}
                   >
-                    <Select
-                      label=""
-                      aria-label="Select dispatch mode"
-                      aria-describedby={errors.dispatch_mode ? "dispatch-mode-error" : undefined}
-                      placeholder="Select Dispatch Mode"
-                      selectedKeys={dispatchMode ? [dispatchMode] : []}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as string
-                        setValue('dispatch_mode', value, { shouldValidate: false })
-                      }}
-                      className="w-full"
-                      classNames={{
-                        base: "w-full",
-                        trigger: "border border-input bg-background hover:bg-accent"
-                      }}
-                    >
-                      <SelectItem key="by_hand">By Hand</SelectItem>
-                      <SelectItem key="by_courier">Courier</SelectItem>
-                    </Select>
+                    <V3Select value={dispatchMode} ariaLabel="Select dispatch mode" placeholder="Select Dispatch Mode" onChange={(value) => setValue('dispatch_mode', value as InwardFormData['dispatch_mode'], { shouldValidate: false })} options={[
+                      { value: 'by_hand', label: 'By Hand' },
+                      { value: 'by_courier', label: 'Courier' },
+                    ]} />
                     {errors.dispatch_mode && (
                       <span id="dispatch-mode-error" className="sr-only" role="alert">
                         {errors.dispatch_mode.message}
@@ -819,20 +739,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       name="commit_date"
                       control={control}
                       render={({ field: { onChange, value } }) => (
-                        <DatePicker
-                          label=""
-                          aria-label="Select commit date (optional)"
-                          aria-describedby={errors.commit_date ? "commit-date-error" : undefined}
-                          className="w-full"
-                          classNames={{
-                            base: "w-full",
-                            inputWrapper: "border border-input bg-background hover:bg-accent"
-                          }}
-                          value={value ? parseDate(format(value as Date, "yyyy-MM-dd")) : null}
-                          onChange={(date) => onChange(date ? new Date(date.toString()) : undefined)}
-                          calendarProps={value ? undefined : todayCalendarProps}
-
-                        />
+                        <V3DatePicker value={value as Date | undefined} onChange={onChange} ariaLabel="Select commit date (optional)" />
                       )}
                     />
                     {errors.commit_date && (
@@ -884,13 +791,13 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                 </div>
 
                 {/* Checkbox Fields - Inline layout */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-100 rounded-lg border border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-100 rounded-md border border-slate-200">
                   {formFields.checkboxes.map((field) => (
                     <FormField
                       key={field.key}
                       label={field.label}
                       required={true}
-                      error={errors[field.key as keyof InwardFormData]?.message}
+                      error={getFormErrorMessage(errors[field.key as keyof InwardFormData])}
                     >
                       <div className="flex items-center gap-6 mt-2">
                         {field.options.map((option, index) => {
@@ -900,23 +807,46 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                           const isChecked = fieldValue === (index === 0);
 
                           return (
-                            <div key={option} className="flex items-center gap-2">
-                              <Checkbox
-                                id={`${field.key}_${index}`}
-                                aria-label={`${field.label} - ${option}`}
-                                isSelected={isChecked}
-                                onValueChange={(isSelected: boolean) => {
-                                  if (isSelected) {
-                                    setValue(field.key as keyof InwardFormData, index === 0, { shouldValidate: false })
-                                  } else {
-                                    setValue(field.key as keyof InwardFormData, index === 1, { shouldValidate: false })
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`${field.key}_${index}`} className="text-sm font-medium text-secondary-700 cursor-pointer">
-                                {option}
-                              </label>
-                            </div>
+                            <>
+                              <div key={option} className="flex items-center gap-2">
+                                {/* <Checkbox
+                                  id={`${field.key}_${index}`}
+                                  aria-label={`${field.label} - ${option}`}
+                                  isSelected={isChecked}
+                                  onChange={(isSelected: boolean) => {
+                                    if (isSelected) {
+                                      setValue(field.key as keyof InwardFormData, index === 0, { shouldValidate: false })
+                                    } else {
+                                      setValue(field.key as keyof InwardFormData, index === 1, { shouldValidate: false })
+                                    }
+                                  }}
+                                />
+
+                                <label htmlFor={`${field.key}_${index}`} className="text-sm font-medium text-secondary-700 cursor-pointer">
+                                  {option}
+                                </label> */}
+                                <Checkbox
+                                  id={`${field.key}_${index}`}
+                                  aria-label={`${field.label} - ${option}`}
+                                  isSelected={isChecked}
+                                  onChange={(isSelected: boolean) => {
+                                    if (isSelected) {
+                                      setValue(field.key as keyof InwardFormData, index === 0, { shouldValidate: false })
+                                    } else {
+                                      setValue(field.key as keyof InwardFormData, index === 1, { shouldValidate: false })
+                                    }
+                                  }} render={(props) => <div {...props} />}>
+                                  <Checkbox.Content>
+                                    <Checkbox.Control>
+                                      <Checkbox.Indicator />
+                                    </Checkbox.Control>
+                                    {option}
+                                  </Checkbox.Content>
+                                </Checkbox>
+                              </div>
+
+
+                            </>
                           );
                         })}
                       </div>
@@ -931,7 +861,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       key={field.key}
                       label={field.label}
                       required={true}
-                      error={errors[field.key as keyof InwardFormData]?.message}
+                      error={getFormErrorMessage(errors[field.key as keyof InwardFormData])}
                     >
                       <Input
                         placeholder={field.placeholder}
@@ -951,7 +881,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                       key={field.key}
                       label={field.label}
                       required={true}
-                      error={errors[field.key as keyof InwardFormData]?.message}
+                      error={getFormErrorMessage(errors[field.key as keyof InwardFormData])}
                     >
                       <Input
                         placeholder={field.placeholder}
@@ -973,9 +903,8 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                   <Button
                     type="submit"
                     size="lg"
-                    color="primary"
-                    isLoading={loading || isSubmitting || loadingData}
-                    disabled={loading || isSubmitting || loadingData}
+                    variant="primary"
+                    isDisabled={loading || isSubmitting || loadingData}
                     className="w-full md:w-auto"
                     aria-label={loading || isSubmitting ? (isEditMode ? "Updating challan, please wait" : "Creating challan, please wait") : (isEditMode ? "Submit form to update challan" : "Submit form to create challan")}
 
@@ -984,10 +913,10 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                   </Button>
                   <Button
                     type="button"
-                    variant="flat"
+                    variant="secondary"
                     size="lg"
                     onPress={() => navigate(-1)}
-                    disabled={loading || isSubmitting}
+                    isDisabled={loading || isSubmitting}
                     className="w-full md:w-auto"
                     aria-label="Cancel and go back"
 
@@ -997,7 +926,7 @@ console.log('selectedOrg.contract',selectedOrg.contract);
                 </div>
               </form>
             )}
-          </CardBody>
+          </Card.Content>
         </Card>
       </div>
     </FormDateProvider>

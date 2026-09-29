@@ -62,7 +62,7 @@ export const UserPermissionEditor = ({
         <div className="flex flex-wrap gap-2">
           {role && (
             <Button
-              variant="flat"
+              variant="secondary"
               onPress={() => {
                 if (onApplyRoleDefaults) {
                   onApplyRoleDefaults();
@@ -77,22 +77,21 @@ export const UserPermissionEditor = ({
             </Button>
           )}
           <Button
-            variant="flat"
+            variant="secondary"
             onPress={() => onChange(setAllPermissions(permissionScope, 'view', organizationId, labId, visibleModules.map(({ key }) => key)))}
             isDisabled={isDisabled}
           >
             Select View
           </Button>
           <Button
-            variant="flat"
+            variant="secondary"
             onPress={() => onChange(setAllPermissions(permissionScope, 'edit', organizationId, labId, visibleModules.map(({ key }) => key)))}
             isDisabled={isDisabled}
           >
             Select All
           </Button>
           <Button
-            variant="light"
-            color="danger"
+            variant="danger"
             onPress={() => onChange(setAllPermissions(permissionScope, 'clear', organizationId, labId, visibleModules.map(({ key }) => key)))}
             isDisabled={isDisabled}
           >

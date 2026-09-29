@@ -119,7 +119,7 @@ export async function listSurfacePlateReferenceStandards(
 ): Promise<SurfacePlateReferenceStandardsListResult> {
   const response = await apiClient.get(
     API_ENDPOINTS.SURFACE_PLATE_REFERENCE_STANDARDS.LIST,
-    cleanFilters(filters)
+    { params: cleanFilters(filters) }
   );
 
   const result = extractPaginatedList<SurfacePlateReferenceStandardRecord>(response, {
@@ -177,7 +177,7 @@ export async function lookupSurfacePlateTolerance(
 ): Promise<SurfacePlateToleranceLookupResponse> {
   const response = await apiClient.get(
     API_ENDPOINTS.SURFACE_PLATE_REFERENCE_STANDARDS.LOOKUP_TOLERANCE,
-    params
+    { params }
   );
 
   const payload =

@@ -3,10 +3,8 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, LogOut, Settings, HelpCircle, ChevronLeft, ChevronDown } from "lucide-react";
 import {
     Avatar,
-    Dropdown,
-    DropdownTrigger,
-    DropdownMenu,
-    DropdownItem,
+    Menu,
+    Popover,
 } from "@heroui/react";
 
 import {
@@ -52,6 +50,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     const isDesktopLayout = useBreakpoint("lg");
     // State to manage which menu is open (only one at a time)
     const [openMenus, setOpenMenus] = React.useState<Set<string>>(new Set());
+    const [isProfileOpen, setIsProfileOpen] = React.useState(false);
 
     const preloadRoute = React.useCallback((url: string) => {
         void prefetchRoute(url);
@@ -194,7 +193,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             ? item
                             : null;
                     })
-                    .filter(Boolean);
+                    .filter((item): item is NonNullable<typeof item> => item !== null);
 
                 if (visibleItems.length === 0) {
                     return null;
@@ -205,7 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     items: visibleItems,
                 };
             })
-            .filter(Boolean);
+            .filter((group): group is NonNullable<typeof group> => group !== null);
     }, [user?.permissions, user?.role]);
 
     return (
@@ -390,17 +389,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         {isAuthenticated ? (
-                            <Dropdown placement="top-start">
-                                <DropdownTrigger>
+                            <Popover isOpen={isProfileOpen} onOpenChange={setIsProfileOpen}>
+                                <Popover.Trigger>
                                     <SidebarMenuButton
                                         size="lg"
                                         className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground hover:bg-sidebar-accent transition-all"
                                     >
-                                        <Avatar
-                                            name={`${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "User"}
-                                            size="sm"
-                                            className="h-9 w-9 rounded-lg ring-2 ring-sidebar-border"
-                                        />
+                                        <Avatar className="h-9 w-9 rounded-lg ring-2 ring-sidebar-border">
+                                            <Avatar.Fallback>{userInitials}</Avatar.Fallback>
+                                        </Avatar>
                                         <div className="grid flex-1 text-left text-sm leading-tight">
                                             {/* <span className="truncate font-semibold text-sidebar-foreground">
                                                 {`${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "User"}
@@ -411,26 +408,25 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                         </div>
                                         <ChevronRight className="ml-auto h-4 w-4 text-sidebar-foreground/60" />
                                     </SidebarMenuButton>
-                                </DropdownTrigger>
-                                <DropdownMenu
-                                    aria-label="Profile Actions"
-                                    className="min-w-[240px]"
-                                    itemClasses={{
-                                        base: "px-3 py-2.5",
-                                    }}
-                                >
-                                    <DropdownItem
-                                        key="profile"
-                                        textValue="Profile"
-                                        className="pb-3 border-b border-border mb-1"
+                                </Popover.Trigger>
+                                <Popover.Content placement="top start" className="min-w-[240px]">
+                                  <Popover.Dialog>
+                                    <Menu
+                                      aria-label="Profile Actions"
+                                      onAction={(key) => {
+                                        const action = String(key);
+                                        setIsProfileOpen(false);
+                                        if (action === "settings") navigate("/settings");
+                                        if (action === "help") navigate("/help");
+                                        if (action === "logout") void handleLogout();
+                                      }}
                                     >
+                                    <Menu.Item id="profile" textValue="Profile" className="px-3 py-2.5 pb-3 border-b border-border mb-1">
                                         <div className="flex items-center gap-3">
-                                            <Avatar
-                                                src={user?.avatar}
-                                                name={`${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "User"}
-                                                size="sm"
-                                                getInitials={() => userInitials}
-                                            />
+                                            <Avatar>
+                                                {user?.avatar ? <Avatar.Image src={user.avatar} /> : null}
+                                                <Avatar.Fallback>{userInitials}</Avatar.Fallback>
+                                            </Avatar>
                                             <div className="flex flex-col">
                                                 <p className="text-sm font-semibold text-foreground">
                                                     {`${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "User"}
@@ -440,41 +436,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                 </p>
                                             </div>
                                         </div>
-                                    </DropdownItem>
+                                    </Menu.Item>
                               
-                                    <DropdownItem
-                                        key="settings"
-                                        textValue="Settings"
-                                        startContent={<Settings className="w-5 h-5" />}
-                                        onPress={() => navigate('/settings')}
-                                    >
+                                    <Menu.Item id="settings" textValue="Settings" className="px-3 py-2.5">
+                                        <Settings className="w-5 h-5" />
                                         Settings
-                                    </DropdownItem>
-                                    <DropdownItem
-                                        key="help"
-                                        textValue="Help"
-                                        startContent={<HelpCircle className="w-5 h-5" />}
-                                        endContent={<span className="text-muted-foreground">›</span>}
-                                        onPress={() => navigate('/help')}
-                                    >
+                                        <span className="ml-auto" />
+                                    </Menu.Item>
+                                    <Menu.Item id="help" textValue="Help" className="px-3 py-2.5">
+                                        <HelpCircle className="w-5 h-5" />
                                         Help
-                                    </DropdownItem>
-                                    <DropdownItem
-                                        key="logout"
-                                        textValue="Log out"
-                                        color="danger"
-                                        startContent={<LogOut className="w-5 h-5" />}
-                                        onPress={handleLogout}
-                                        className="text-danger"
-                                    >
+                                        <span className="ml-auto">›</span>
+                                    </Menu.Item>
+                                    <Menu.Item id="logout" textValue="Log out" className="px-3 py-2.5 text-danger">
+                                        <LogOut className="w-5 h-5" />
                                         Log out
-                                    </DropdownItem>
-                                </DropdownMenu>
-                            </Dropdown>
+                                    </Menu.Item>
+                                    </Menu>
+                                  </Popover.Dialog>
+                                </Popover.Content>
+                            </Popover>
                         ) : (
                             <SidebarMenuButton asChild className="hover:bg-sidebar-accent">
                                 <Link to="/signin">
-                                    <Avatar size="sm" className="h-8 w-8 rounded-lg" />
+                                    <Avatar className="h-8 w-8 rounded-lg">
+                                        <Avatar.Fallback>?</Avatar.Fallback>
+                                    </Avatar>
                                     <span>Sign In</span>
                                 </Link>
                             </SidebarMenuButton>

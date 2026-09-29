@@ -2,24 +2,21 @@
 
 import React from "react";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
   Select,
-  SelectItem,
+  ListBox,
+  Label,
   Pagination,
   Chip,
-} from "@heroui-v2/react";
+  Table,
+} from "@heroui/react";
 import { useMasterDataStore } from "../../store/useStore";
 import type { ScopeMasterData as StoreScopeMasterData } from "../../store/useStore";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
-import type { Selection } from "@react-types/shared";
+import type { Key } from "@react-types/shared";
 import "../../styles/industrial-table.css";
+import { getTableColumnKey } from './tableColumnKey';
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
 
 type ScopeMasterData = Pick<
@@ -160,12 +157,7 @@ export default function ScopeMasterListTable({
     return filteredItems.slice(start, end);
   }, [filteredItems, isServerPagination, page, rowsPerPage]);
 
-  const tableItems = React.useMemo(() => {
-    if (isServerPagination && loading) {
-      return [];
-    }
-    return items;
-  }, [isServerPagination, items, loading]);
+  const tableItems = items;
 
   const tableRows = React.useMemo<ScopeMasterTableRow[]>(
     () => tableItems.map((item, index) => ({ item, index })),
@@ -178,8 +170,8 @@ export default function ScopeMasterListTable({
     ? 0
     : Math.min((page - 1) * rowsPerPage + tableItems.length, totalRecords);
 
-  const onRowsPerPageChange = React.useCallback((keys: Selection) => {
-    const value = Number(Array.from(keys)[0] as string);
+  const onRowsPerPageChange = React.useCallback((key: Key | null) => {
+    const value = Number(key ?? rowsPerPage);
     if (controlledOnRowsPerPageChange) {
       controlledOnRowsPerPageChange(value);
     } else {
@@ -225,17 +217,16 @@ export default function ScopeMasterListTable({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             aria-label="Search scopes"
             placeholder="Search by gauge name..."
             value={currentSearchValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
+          {currentSearchValue ? <Button type="button" variant="ghost" aria-label="Clear scope search" onPress={onClear}>Clear</Button> : null}
           <div className="flex gap-3">
             {onRefresh && (
-              <Button onPress={onRefresh} size="sm" variant="flat" isDisabled={loading}>
+              <Button onPress={onRefresh} size="sm" variant="secondary" isDisabled={loading}>
                 {loading ? "Refreshing..." : "Refresh"}
               </Button>
             )}
@@ -256,37 +247,32 @@ export default function ScopeMasterListTable({
         </div>
 
         <div className="flex-1 flex justify-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            showShadow
-            page={page}
-            total={pages}
-            onChange={(nextPage) => {
-              if (controlledOnPageChange) {
-                controlledOnPageChange(nextPage);
-              } else {
-                setLocalPage(nextPage);
-              }
-            }}
-          />
+          <Pagination size="sm">
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => (controlledOnPageChange ? controlledOnPageChange(page - 1) : setLocalPage(page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => (controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber))}>{pageNumber}</Pagination.Link></Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={page >= pages} onPress={() => (controlledOnPageChange ? controlledOnPageChange(page + 1) : setLocalPage(page + 1))}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         <div className="flex-1 flex justify-end">
           <div className="flex items-center gap-3">
             <span className="text-small text-default-500 whitespace-nowrap">Rows per page</span>
             <Select
-              aria-label="Rows per page"
-              selectedKeys={new Set([String(rowsPerPage)])}
+              selectedKey={String(rowsPerPage)}
               onSelectionChange={onRowsPerPageChange}
-              size="sm"
               className="w-[110px]"
             >
-              <SelectItem key="10" textValue="10">10</SelectItem>
-              <SelectItem key="20" textValue="20">20</SelectItem>
-              <SelectItem key="50" textValue="50">50</SelectItem>
-              <SelectItem key="100" textValue="100">100</SelectItem>
+              <Label>Rows per page</Label>
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {['10', '20', '50', '100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}
+                </ListBox>
+              </Select.Popover>
             </Select>
           </div>
         </div>
@@ -315,8 +301,8 @@ export default function ScopeMasterListTable({
           const unit = item.unit || 'mm';
           return (
             <Chip
-              variant="flat"
-              color="primary"
+              variant="soft"
+              color="accent"
               size="sm"
               className="text-xs bg-blue-50 border border-blue-200 px-2 py-1"
             >
@@ -332,11 +318,9 @@ export default function ScopeMasterListTable({
       case "calibration_location":
         return item.calibration_location === "permanent_facility"
           ? "Permanent Facility"
-          : item.calibration_location === "site_facility"
-            || item.calibration_location === "on_site"
+          : item.calibration_location === "on_site"
             ? "On Site"
-            : item.calibration_location === "mobile_facility"
-              || item.calibration_location === "mobile"
+            : item.calibration_location === "mobile"
               ? "Mobile Facility"
               : item.calibration_location || "-";
 
@@ -373,39 +357,31 @@ export default function ScopeMasterListTable({
   return (
     <div className="p-2">
       <div className="industrial-table-wrapper">
-        <Table
-          aria-label="Scope master list table"
-          isHeaderSticky
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0", base: "min-w-full" }}
-          topContent={topContent}
-          topContentPlacement="outside"
-
-        >
-          <TableHeader columns={columns}>
+        <div className="mb-4">{topContent}</div>
+        <Table aria-label="Scope master list table" className="min-w-full">
+          <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+            <Table.Content>
+          <Table.Header columns={columns}>
             {(column) => (
-              <TableColumn key={column.uid} align={column.uid === "actions" || column.uid === "sr_no" ? "center" : "start"}>
+              <Table.Column id={column.uid} isRowHeader={column.uid === columns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
-            emptyContent={error || "No scopes found"}
-            items={tableRows}
-            isLoading={loading}
-            loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}
-          >
+          </Table.Header>
+          <Table.Body items={tableRows} renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? 'Loading...' : error || 'No scopes found'}</div>}>
             {(row) => {
               const { item, index } = row;
               return (
-                <TableRow key={item.id}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey as TableColumnKey, index)}</TableCell>}
-                </TableRow>
+                <Table.Row id={item.id} columns={columns}>
+                  {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}</Table.Cell>}
+                </Table.Row>
               );
             }}
-          </TableBody>
+          </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
+        {bottomContent}
       </div>
       <DeleteConfirmModal
         isOpen={deleteOpen}

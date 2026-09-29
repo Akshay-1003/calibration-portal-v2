@@ -23,6 +23,7 @@ export async function buildDialPayload(form: PlungerDialForm): Promise<DialPaylo
   return {
     observations: {
       plunger_dial: {
+        obs_type: 'dial',
         rows: form.observations.plunger_dial.rows.map((r) => ({
           turn: r.turn,
           range: r.range,

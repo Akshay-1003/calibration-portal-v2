@@ -145,6 +145,7 @@ export type ExternalMicrometerMasterSettingSizeRow = {
 
 export type ExternalMicrometerObservations = {
   obs_type?: "external_micrometer";
+  print?: boolean;
   readings: ExternalMicrometerReadingRow[];
   tables_to_print: boolean;
   parallelism_measuring_faces?: string;
@@ -163,6 +164,7 @@ export type ExternalMicrometerCalibrationForm = {
 
 export type ExternalMicrometerObservationsObj = {
   obs_type?: "external_micrometer";
+  print?: boolean;
   readings?: ExternalMicrometerReadingRow[];
   tables_to_print?: boolean;
   parallelism_measuring_faces?: string;
@@ -440,6 +442,8 @@ export type DialCalibrationFormShape = {
   observations: {
     readings: DialCalibrationReadingForm[];
     tables_to_print?: PlungerDialPrintOptions;
+    repeatability?: Array<number | string>;
+    type_a_readings?: number[];
   };
 };
 

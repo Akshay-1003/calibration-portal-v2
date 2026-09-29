@@ -1,10 +1,4 @@
-import {
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalHeader,
-  Chip,
-} from "@heroui-v2/react";
+import { Chip, Modal } from "@heroui/react";
 import type { SurfacePlateReferenceStandardRecord } from "../../types/surfacePlateReferenceStandards";
 
 interface SurfacePlateReferenceStandardDetailModalProps {
@@ -37,12 +31,14 @@ export function SurfacePlateReferenceStandardDetailModal({
   isLoading = false,
 }: SurfacePlateReferenceStandardDetailModalProps) {
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="4xl">
-      <ModalContent>
-        {() => (
-          <>
-            <ModalHeader>Surface Plate Reference Standard</ModalHeader>
-            <ModalBody className="pb-6">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="lg">
+          <Modal.Dialog>
+            <Modal.Header>
+              <Modal.Heading>Surface Plate Reference Standard</Modal.Heading>
+            </Modal.Header>
+            <Modal.Body className="pb-6">
               {isLoading ? (
                 <div className="flex items-center justify-center py-10 text-sm text-gray-500">
                   Loading details...
@@ -62,7 +58,7 @@ export function SurfacePlateReferenceStandardDetailModal({
                       <DetailItem label="Size" value={record.size} />
                       <div className="space-y-1">
                         <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Shape</p>
-                        <Chip size="sm" variant="flat" color="primary" className="capitalize">
+                        <Chip size="sm" variant="soft" color="accent" className="capitalize">
                           {record.shape}
                         </Chip>
                       </div>
@@ -106,10 +102,10 @@ export function SurfacePlateReferenceStandardDetailModal({
                   </section>
                 </div>
               )}
-            </ModalBody>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Body>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 }

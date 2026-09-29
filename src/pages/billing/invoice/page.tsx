@@ -3,14 +3,10 @@ import {
   Button as HeroButton,
   Input,
   Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
+  ListBox,
   Select,
-  SelectItem,
-  Textarea,
-} from '@heroui-v2/react';
+  TextArea,
+} from '@heroui/react';
 import { TablePageWrapper } from '../../../components/layout/TablePageWrapper';
 import { Button } from '../../../components/ui/button';
 import type { CompanyWithOutward } from '../../../store/invoiceStore';
@@ -211,49 +207,28 @@ function InvoiceManagementFilters({
   return (
     <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(220px,1fr)_180px_160px_auto] md:items-end">
-        <Input
-          size="sm"
-          label="Company Name"
-          labelPlacement="outside"
-          placeholder="Filter company..."
-          value={companyName}
-          onValueChange={onCompanyNameChange}
-        />
-        <Select
-          size="sm"
-          label="Month"
-          labelPlacement="outside"
-          selectedKeys={new Set([billingMonth])}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys)[0];
-            onBillingMonthChange(selected ? String(selected) : 'all');
-          }}
-        >
-          {monthOptions.map((option) => (
-            <SelectItem key={option.key} textValue={option.label}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </Select>
-        <Select
-          size="sm"
-          label="Year"
-          labelPlacement="outside"
-          selectedKeys={new Set([billingYear])}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys)[0];
-            onBillingYearChange(selected ? String(selected) : 'all');
-          }}
-        >
-          {yearOptions.map((option) => (
-            <SelectItem key={option.key} textValue={option.label}>
-              {option.label}
-            </SelectItem>
-          ))}
-        </Select>
+        <label className="text-sm font-medium text-slate-700">Company Name
+          <Input placeholder="Filter company..." value={companyName} onChange={(event) => onCompanyNameChange(event.target.value)} />
+        </label>
+        <label className="text-sm font-medium text-slate-700">Month
+          <Select selectedKey={billingMonth} onSelectionChange={(key) => onBillingMonthChange(key ? String(key) : 'all')}>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>
+              {monthOptions.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}
+            </ListBox></Select.Popover>
+          </Select>
+        </label>
+        <label className="text-sm font-medium text-slate-700">Year
+          <Select selectedKey={billingYear} onSelectionChange={(key) => onBillingYearChange(key ? String(key) : 'all')}>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover><ListBox>
+              {yearOptions.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}
+            </ListBox></Select.Popover>
+          </Select>
+        </label>
         <HeroButton
           size="sm"
-          variant="flat"
+          variant="outline"
           onPress={onClear}
           isDisabled={!hasActiveFilter}
           className="h-9 px-4 font-medium"
@@ -306,79 +281,31 @@ function PaymentRecordModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="2xl">
-      <ModalContent>
-        {() => (
-          <form onSubmit={handleSubmit}>
-            <ModalHeader className="flex flex-col gap-1">Mark Invoice as Paid</ModalHeader>
-            <ModalBody className="grid gap-4 pb-2 sm:grid-cols-2">
-              <Input
-                label="Invoice Number"
-                value={invoice?.invoice_number || 'N/A'}
-                isReadOnly
-              />
-              <Input
-                label="Customer"
-                value={invoice?.client_org || invoice?.company_name || 'N/A'}
-                isReadOnly
-              />
-              <Input
-                label="Amount"
-                value={formatAmount(getInvoiceAmount(invoice))}
-                isReadOnly
-              />
-              <Input
-                label="Payment Date"
-                type="date"
-                value={paymentDate}
-                isRequired
-                isDisabled={isSubmitting}
-                onChange={(event) => setPaymentDate(event.target.value)}
-              />
-              <Select
-                label="Payment Mode"
-                selectedKeys={new Set([paymentMode])}
-                isRequired
-                isDisabled={isSubmitting}
-                onSelectionChange={(keys) => {
-                  const selectedMode = Array.from(keys)[0] as MarkInvoicePaidPayload['payment_mode'] | undefined;
-                  if (selectedMode) {
-                    setPaymentMode(selectedMode);
-                  }
-                }}
-              >
-                {paymentModes.map((mode) => (
-                  <SelectItem key={mode} textValue={mode}>
-                    {mode}
-                  </SelectItem>
-                ))}
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop><Modal.Container size="lg" scroll="inside"><Modal.Dialog>
+        <form onSubmit={handleSubmit}>
+          <Modal.Header><Modal.Heading>Mark Invoice as Paid</Modal.Heading></Modal.Header>
+          <Modal.Body className="grid gap-4 pb-2 sm:grid-cols-2">
+            <label className="text-sm font-medium text-slate-700">Invoice Number<Input value={invoice?.invoice_number || 'N/A'} readOnly /></label>
+            <label className="text-sm font-medium text-slate-700">Customer<Input value={invoice?.client_org || invoice?.company_name || 'N/A'} readOnly /></label>
+            <label className="text-sm font-medium text-slate-700">Amount<Input value={formatAmount(getInvoiceAmount(invoice))} readOnly /></label>
+            <label className="text-sm font-medium text-slate-700">Payment Date<Input type="date" value={paymentDate} required disabled={isSubmitting} onChange={(event) => setPaymentDate(event.target.value)} /></label>
+            <label className="text-sm font-medium text-slate-700">Payment Mode
+              <Select selectedKey={paymentMode} isDisabled={isSubmitting} onSelectionChange={(key) => { if (key) setPaymentMode(String(key) as MarkInvoicePaidPayload['payment_mode']); }}>
+                <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                <Select.Popover><ListBox>{paymentModes.map((mode) => <ListBox.Item key={mode} id={mode} textValue={mode}>{mode}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
               </Select>
-              <Input
-                label="Reference / UTR"
-                value={paymentReferenceNo}
-                isDisabled={isSubmitting}
-                onValueChange={setPaymentReferenceNo}
-              />
-              <Textarea
-                label="Remarks"
-                value={paymentRemarks}
-                isDisabled={isSubmitting}
-                onValueChange={setPaymentRemarks}
-                className="sm:col-span-2"
-              />
-            </ModalBody>
-            <ModalFooter>
-              <HeroButton variant="flat" onPress={onClose} isDisabled={isSubmitting}>
-                Cancel
-              </HeroButton>
-              <HeroButton color="success" type="submit" isLoading={isSubmitting}>
-                Mark as Paid
-              </HeroButton>
-            </ModalFooter>
-          </form>
-        )}
-      </ModalContent>
-    </Modal>
+            </label>
+            <label className="text-sm font-medium text-slate-700">Reference / UTR<Input value={paymentReferenceNo} disabled={isSubmitting} onChange={(event) => setPaymentReferenceNo(event.target.value)} /></label>
+            <label className="text-sm font-medium text-slate-700 sm:col-span-2">Remarks<TextArea value={paymentRemarks} disabled={isSubmitting} onChange={(event) => setPaymentRemarks(event.target.value)} /></label>
+          </Modal.Body>
+          <Modal.Footer>
+            <HeroButton variant="outline" onPress={onClose} isDisabled={isSubmitting}>Cancel</HeroButton>
+            <HeroButton variant="primary" type="submit" isDisabled={isSubmitting}>{isSubmitting ? 'Saving...' : 'Mark as Paid'}</HeroButton>
+          </Modal.Footer>
+        </form>
+      </Modal.Dialog></Modal.Container></Modal.Backdrop>
+    </Modal.Root>
   );
 }
 
@@ -394,12 +321,10 @@ function PaymentDetailsModal({
   const displayStatus = invoice ? getInvoiceDisplayStatus(invoice) : 'paid';
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="xl">
-      <ModalContent>
-        {() => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">Payment Details</ModalHeader>
-            <ModalBody className="grid gap-3 pb-2 sm:grid-cols-2">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop><Modal.Container size="lg"><Modal.Dialog>
+            <Modal.Header><Modal.Heading>Payment Details</Modal.Heading></Modal.Header>
+            <Modal.Body className="grid gap-3 pb-2 sm:grid-cols-2">
               <DetailField label="Invoice Number" value={invoice?.invoice_number || 'N/A'} />
               <DetailField label="Customer" value={invoice?.client_org || invoice?.company_name || 'N/A'} />
               <DetailField label="Amount" value={formatAmount(getInvoiceAmount(invoice))} />
@@ -408,16 +333,14 @@ function PaymentDetailsModal({
               <DetailField label="Payment Mode" value={invoice?.payment_mode || 'N/A'} />
               <DetailField label="Reference / UTR" value={invoice?.payment_reference_no || 'N/A'} />
               <DetailField label="Remarks" value={invoice?.payment_remarks || 'N/A'} className="sm:col-span-2" />
-            </ModalBody>
-            <ModalFooter>
-              <HeroButton color="primary" onPress={onClose}>
+            </Modal.Body>
+            <Modal.Footer>
+              <HeroButton variant="primary" onPress={onClose}>
                 Close
               </HeroButton>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Footer>
+      </Modal.Dialog></Modal.Container></Modal.Backdrop>
+    </Modal.Root>
   );
 }
 

@@ -3,18 +3,16 @@
 import React, { useEffect } from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
   Select,
-  SelectItem,
+  ListBox,
+  Label,
   Pagination,
-} from "@heroui-v2/react";
+  Table,
+} from "@heroui/react";
+import type { Key } from "@react-types/shared";
+import { getTableColumnKey } from './tableColumnKey';
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
 export type DialTableMasterData = {
@@ -82,11 +80,8 @@ export default function DialTableMasterListTable({ data, loading = false, error 
     return filteredItems.slice(start, end);
   }, [page, filteredItems, rowsPerPage]);
 
-  const onRowsPerPageChange = React.useCallback((keys: "all" | Set<React.Key>) => {
-    if (keys === "all") {
-      return;
-    }
-    const value = Number(Array.from(keys)[0]);
+  const onRowsPerPageChange = React.useCallback((key: Key | null) => {
+    const value = Number(key ?? rowsPerPage);
     setRowsPerPage(value);
     setPage(1);
   }, []);
@@ -96,16 +91,15 @@ export default function DialTableMasterListTable({ data, loading = false, error 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search dial tables..."
             value={filterValue}
-            onClear={() => setFilterValue("")}
-            onValueChange={setFilterValue}
+            onChange={(event) => setFilterValue(event.target.value)}
           />
+          {filterValue ? <Button type="button" variant="ghost" aria-label="Clear search" onPress={() => setFilterValue("")}>Clear</Button> : null}
           <div className="flex gap-3">
             {onRefresh && (
-              <Button onPress={onRefresh} size="sm" variant="flat" isDisabled={loading}>
+              <Button onPress={onRefresh} size="sm" variant="secondary" isDisabled={loading}>
                 {loading ? "Refreshing..." : "Refresh"}
               </Button>
             )}
@@ -124,37 +118,38 @@ export default function DialTableMasterListTable({ data, loading = false, error 
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            page={page}
-            total={pages}
-            onChange={setPage}
-            className="scale-90"
-            classNames={{
-              item: "bg-white border-gray-300",
-              cursor: "bg-blue-600 text-white",
-            }}
-          />
+          <Pagination size="sm" className="scale-90">
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
+                <Pagination.PreviousIcon />
+              </Pagination.Previous>
+              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}>
+                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
+                </Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}>
+                <Pagination.NextIcon />
+              </Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
           <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
+            selectedKey={String(rowsPerPage)}
             onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
             className="min-w-[170px]"
-            classNames={{
-              trigger: "bg-white border-gray-300 h-8",
-            }}
           >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+            <Label>Rows per page</Label>
+            <Select.Trigger className="h-8 border border-gray-300 bg-white"><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {['10', '20', '50', '100'].map((size) => (
+                  <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
           </Select>
         </div>
       </div>
@@ -203,7 +198,7 @@ export default function DialTableMasterListTable({ data, loading = false, error 
       case "actions":
         return (
           <div className="flex gap-2 justify-end">
-            <Button isIconOnly size="sm" variant="light" onPress={() => onEdit?.(item.id)} className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
+            <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit?.(item.id)} className="bg-white border border-blue-600 text-blue-600 hover:bg-blue-100 h-7"
             >
               <PencilSquareIcon className="h-4 w-4" />
             </Button>
@@ -225,32 +220,28 @@ export default function DialTableMasterListTable({ data, loading = false, error 
 
   return (
     <div className="p-2 industrial-table-wrapper">
-      <Table
-        aria-label="Dial table master list"
-        isHeaderSticky
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0" }}
-        topContent={topContent}
-        topContentPlacement="outside"
-      >
-        <TableHeader columns={columns}>
+      <div className="mb-4">{topContent}</div>
+      <Table aria-label="Dial table master list" className="min-w-full">
+        <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+          <Table.Content>
+        <Table.Header columns={columns}>
           {(column) => (
-            <TableColumn key={column.uid} align={column.uid === "actions" ? "center" : "start"}>{column.name}</TableColumn>
+            <Table.Column id={column.uid} isRowHeader={column.uid === columns[0]?.uid}>{column.name}</Table.Column>
           )}
-        </TableHeader>
-        <TableBody emptyContent={error || "No dial tables found"} items={items} isLoading={loading}>
+        </Table.Header>
+        <Table.Body items={items} renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? 'Loading...' : error || 'No dial tables found'}</div>}>
           {(item) => (
-            <TableRow key={item.id}>
+            <Table.Row id={item.id} columns={columns}>
               {(columnKey) => (
-                <TableCell>
-                  {renderCell(item, columnKey as keyof DialTableMasterData | "actions" | "sr_no")}
-                </TableCell>
+                <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as keyof DialTableMasterData | "actions" | "sr_no")}</Table.Cell>
               )}
-            </TableRow>
+            </Table.Row>
           )}
-        </TableBody>
+        </Table.Body>
+          </Table.Content>
+        </Table.ScrollContainer>
       </Table>
+      {bottomContent}
       <DeleteConfirmModal
         isOpen={deleteOpen}
         onClose={closeDelete}

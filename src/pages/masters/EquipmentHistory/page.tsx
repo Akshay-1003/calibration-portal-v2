@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Button } from "../../../components/ui/button";
 import { TablePageWrapper } from "../../../components/layout/TablePageWrapper";
@@ -9,8 +9,6 @@ import { useEquipmentHistoriesListQuery } from "../../../hooks/queries/equipment
 const EquipmentHistoryPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   
   // Use equipment history store
   const { 
@@ -20,8 +18,8 @@ const EquipmentHistoryPage = () => {
   void refreshEquipmentHistories;
 
   const equipmentHistoriesQuery = useEquipmentHistoriesListQuery({
-    page: Math.max(page - 1, 0),
-    limit: rowsPerPage,
+    page: 0,
+    limit: 10,
   });
 
   // Fetch data on component mount and when returning from create page
@@ -82,13 +80,6 @@ const EquipmentHistoryPage = () => {
           loading={equipmentHistoriesQuery.isLoading || equipmentHistoriesQuery.isFetching}
           error={equipmentHistoriesQuery.error ? (equipmentHistoriesQuery.error as Error).message : null}
           onRefresh={() => void equipmentHistoriesQuery.refetch()}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          totalItems={equipmentHistoriesQuery.data?.total ?? 0}
-          totalPages={equipmentHistoriesQuery.data?.totalPages ?? 1}
-          isServerPagination
-          onPageChange={setPage}
-          onRowsPerPageChange={setRowsPerPage}
         />
       </div>
     </TablePageWrapper>

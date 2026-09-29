@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
-import { Accordion, AccordionItem, Card, CardBody, Chip, Spinner } from '@heroui-v2/react';
+import { Card, Chip, Spinner } from '@heroui/react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../ui/accordion';
 import { ClockIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import { useInwardGaugeStore, type CalibrationHistoryEntry } from '../../store/inwardGaugeStore';
 import { Badge } from '../ui/badge';
@@ -78,12 +79,12 @@ export const CalibrationHistoryPanel: React.FC<CalibrationHistoryPanelProps> = (
   if (loading.loadingCalibrationHistory && history.length === 0) {
     return (
       <Card className="border border-gray-200 dark:border-border">
-        <CardBody className="p-4">
+        <Card.Content className="p-4">
           <div className="flex items-center justify-center gap-2">
             <Spinner size="sm" />
             <span className="text-sm text-muted-foreground">Loading calibration history...</span>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     );
   }
@@ -91,42 +92,36 @@ export const CalibrationHistoryPanel: React.FC<CalibrationHistoryPanelProps> = (
   if (sortedHistory.length === 0) {
     return (
       <Card className="border border-gray-200 dark:border-border">
-        <CardBody className="p-4">
+        <Card.Content className="p-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ClockIcon className="w-4 h-4" />
             <span>No previous calibration history found for this gauge.</span>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     );
   }
 
   return (
     <Card className="border border-gray-200 dark:border-border">
-      <CardBody className="p-0">
+      <Card.Content className="p-0">
         <Accordion
-          selectedKeys={isExpanded ? ['history'] : []}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys);
-            setIsExpanded(selected.includes('history'));
-          }}
-          variant="splitted"
+          value={isExpanded ? ['history'] : []}
+          onValueChange={(value) => setIsExpanded(value.includes('history'))}
         >
-          <AccordionItem
-            key="history"
-            aria-label="Calibration History"
-            title={
+          <AccordionItem value="history">
+            <AccordionTrigger>
               <div className="flex items-center gap-2">
                 <ClockIcon className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 <span className="font-semibold text-foreground">
                   Previous Calibration History ({sortedHistory.length})
                 </span>
-                <Chip size="sm" variant="flat" color="primary" className="ml-auto">
+                <Chip size="sm" variant="soft" color="accent" className="ml-auto">
                   Reference Data
                 </Chip>
               </div>
-            }
-          >
+            </AccordionTrigger>
+            <AccordionContent>
             <div className="space-y-4 pt-2 max-h-[600px] overflow-y-auto">
               {sortedHistory.map((entry, index) => (
                 <HistoryEntryCard
@@ -138,9 +133,10 @@ export const CalibrationHistoryPanel: React.FC<CalibrationHistoryPanelProps> = (
                 />
               ))}
             </div>
+            </AccordionContent>
           </AccordionItem>
         </Accordion>
-      </CardBody>
+      </Card.Content>
     </Card>
   );
 };
@@ -158,7 +154,7 @@ const HistoryEntryCard = memo<HistoryEntryCardProps>(({ entry, index, totalEntri
     <Card
       className="border border-gray-200 dark:border-border bg-gray-50 dark:bg-muted/50"
     >
-      <CardBody className="p-4 space-y-3">
+      <Card.Content className="p-4 space-y-3">
                     {/* Header Section */}
                     <div className="flex items-start justify-between pb-3 border-b border-gray-200 dark:border-border">
                       <div className="flex items-center gap-3">
@@ -193,8 +189,8 @@ const HistoryEntryCard = memo<HistoryEntryCardProps>(({ entry, index, totalEntri
                         )}
                         <Chip
                           size="sm"
-                          variant="flat"
-                          color={entry.calibration_done_under === 'nabl' ? 'primary' : 'default'}
+                          variant="soft"
+                          color={entry.calibration_done_under === 'nabl' ? 'accent' : 'default'}
                         >
                           {entry.calibration_done_under === 'nabl' ? 'NABL' : 'Non-NABL'}
                         </Chip>
@@ -238,7 +234,7 @@ const HistoryEntryCard = memo<HistoryEntryCardProps>(({ entry, index, totalEntri
                         No observation data available for this calibration record.
                       </div>
                     )}
-                  </CardBody>
+                  </Card.Content>
                 </Card>
   );
 }, (prev, next) => {
@@ -253,4 +249,3 @@ const HistoryEntryCard = memo<HistoryEntryCardProps>(({ entry, index, totalEntri
 });
 
 HistoryEntryCard.displayName = 'HistoryEntryCard';
-

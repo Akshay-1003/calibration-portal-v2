@@ -239,45 +239,33 @@ export const GoNoGoGaugeCalibration: React.FC<GaugeCalibrationProps> = ({
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.go?.basic_size ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.go?.basic_size ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.go?.specification_limit_max ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.go?.specification_limit_max ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.go?.specification_limit_min ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.go?.specification_limit_min ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.go?.wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.go?.wear_limit ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
@@ -301,45 +289,33 @@ export const GoNoGoGaugeCalibration: React.FC<GaugeCalibrationProps> = ({
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.no_go?.basic_size ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.no_go?.basic_size ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.no_go?.specification_limit_max ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.no_go?.specification_limit_max ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.no_go?.specification_limit_min ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    disabled
+                    value={String(specifications?.no_go?.specification_limit_min ?? "")}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-1 py-2 text-center">
                   <Input
-                    isReadOnly
+                    disabled
                     value="-"
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-md",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    className="h-9 rounded-md border border-gray-300 bg-gray-100 text-center text-sm font-medium"
                     placeholder="--"
                   />
                 </td>

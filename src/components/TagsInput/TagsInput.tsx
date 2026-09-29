@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Button, Chip, Input } from "@heroui/react";
+import { Button, Chip, Input, Label } from "@heroui/react";
 
 export interface TagsInputProps {
   value: string[];
@@ -153,21 +153,19 @@ export function TagsInput({
 
   return (
     <div ref={containerRef} className="w-full">
+      {label && <Label className="mb-1 block" isRequired={isRequired}>{label}</Label>}
       <Input
         value={inputValue}
-        onValueChange={setInputValue}
+        onChange={(event) => setInputValue(event.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        label={label}
         placeholder={placeholder}
-        description={description}
-        errorMessage={errorMessage}
-        isInvalid={Boolean(errorMessage)}
-        isRequired={isRequired}
-        isDisabled={isDisabled}
-        isReadOnly={isReadOnly || isAtLimit}
+        disabled={isDisabled}
+        readOnly={isReadOnly || isAtLimit}
         aria-label={label ?? "Tags input"}
       />
+      {description && !errorMessage && <p className="mt-1 text-xs text-default-500">{description}</p>}
+      {errorMessage && <p className="mt-1 text-xs text-danger">{errorMessage}</p>}
 
       <div
         className="mt-3 flex flex-wrap gap-2"
@@ -178,12 +176,14 @@ export function TagsInput({
           <Chip
             key={`${tag}-${index}`}
             size="sm"
-            variant="flat"
-            color="primary"
-            onClose={() => removeTagAt(index)}
+            variant="soft"
+            color="accent"
             className="max-w-full rounded-md bg-primary/10 border border-default-200"
           >
             <span className="truncate">{tag}</span>
+            {!isDisabled && !isReadOnly && (
+              <button type="button" className="ml-1" aria-label={`Remove ${tag}`} onClick={() => removeTagAt(index)}>×</button>
+            )}
           </Chip>
         ))}
       </div>
@@ -195,7 +195,7 @@ export function TagsInput({
             <Button
               type="button"
               size="sm"
-              variant="light"
+              variant="ghost"
               onPress={() => {
                 onChange([]);
                 setInputValue("");

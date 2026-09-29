@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { ListBox, Select } from '@heroui/react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Separator } from '../ui/separator';
 import { toast } from 'sonner';
@@ -66,6 +66,42 @@ const GAUGE_CONDITIONS = [
   'damaged',
 ];
 
+const FormSelect = ({
+  value,
+  options,
+  placeholder,
+  hasError,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  placeholder: string;
+  hasError: boolean;
+  onChange: (value: string) => void;
+}) => (
+  <Select
+    className="w-full"
+    selectedKey={value || null}
+    onSelectionChange={(key) => onChange(key ? String(key) : '')}
+    aria-label={placeholder}
+  >
+    <Select.Trigger className={`w-full ${hasError ? 'border-red-500' : ''}`}>
+      <Select.Value />
+      <Select.Indicator />
+    </Select.Trigger>
+    <Select.Popover>
+      <ListBox>
+        {options.map((option) => (
+          <ListBox.Item key={option} id={option} textValue={option}>
+            {option.charAt(0).toUpperCase() + option.slice(1).replaceAll('_', ' ')}
+            <ListBox.ItemIndicator />
+          </ListBox.Item>
+        ))}
+      </ListBox>
+    </Select.Popover>
+  </Select>
+);
+
 export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
   onSubmit,
   loading = false,
@@ -100,9 +136,6 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
   });
 
   const watchedValues = watch();
-
-  const selectTriggerClassName = (hasError: boolean) =>
-    hasError ? 'border-red-500 focus:ring-red-500' : '';
 
   const handleFormSubmit = useCallback((data: RegisterGaugeFormData) => {
     try {
@@ -139,26 +172,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
           
           <div>
             <Label htmlFor="gaugeClass">Gauge Class *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.gaugeClass}
-              onValueChange={(value) =>
-                setValue('gaugeClass', value as RegisterGaugeFormData['gaugeClass'], {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.gaugeClass)}>
-                <SelectValue placeholder="Select gauge class" />
-              </SelectTrigger>
-              <SelectContent>
-                {GAUGE_CLASSES.map((gaugeClass) => (
-                  <SelectItem key={gaugeClass} value={gaugeClass}>
-                    {gaugeClass.charAt(0).toUpperCase() + gaugeClass.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={GAUGE_CLASSES}
+              placeholder="Select gauge class"
+              hasError={!!errors.gaugeClass}
+              onChange={(value) => setValue('gaugeClass', value as RegisterGaugeFormData['gaugeClass'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.gaugeClass && (
               <p className="text-sm text-red-500 mt-1">{errors.gaugeClass.message}</p>
             )}
@@ -231,30 +251,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
           
           <div>
             <Label htmlFor="calibrationFrequencyUnit">Frequency Unit *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.calibrationFrequencyUnit}
-              onValueChange={(value) =>
-                setValue(
-                  'calibrationFrequencyUnit',
-                  value as RegisterGaugeFormData['calibrationFrequencyUnit'],
-                  {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  },
-                )
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.calibrationFrequencyUnit)}>
-                <SelectValue placeholder="Select unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {CALIBRATION_FREQUENCY_UNITS.map((unit) => (
-                  <SelectItem key={unit} value={unit}>
-                    {unit.charAt(0).toUpperCase() + unit.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={CALIBRATION_FREQUENCY_UNITS}
+              placeholder="Select frequency unit"
+              hasError={!!errors.calibrationFrequencyUnit}
+              onChange={(value) => setValue('calibrationFrequencyUnit', value as RegisterGaugeFormData['calibrationFrequencyUnit'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.calibrationFrequencyUnit && (
               <p className="text-sm text-red-500 mt-1">{errors.calibrationFrequencyUnit.message}</p>
             )}
@@ -264,26 +267,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="process">Process *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.process}
-              onValueChange={(value) =>
-                setValue('process', value as RegisterGaugeFormData['process'], {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.process)}>
-                <SelectValue placeholder="Select process" />
-              </SelectTrigger>
-              <SelectContent>
-                {PROCESSES.map((process) => (
-                  <SelectItem key={process} value={process}>
-                    {process.charAt(0).toUpperCase() + process.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={PROCESSES}
+              placeholder="Select process"
+              hasError={!!errors.process}
+              onChange={(value) => setValue('process', value as RegisterGaugeFormData['process'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.process && (
               <p className="text-sm text-red-500 mt-1">{errors.process.message}</p>
             )}
@@ -291,26 +281,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
           
           <div>
             <Label htmlFor="unit">Unit *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.unit}
-              onValueChange={(value) =>
-                setValue('unit', value as RegisterGaugeFormData['unit'], {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.unit)}>
-                <SelectValue placeholder="Select unit" />
-              </SelectTrigger>
-              <SelectContent>
-                {UNITS.map((unit) => (
-                  <SelectItem key={unit} value={unit}>
-                    {unit.toUpperCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={UNITS}
+              placeholder="Select unit"
+              hasError={!!errors.unit}
+              onChange={(value) => setValue('unit', value as RegisterGaugeFormData['unit'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.unit && (
               <p className="text-sm text-red-500 mt-1">{errors.unit.message}</p>
             )}
@@ -329,30 +306,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="calibrationLocationType">Location Type *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.calibrationLocationType}
-              onValueChange={(value) =>
-                setValue(
-                  'calibrationLocationType',
-                  value as RegisterGaugeFormData['calibrationLocationType'],
-                  {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  },
-                )
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.calibrationLocationType)}>
-                <SelectValue placeholder="Select location type" />
-              </SelectTrigger>
-              <SelectContent>
-                {CALIBRATION_LOCATION_TYPES.map((type) => (
-                  <SelectItem key={type} value={type}>
-                    {type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={CALIBRATION_LOCATION_TYPES}
+              placeholder="Select location type"
+              hasError={!!errors.calibrationLocationType}
+              onChange={(value) => setValue('calibrationLocationType', value as RegisterGaugeFormData['calibrationLocationType'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.calibrationLocationType && (
               <p className="text-sm text-red-500 mt-1">{errors.calibrationLocationType.message}</p>
             )}
@@ -374,30 +334,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="calibrationDoneUnder">Calibration Standard *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.calibrationDoneUnder}
-              onValueChange={(value) =>
-                setValue(
-                  'calibrationDoneUnder',
-                  value as RegisterGaugeFormData['calibrationDoneUnder'],
-                  {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  },
-                )
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.calibrationDoneUnder)}>
-                <SelectValue placeholder="Select standard" />
-              </SelectTrigger>
-              <SelectContent>
-                {CALIBRATION_DONE_UNDER.map((standard) => (
-                  <SelectItem key={standard} value={standard}>
-                    {standard.toUpperCase()}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={CALIBRATION_DONE_UNDER}
+              placeholder="Select standard"
+              hasError={!!errors.calibrationDoneUnder}
+              onChange={(value) => setValue('calibrationDoneUnder', value as RegisterGaugeFormData['calibrationDoneUnder'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.calibrationDoneUnder && (
               <p className="text-sm text-red-500 mt-1">{errors.calibrationDoneUnder.message}</p>
             )}
@@ -405,26 +348,13 @@ export const RegisterGaugeForm: React.FC<RegisterGaugeFormProps> = ({
           
           <div>
             <Label htmlFor="gaugeCondition">Gauge Condition *</Label>
-            <Select
+            <FormSelect
               value={watchedValues.gaugeCondition}
-              onValueChange={(value) =>
-                setValue('gaugeCondition', value as RegisterGaugeFormData['gaugeCondition'], {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            >
-              <SelectTrigger className={selectTriggerClassName(!!errors.gaugeCondition)}>
-                <SelectValue placeholder="Select condition" />
-              </SelectTrigger>
-              <SelectContent>
-                {GAUGE_CONDITIONS.map((condition) => (
-                  <SelectItem key={condition} value={condition}>
-                    {condition.charAt(0).toUpperCase() + condition.slice(1)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={GAUGE_CONDITIONS}
+              placeholder="Select condition"
+              hasError={!!errors.gaugeCondition}
+              onChange={(value) => setValue('gaugeCondition', value as RegisterGaugeFormData['gaugeCondition'], { shouldDirty: true, shouldValidate: true })}
+            />
             {errors.gaugeCondition && (
               <p className="text-sm text-red-500 mt-1">{errors.gaugeCondition.message}</p>
             )}

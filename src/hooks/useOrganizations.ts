@@ -13,9 +13,9 @@ interface OrganizationFormData {
   lab_type?: 'NABL Lab' | 'Non-NABL Lab' | string | null;
   lab_certificate_number?: string | null;
   contacts: Array<{
-    name: string;
-    email: string;
-    phone: string;
+    name?: string;
+    email?: string;
+    phone?: string;
   }>;
   address: {
     address_line_1: string;

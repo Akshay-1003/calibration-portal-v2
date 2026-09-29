@@ -2,17 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
   Button,
   Checkbox,
   Select,
-  SelectItem,
+  ListBox,
+  Label,
+  Modal,
   Spinner,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import { PrinterIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import { getQz } from "../../utils/qzTray";
@@ -107,14 +104,14 @@ export function StickerSettingsModal({
     });
   };
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg" scrollBehavior="inside">
-      <ModalContent>
-        {(onClose) => (
-          <>
-            <ModalHeader className="flex flex-col gap-1">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="lg" scroll="inside">
+          <Modal.Dialog>
+            <Modal.Header className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <PrinterIcon className="h-5 w-5" />
-                <span>Sticker Print Settings</span>
+                <Modal.Heading>Sticker Print Settings</Modal.Heading>
               </div>
               <p className="text-sm font-normal text-gray-500">
                 {selectedCount === 1
@@ -124,8 +121,8 @@ export function StickerSettingsModal({
               <p className="text-xs font-normal text-gray-400 mt-1">
                 Sticker Size: 15 x 35 mm (Fixed)
               </p>
-            </ModalHeader>
-            <ModalBody>
+            </Modal.Header>
+            <Modal.Body>
               <div className="space-y-6 py-2">
                 {/* Print Mode Selection */}
                 <div>
@@ -133,25 +130,27 @@ export function StickerSettingsModal({
                     1. Select Print Mode *
                   </label>
                   <Select
-                    selectedKeys={[settings.printMode]}
+                    selectedKey={settings.printMode}
                     onSelectionChange={(keys) => {
-                      const mode = Array.from(keys)[0] as PrintMode;
+                      const mode = keys as PrintMode;
                       setSettings((prev) => ({ ...prev, printMode: mode }));
                     }}
                     className="w-full"
                   >
-                    <SelectItem key="qz-tray" textValue="QZ Tray">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold">QZ Tray</span>
-                        <span className="text-xs text-gray-500">Direct printer communication</span>
-                      </div>
-                    </SelectItem>
-                    <SelectItem key="browser" textValue="Browser Print">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold">Browser Print</span>
-                        <span className="text-xs text-gray-500">Uses browser print dialog</span>
-                      </div>
-                    </SelectItem>
+                    <Label className="sr-only">Print mode</Label>
+                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                    <Select.Popover>
+                      <ListBox>
+                        <ListBox.Item id="qz-tray" textValue="QZ Tray">
+                          <div className="flex flex-col"><span className="text-sm font-semibold">QZ Tray</span><span className="text-xs text-gray-500">Direct printer communication</span></div>
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                        <ListBox.Item id="browser" textValue="Browser Print">
+                          <div className="flex flex-col"><span className="text-sm font-semibold">Browser Print</span><span className="text-xs text-gray-500">Uses browser print dialog</span></div>
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                      </ListBox>
+                    </Select.Popover>
                   </Select>
                 </div>
 
@@ -173,8 +172,7 @@ export function StickerSettingsModal({
                       </p>
                       <Button
                         size="sm"
-                        variant="flat"
-                        color="primary"
+                        variant="secondary"
                         className="mt-2"
                         onPress={connectAndFetchPrinters}
                       >
@@ -183,20 +181,26 @@ export function StickerSettingsModal({
                     </div>
                   ) : (
                     <Select
-                      selectedKeys={settings.printerName ? [settings.printerName] : []}
+                      selectedKey={settings.printerName || null}
                       onSelectionChange={(keys) => {
-                        const printer = Array.from(keys)[0] as string;
+                        const printer = keys as string;
                         setSettings((prev) => ({ ...prev, printerName: printer }));
                       }}
-                      placeholder="Select a printer"
                       className="w-full"
                       isDisabled={printers.length === 0}
                     >
+                      <Label className="sr-only">Printer</Label>
+                      <Select.Trigger><Select.Value /></Select.Trigger>
+                      <Select.Popover>
+                        <ListBox>
                       {printers.map((printer) => (
-                        <SelectItem key={printer}>
+                        <ListBox.Item key={printer} id={printer} textValue={printer}>
                           {printer}
-                        </SelectItem>
+                          <ListBox.ItemIndicator />
+                        </ListBox.Item>
                       ))}
+                        </ListBox>
+                      </Select.Popover>
                     </Select>
                   )}
                   {printers.length === 0 && qzConnected && (
@@ -227,7 +231,7 @@ export function StickerSettingsModal({
                       </div>
                       <Checkbox
                         isSelected={settings.withIdentification}
-                        onValueChange={(checked) =>
+                        onChange={(checked) =>
                           setSettings((prev) => ({
                             ...prev,
                             withIdentification: checked,
@@ -252,7 +256,7 @@ export function StickerSettingsModal({
                       </div>
                       <Checkbox
                         isSelected={settings.withBarcode}
-                        onValueChange={(checked) =>
+                        onChange={(checked) =>
                           setSettings((prev) => ({
                             ...prev,
                             withBarcode: checked,
@@ -263,30 +267,30 @@ export function StickerSettingsModal({
                   </div>
                 </div>
               </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="light" onPress={handleReset} isDisabled={loading}>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onPress={handleReset} isDisabled={loading}>
                 Reset
               </Button>
               <Button
-                variant="light"
+                variant="ghost"
                 onPress={onClose}
                 isDisabled={loading}
               >
                 Cancel
               </Button>
               <Button
-                color="primary"
+                variant="primary"
                 onPress={handleConfirm}
-                isLoading={loading}
-                startContent={!loading && <PrinterIcon className="h-4 w-4" />}
+                isDisabled={loading}
               >
+                {!loading && <PrinterIcon className="h-4 w-4" />}
                 {loading ? "Printing..." : "Print"}
               </Button>
-            </ModalFooter>
-          </>
-        )}
-      </ModalContent>
-    </Modal>
+            </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 }

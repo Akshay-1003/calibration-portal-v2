@@ -24,7 +24,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({
 }) => {
   return (
     <div className={cn('flex items-center justify-center gap-2', className)}>
-      <Spinner size={size} color={color} />
+      <Spinner size={size} color={color === 'primary' || color === 'secondary' ? 'accent' : color === 'default' ? 'current' : color} />
       {label && (
         <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
       )}
@@ -47,7 +47,7 @@ export const PageLoader: React.FC<PageLoaderProps> = ({
   return (
     <div className={cn('min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900', className)}>
       <div className="flex flex-col items-center gap-4">
-        <Spinner size="lg" color="primary" />
+        <Spinner size="lg" color="accent" />
         {message ? (
           <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{message}</p>
         ) : null}
@@ -72,7 +72,7 @@ export const TableLoader: React.FC<TableLoaderProps> = ({
     <tr>
       <td colSpan={colSpan} className="py-12">
         <div className="flex flex-col items-center justify-center gap-3">
-          <Spinner size="lg" color="primary" />
+          <Spinner size="lg" color="accent" />
           <p className="text-sm text-gray-600 dark:text-gray-400">{message}</p>
         </div>
       </td>
@@ -92,7 +92,7 @@ export const FormLoader: React.FC<FormLoaderProps> = ({
 }) => {
   return (
     <div className="flex items-center gap-2 text-sm text-gray-600">
-      <Spinner size="sm" color="primary" />
+      <Spinner size="sm" color="accent" />
       <span>{message}</span>
     </div>
   );
@@ -104,8 +104,6 @@ export const FormLoader: React.FC<FormLoaderProps> = ({
 export const ButtonLoader: React.FC<{ size?: 'sm' | 'md' | 'lg' }> = ({ size = 'sm' }) => {
   return <Spinner size={size} color="current" />;
 };
-
-
 
 
 

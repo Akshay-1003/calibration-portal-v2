@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Badge } from "@heroui/react";
 import {
   BellAlertIcon,
   CheckCircleIcon,
@@ -34,14 +33,7 @@ export default function NotificationDropdown() {
 
   return (
     <div className="relative">
-      <Badge
-        content={unreadCount}
-        color="danger"
-        size="sm"
-        isInvisible={unreadCount === 0}
-        placement="top-right"
-        aria-label={`${unreadCount} unread notifications`}
-      >
+      <div className="relative" aria-label={`${unreadCount} unread notifications`}>
         <button
           className="dropdown-toggle relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 transition-all hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
           onClick={toggleDropdown}
@@ -54,7 +46,12 @@ export default function NotificationDropdown() {
           )}
           <BellAlertIcon className="h-5 w-5" />
         </button>
-      </Badge>
+        {unreadCount > 0 && (
+          <span className="absolute -right-1 -top-1 z-20 min-w-4 rounded-full bg-red-500 px-1 text-center text-[10px] font-semibold leading-4 text-white">
+            {unreadCount}
+          </span>
+        )}
+      </div>
 
       <Dropdown
         isOpen={isOpen}
@@ -70,13 +67,12 @@ export default function NotificationDropdown() {
               Customer responses and reminder status
             </p>
           </div>
-          <Badge
-            content={unreadCount}
-            color="danger"
-            size="sm"
-            isInvisible={unreadCount === 0}
+          <span
+            className="min-w-5 rounded-full bg-red-500 px-1.5 text-center text-xs font-semibold leading-5 text-white"
             aria-label={`${unreadCount} unread notifications`}
-          />
+          >
+            {unreadCount}
+          </span>
         </div>
 
         <div className="flex-1 overflow-y-auto p-2">

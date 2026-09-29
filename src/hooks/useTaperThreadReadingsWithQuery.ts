@@ -8,7 +8,7 @@
 import { useTaperThreadReadingsQuery, useCreateTaperThreadReadingMutation, useUpdateTaperThreadReadingMutation, useDeleteTaperThreadReadingMutation } from './queries/taperThreadReadings';
 import { useBridgeQueryToStore } from './queries/zustandBridge';
 import { useTaperThreadReadingsStore } from '../store/taperThreadReadingsStore';
-import type { TaperThreadReadingsFormData, TaperThreadReadingsApiResponse } from '../store/taperThreadReadingsStore';
+import type { TaperThreadReadingsFormData } from '../store/taperThreadReadingsStore';
 
 /**
  * Enhanced hook that uses TanStack Query with Zustand bridge
@@ -92,7 +92,6 @@ export function useTaperThreadReadingsWithQuery() {
     isDeleting: deleteMutation.isPending,
   };
 }
-
 
 
 

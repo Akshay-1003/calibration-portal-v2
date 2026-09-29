@@ -156,11 +156,8 @@ export function ComparatorStandCalibration({
                               {...field}
                               type="number"
                               step="any"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-10 bg-white border border-gray-300 rounded-none",
-                                input: "text-sm text-center",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-10 rounded-none border border-gray-300 bg-white text-center text-sm"
                               placeholder="0.0000"
                             />
                           )}
@@ -178,12 +175,9 @@ export function ComparatorStandCalibration({
                             value={toDisplay(field.value)}
                             type="text"
                             inputMode="decimal"
-                            isDisabled={isReadOnly}
+                            disabled={isReadOnly}
                             placeholder="0.0000"
-                            classNames={{
-                              inputWrapper: "h-10 bg-gray-100 border border-gray-300 rounded-none",
-                              input: "text-sm text-center font-semibold",
-                            }}
+                            className="h-10 rounded-none border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                             onFocus={() => {
                               meanEditingRef.current[index] = true;
                             }}

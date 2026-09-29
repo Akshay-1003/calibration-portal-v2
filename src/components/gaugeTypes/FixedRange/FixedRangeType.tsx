@@ -56,42 +56,21 @@ export default function FixedRange({ unit, leastCount = true, readOnly = false, 
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <Input
-        {...register("specifications.range.min")}
-        placeholder="0"
-        size="sm"
-        label={`Range From (${displayUnit})`}
-        labelPlacement="outside"
-        variant="bordered"
-        classNames={{
-          label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-        }}
-      />
+      <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+        {`Range From (${displayUnit})`}
+        <Input {...register("specifications.range.min")} placeholder="0" className="border border-gray-300" />
+      </label>
 
-      <Input
-        {...register("specifications.range.max")}
-        placeholder="100"
-        size="sm"
-        label={`Range To (${displayUnit})`}
-        labelPlacement="outside"
-        variant="bordered"
-        classNames={{
-          label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-        }}
-      />
+      <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+        {`Range To (${displayUnit})`}
+        <Input {...register("specifications.range.max")} placeholder="100" className="border border-gray-300" />
+      </label>
 
       {leastCount && (
-        <Input
-          {...register("specifications.least_count")}
-          placeholder="0.01"
-          size="sm"
-          label={`Least Count (${displayUnit})`}
-          labelPlacement="outside"
-          variant="bordered"
-          classNames={{
-            label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-          }}
-        />
+        <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+          {`Least Count (${displayUnit})`}
+          <Input {...register("specifications.least_count")} placeholder="0.01" className="border border-gray-300" />
+        </label>
       )}
     </div>
   );

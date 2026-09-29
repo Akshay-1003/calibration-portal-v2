@@ -711,13 +711,14 @@ export const useAppStore = create<AppState>()(
         linkGaugeToInward: async (data) => {
           try {
             const response = await apiService.linkGaugeToInward(data);
+            const responseGauge = response?.data;
 
             // Get the linked gauge from response if available
             let linkedGauge = null;
-            if (response && response.id) {
-              linkedGauge = response;
-            } else if (response) {
-              linkedGauge = response;
+            if (responseGauge && responseGauge.id) {
+              linkedGauge = responseGauge;
+            } else if (responseGauge) {
+              linkedGauge = responseGauge;
             }
 
             // Optimistic update - add to linked gauges immediately if we have the data

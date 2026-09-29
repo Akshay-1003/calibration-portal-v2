@@ -436,7 +436,7 @@ export function SurfacePlateCalibration({
                             >
                               <Input
                                 value={toDisplayValue(readingsMatrix[rowIndex]?.[columnIndex])}
-                                isReadOnly={isReadOnly}
+                                readOnly={isReadOnly}
                                 inputMode="decimal"
                                 placeholder="0"
                                 onChange={(event) => {
@@ -448,12 +448,7 @@ export function SurfacePlateCalibration({
                                     updateReadingCell(rowIndex, columnIndex, nextValue);
                                   }
                                 }}
-                                classNames={{
-                                  inputWrapper:
-                                    "min-w-0 rounded-none bg-white shadow-none",
-                                  input:
-                                    "text-center text-sm font-medium text-slate-700",
-                                }}
+                                className="min-w-0 rounded-none bg-white text-center text-sm font-medium text-slate-700"
                               />
                             </td>
                           ))}

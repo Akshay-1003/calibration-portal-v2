@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader } from '@heroui-v2/react';
+import { Button, Input, Modal } from '@heroui/react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { toast } from 'sonner';
@@ -112,52 +112,48 @@ export const UserResetPasswordModal = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="lg">
-      <ModalContent>
-        <ModalHeader>Reset Password</ModalHeader>
-        <ModalBody className="space-y-4 pb-2">
+    <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onOpenChange(); }}>
+      <Modal.Backdrop>
+        <Modal.Container size="lg">
+          <Modal.Dialog>
+            <Modal.Header>
+              <Modal.Heading>Reset Password</Modal.Heading>
+            </Modal.Header>
+        <Modal.Body className="space-y-4 pb-2">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             Existing passwords cannot be viewed. Resetting here will overwrite the current password for{' '}
             <span className="font-medium">{user?.username || user?.email || 'this user'}</span>.
           </div>
 
-          <Input
-            {...register('newPassword')}
-            label="New Password"
-            labelPlacement="outside"
-            placeholder="Enter new password"
-            type="password"
-            autoComplete="new-password"
-            isInvalid={Boolean(errors.newPassword)}
-            errorMessage={errors.newPassword?.message}
-          />
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            New Password
+            <Input {...register('newPassword')} className="w-full" placeholder="Enter new password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.newPassword)} />
+            {errors.newPassword?.message ? <span className="font-normal text-red-600">{errors.newPassword.message}</span> : null}
+          </label>
 
-          <Input
-            {...register('confirmPassword')}
-            label="Confirm Password"
-            labelPlacement="outside"
-            placeholder="Confirm new password"
-            type="password"
-            autoComplete="new-password"
-            isInvalid={Boolean(errors.confirmPassword)}
-            errorMessage={errors.confirmPassword?.message}
-          />
+          <label className="flex flex-col gap-2 text-sm font-medium text-slate-700">
+            Confirm Password
+            <Input {...register('confirmPassword')} className="w-full" placeholder="Confirm new password" type="password" autoComplete="new-password" aria-invalid={Boolean(errors.confirmPassword)} />
+            {errors.confirmPassword?.message ? <span className="font-normal text-red-600">{errors.confirmPassword.message}</span> : null}
+          </label>
 
           {errors.root ? (
             <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               {errors.root.message}
             </div>
           ) : null}
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="flat" onPress={handleClose} isDisabled={isLoading}>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="ghost" onPress={handleClose} isDisabled={isLoading}>
             Cancel
           </Button>
-          <Button color="primary" onPress={handleSubmit(handleResetPassword)} isLoading={isLoading}>
-            Reset Password
+          <Button variant="primary" onPress={() => void handleSubmit(handleResetPassword)()} isDisabled={isLoading}>
+            {isLoading ? 'Resetting...' : 'Reset Password'}
           </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+        </Modal.Footer>
+          </Modal.Dialog>
+        </Modal.Container>
+      </Modal.Backdrop>
+    </Modal.Root>
   );
 };

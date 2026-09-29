@@ -62,8 +62,8 @@ export function createCrudActions<T extends { id: string }, CreateData = Partial
         setState(state => ({ ...state, loading: true, error: null }));
 
         try {
-          const response = await apiClient.get(endpoint);
-          const items = Array.isArray(response) ? response : (response?.data || []);
+          const response = await apiClient.get<T[]>(endpoint);
+          const items = Array.isArray(response) ? response : [];
 
           // Update cache and state
           cache.set(cacheKey, items);
@@ -95,8 +95,8 @@ export function createCrudActions<T extends { id: string }, CreateData = Partial
      */
     create: async (data: CreateData) => {
       try {
-        const response = await apiClient.post(endpoint, data);
-        const newItem = response?.data || response;
+        const response = await apiClient.post<T>(endpoint, data);
+        const newItem = response;
 
         if (!newItem?.id) {
           throw new Error('Invalid response: missing ID');
@@ -127,8 +127,8 @@ export function createCrudActions<T extends { id: string }, CreateData = Partial
      */
     update: async (id: string, data: UpdateData) => {
       try {
-        const response = await apiClient.patch(`${endpoint}/${id}`, data);
-        const updatedItem = response?.data || response;
+        const response = await apiClient.patch<T>(`${endpoint}/${id}`, data);
+        const updatedItem = response;
 
         // Optimistic update: update specific item
         setState(state => ({

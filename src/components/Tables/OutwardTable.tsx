@@ -1,30 +1,21 @@
 "use client";
 
 import React, { useEffect } from "react";
-import type { Key } from "@react-types/shared";
+import type { Key, Selection, SortDescriptor } from "@react-types/shared";
 import { useTableUrlState } from "../../hooks/useTableUrlState";
 import {
-  Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Selection,
-  SortDescriptor,
+  Label,
+  ListBox,
   Pagination,
   Select,
-  SelectItem,
   Popover,
-  PopoverTrigger,
-  PopoverContent,
-  Listbox,
-  ListboxItem,
-} from "@heroui-v2/react";
+  Table,
+} from "@heroui/react";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { OutwardEntry } from "../../types";
+import { getTableColumnKey } from './tableColumnKey';
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { 
   ArrowTopRightOnSquareIcon,
@@ -191,7 +182,7 @@ export function OutwardTable({
           );
         case "outward_id":
           return (
-            <div className="text-[13px] font-medium truncate max-w-[150px]" title={outward.outward_no ?? "-"}>
+            <div className="text-[13px] font-medium truncate max-w-[150px]" title={String(outward.outward_no ?? "-")}>
               {outward.outward_no ?? "-"}
             </div>
           );
@@ -225,24 +216,22 @@ export function OutwardTable({
               {onOpen && (
                 <Button
                   size="sm"
-                  variant="flat"
-                  color="primary"
+                  variant="secondary"
                   onPress={() => onOpen(outward.id)}
                   className="h-7 px-3 text-xs font-medium"
-                  startContent={<ArrowTopRightOnSquareIcon className="h-3 w-3" />}
                 >
+                  <ArrowTopRightOnSquareIcon className="h-3 w-3" />
                   Open
                 </Button>
               )}
               {onPrint && (
                 <Button
                   size="sm"
-                  variant="flat"
-                  color="default"
+                  variant="outline"
                   onPress={() => onPrint(outward.id)}
                   className="h-7 px-3 text-xs font-medium"
-                  startContent={<PrinterIcon className="h-3 w-3" />}
                 >
+                  <PrinterIcon className="h-3 w-3" />
                   Print
                 </Button>
               )}
@@ -255,8 +244,8 @@ export function OutwardTable({
     [onOpen, onPrint, onDelete, page, rowsPerPage],
   );
 
-  const onRowsPerPageChange = React.useCallback((keys: Selection) => {
-    const value = Array.from(keys)[0] as string;
+  const onRowsPerPageChange = React.useCallback((key: Key | null) => {
+    const value = String(key ?? rowsPerPage);
     setRowsPerPage(Number(value));
     setPage(1);
   }, [setPage, setRowsPerPage]);
@@ -280,50 +269,41 @@ export function OutwardTable({
       <div className="flex flex-col gap-4 p-4 bg-white border-b border-gray-200">
         <div className="flex items-end justify-between gap-3">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search by outward ID, client name, transport by..."
-            startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
             value={filterValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
-            classNames={{
-              inputWrapper: "border-gray-300 hover:border-gray-400 focus-within:border-blue-500",
-            }}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
+          {filterValue ? <Button type="button" variant="ghost" aria-label="Clear outward search" onPress={onClear}><MagnifyingGlassIcon className="w-4 h-4" /></Button> : null}
           <div className="flex items-center gap-2">
-            <Popover placement="bottom-end" showArrow>
-              <PopoverTrigger>
-                <Button 
-                  endContent={<ChevronDownIcon className="text-small w-4 h-4" />} 
-                  variant="flat"
-                  className="hidden sm:flex font-medium"
-                >
+            <Popover>
+              <Popover.Trigger>
+                <Button variant="secondary" className="hidden sm:flex font-medium">
                   Columns
+                  <ChevronDownIcon className="text-small w-4 h-4" />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1">
-                <Listbox
+              </Popover.Trigger>
+              <Popover.Content className="w-56 p-1">
+                <Popover.Dialog>
+                <ListBox
                   aria-label="Table Columns"
-                  disallowEmptySelection
                   selectedKeys={visibleColumns}
                   selectionMode="multiple"
                   onSelectionChange={setVisibleColumns}
-                  variant="flat"
                 >
                   {columns.map((column) => (
-                    <ListboxItem
+                    <ListBox.Item
                       key={column.uid}
-                      className="capitalize rounded-md"
-                      classNames={{
-                        base: "data-[hover=true]:bg-gray-100",
-                      }}
+                      id={column.uid}
+                      textValue={capitalize(column.name)}
                     >
                       {capitalize(column.name)}
-                    </ListboxItem>
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
                   ))}
-                </Listbox>
-              </PopoverContent>
+                </ListBox>
+                </Popover.Dialog>
+              </Popover.Content>
             </Popover>
           </div>
         </div>
@@ -341,37 +321,30 @@ export function OutwardTable({
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            page={page}
-            total={pages}
-            onChange={setPage}
-            className="scale-90"
-            classNames={{
-              item: "bg-white border-gray-300",
-              cursor: "bg-blue-600 text-white",
-            }}
-          />
+          <Pagination size="sm" className="scale-90">
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage(Math.min(pages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
           <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
+            selectedKey={String(rowsPerPage)}
             onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
             className="min-w-[170px]"
-            classNames={{
-              trigger: "bg-white border-gray-300 h-8",
-            }}
           >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+            <Label>Rows per page</Label>
+            <Select.Trigger className="h-8 border border-gray-300 bg-white"><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {['10', '20', '50', '100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}
+              </ListBox>
+            </Select.Popover>
           </Select>
         </div>
       </div>
@@ -385,48 +358,49 @@ export function OutwardTable({
   return (
     <div className="p-2">
       <div className="industrial-table-wrapper">
-        <Table
-          aria-label="Outward entries table"
-          isHeaderSticky
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{ 
-            wrapper: "max-h-[calc(100vh-320px)] p-0",
-            base: "min-w-full",
-          }}
-          selectedKeys={selectedKeys}
-          selectionMode="multiple"
-          sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement="outside"
-          onSelectionChange={setSelectedKeys}
-          onSortChange={setSortDescriptor}
-        >
-          <TableHeader columns={headerColumns}>
+        <div className="mb-4">{topContent}</div>
+        <Table aria-label="Outward entries table" className="min-w-full">
+          <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+            <Table.Content
+              selectedKeys={selectedKeys}
+              selectionMode="multiple"
+              sortDescriptor={sortDescriptor}
+              onSelectionChange={setSelectedKeys}
+              onSortChange={setSortDescriptor}
+            >
+          <Table.Header columns={headerColumns}>
             {(column) => (
-              <TableColumn key={column.uid} align={column.uid === "actions" || column.uid === "sr_no" ? "center" : "start"} allowsSorting={column.sortable}>
+              <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
-            emptyContent={emptyContent}
+          </Table.Header>
+          <Table.Body
             items={sortedItems}
-            isLoading={loading}
-            loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}
+            renderEmptyState={() => (
+              <div className="py-8 text-center text-sm text-default-500">
+                {loading ? "Loading..." : emptyContent}
+              </div>
+            )}
           >
             {(item) => {
-              const index = sortedItems.findIndex(i => i.id === item.id);
+              const index = sortedItems.findIndex((entry) => entry.id === item.id);
               return (
-                <TableRow key={item.id}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}
-                </TableRow>
+                <Table.Row id={item.id} columns={columns}>
+                  {(columnKey) => (
+                    <Table.Cell>
+                      {renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}
+                    </Table.Cell>
+                  )}
+                </Table.Row>
               );
             }}
-          </TableBody>
+          </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
+        {bottomContent}
       </div>
     </div>
   );
 }
-

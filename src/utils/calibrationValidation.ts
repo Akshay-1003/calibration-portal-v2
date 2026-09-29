@@ -417,7 +417,7 @@ export function validateCalibrationForm(
       }
       
       // Convert Zod errors to ValidationError format
-      const errors: ValidationError[] = result.error.errors.map((err: { path: Array<string | number>; message: string }) => {
+      const errors: ValidationError[] = result.error.issues.map((err) => {
         const field = err.path.join(".");
         return {
           field,
@@ -442,7 +442,7 @@ export function validateCalibrationForm(
     }
     
     // Convert Zod errors to ValidationError format
-    const errors: ValidationError[] = result.error.errors.map((err: { path: Array<string | number>; message: string }) => {
+    const errors: ValidationError[] = result.error.issues.map((err) => {
       const field = err.path.join(".");
       return {
         field,

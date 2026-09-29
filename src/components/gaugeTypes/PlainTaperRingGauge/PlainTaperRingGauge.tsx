@@ -43,21 +43,19 @@ const PlainTaperRingGauge: React.FC<PlainTaperRingGaugeProps> = ({
           name="specifications.taper_angle"
           control={control}
           render={({ field }) => (
-            <Input
-              type="number"
-              step="0.001"
-              placeholder="0"
-              label="Taper Angle (Included Angle) in degree"
-              labelPlacement="outside"
-              value={field.value ?? ''}
-              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
-              onBlur={field.onBlur}
-              disabled={isSubmitting}
-              classNames={{
-                inputWrapper:
-                  "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-              }}
-            />
+            <label className="flex flex-col gap-2 text-sm font-medium text-gray-700">
+              Taper Angle (Included Angle) in degree
+              <Input
+                type="number"
+                step="0.001"
+                placeholder="0"
+                value={field.value ?? ''}
+                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
+                onBlur={field.onBlur}
+                disabled={isSubmitting}
+                className="border border-gray-300 bg-white shadow-none"
+              />
+            </label>
           )}
         />
       </div>

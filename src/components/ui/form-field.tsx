@@ -27,7 +27,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   labelClassName = '',
 }) => {
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('min-w-0 space-y-2', className)}>
       {label && (
         <Label className={cn('block text-sm font-medium text-foreground leading-tight', labelClassName)}>
           {label}
@@ -39,7 +39,29 @@ export const FormField: React.FC<FormFieldProps> = ({
         <p className="text-xs text-muted-foreground">{description}</p>
       )}
       
-      <div className="relative">
+      <div
+        className={cn(
+          'relative w-full min-w-0',
+          '[&>[data-slot=input]]:w-full',
+          '[&>[data-slot=input]]:h-10',
+          '[&>[data-slot=input]]:rounded-md',
+          '[&>[data-slot=select]]:w-full',
+          '[&>[data-slot=select]>[data-slot=select-trigger]]:w-full',
+          '[&>[data-slot=select]>[data-slot=select-trigger]]:h-10',
+          '[&>[data-slot=select]>[data-slot=select-trigger]]:rounded-md',
+          '[&>[data-slot=date-picker]]:w-full',
+          '[&>[data-slot=date-picker]>[data-slot=date-input-group]]:w-full',
+          '[&>[data-slot=autocomplete]]:w-full',
+          '[&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:w-full',
+          '[&>[data-slot=autocomplete]_[data-slot=input]]:w-full',
+          '[&>[data-slot=autocomplete]_[data-slot=input]]:h-10',
+          '[&>[data-slot=autocomplete]_[data-slot=input]]:rounded-md',
+          '[&>[data-slot=textarea]]:w-full',
+          '[&>[data-slot=textarea]]:rounded-md',
+          '[&>[data-slot=textarea]]:min-h-20',
+          '[&>textarea]:w-full',
+        )}
+      >
         {children}
       </div>
       

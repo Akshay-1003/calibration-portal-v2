@@ -233,7 +233,7 @@ interface AppStore {
     getGaugeById: (id: string) => CompanyGaugeData | undefined;
 
     /********************* Scope Master Actions *********************/
-    fetchScopeMasters: (forceRefresh?: boolean) => Promise<void>;
+  fetchScopeMasters: (forceRefresh?: boolean) => Promise<ScopeMasterData[] | undefined>;
     fetchScopeMasterById: (id: string, forceRefresh?: boolean) => Promise<ScopeMasterData | undefined>;
     createScopeMaster: (payload: Partial<ScopeMasterData>) => Promise<void>;
     updateScopeMaster: (id: string, payload: Partial<ScopeMasterData>) => Promise<void>;

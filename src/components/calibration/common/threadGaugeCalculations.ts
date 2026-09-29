@@ -19,7 +19,7 @@ export interface ThreadGaugeValidationResult {
 }
 
 export interface SpecificationValidationResult {
-  status: 'within_specification' | 'out_of_specification' | 'specification_missing';
+  status: 'within_specification' | 'out_of_specification' | 'specification_missing' | 'observation_missing';
   remark: string;
   isWithinSpec: boolean;
 }
@@ -94,16 +94,6 @@ export function calculateThreadGaugeObservationSize(
  * @param spec - Specification limits with wear_limit and max_wear_limit
  * @returns Validation result with status and remark
  */
-export interface SpecificationValidationResult {
-  status:
-    | 'within_specification'
-    | 'out_of_specification'
-    | 'specification_missing'
-    | 'observation_missing';
-  remark: string;
-  isWithinSpec: boolean;
-}
-
 export function validateObservationAgainstSpecification(
   observedSize: number | null | undefined,
   spec?: {
@@ -197,7 +187,6 @@ export function validateThreadGaugeParameters(
 
   return undefined;
 }
-
 
 
 

@@ -32,12 +32,8 @@ export default function SpecificationReadOnlyField({
       </p>
       <Input
         value={formatSpecificationValue(value)}
-        isReadOnly
-        size="sm"
-        classNames={{
-          input: `text-sm font-medium text-slate-700 ${inputClassName ?? ""}`.trim(),
-          inputWrapper: "border border-slate-200 bg-slate-50 shadow-sm",
-        }}
+        readOnly
+        className={`border border-slate-200 bg-slate-50 shadow-sm text-sm font-medium text-slate-700 ${inputClassName ?? ""}`.trim()}
       />
     </div>
   );

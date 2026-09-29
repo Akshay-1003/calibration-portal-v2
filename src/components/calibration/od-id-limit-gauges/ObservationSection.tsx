@@ -191,7 +191,7 @@ export const ObservationSection: React.FC<ObservationSectionProps> = React.memo(
                           <Input
                             type="number"
                             step="0.001"
-                            isDisabled={rowDisabled}
+                            disabled={rowDisabled}
                             value={field.value?.toString() ?? ""}
                             onChange={(e) => {
                               field.onChange(e);
@@ -199,10 +199,7 @@ export const ObservationSection: React.FC<ObservationSectionProps> = React.memo(
                               // so the mean can be auto-calculated again
                               meanManuallySetRef.current[`${param}-${prefix}`] = false;
                             }}
-                            classNames={{
-                              inputWrapper: "h-9 border-1 border-gray-300 bg-white rounded-sm",
-                              input: "text-sm text-center",
-                            }}
+                            className="h-9 rounded-sm border border-gray-300 bg-white text-center text-sm"
                             placeholder="0.000"
                           />
                         )}
@@ -218,12 +215,9 @@ export const ObservationSection: React.FC<ObservationSectionProps> = React.memo(
                           <Input
                             type="text"
                             inputMode="decimal"
-                            isDisabled={rowDisabled}
+                            disabled={rowDisabled}
                             value={field.value?.toString() ?? ""}
-                            classNames={{
-                              inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100 rounded-sm",
-                            input: "text-sm text-center font-semibold",
-                          }}
+                          className="h-9 rounded-sm border border-gray-300 bg-gray-100 text-center text-sm font-semibold"
                           placeholder="0.000"
                           onFocus={() => {
                             meanEditingRef.current[`${param}-${prefix}`] = true;

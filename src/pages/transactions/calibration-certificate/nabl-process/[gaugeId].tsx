@@ -6,7 +6,7 @@ import { Controller, FormProvider, useForm, useWatch } from "react-hook-form";
 import { PageLoader } from "../../../../components/ui/loader";
 import { toast } from "sonner";
 import { Badge } from "../../../../components/ui/badge";
-import { Input, Textarea, Select, SelectItem } from "@heroui-v2/react";
+import { Input, TextArea, ListBox, Select } from "@heroui/react";
 import { GaugeTypeCalibrationRenderer } from "../../../../components/calibration/GaugeTypeCalibrationRenderer";
 import { GaugeSpecificationRenderer } from "../../../../components/specifications/GaugeSpecificationRenderer";
 import { TagsInput } from "../../../../components/TagsInput";
@@ -73,17 +73,15 @@ const getTodayDateInputValue = (): string => {
 const fieldLabelClassName =
   "mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-700";
 
-const editableFieldClassNames = {
-  input: "text-sm font-medium text-slate-900",
-  inputWrapper:
-    "border border-slate-200 bg-slate-50 shadow-sm transition-colors group-data-[hover=true]:border-slate-300 group-data-[focus=true]:border-blue-500",
-};
+const editableFieldClassName = "text-sm font-medium text-slate-900 border border-slate-200 bg-slate-50";
+const readOnlyFieldClassName = "text-sm font-medium text-slate-700 border border-slate-200 bg-slate-100";
 
-const readOnlyFieldClassNames = {
-  input: "text-sm font-medium text-slate-700",
-  inputWrapper:
-    "border border-slate-200 bg-slate-100 shadow-sm",
-};
+const V3Select = ({ value, onChange, options, placeholder, ariaLabel }: { value: string; onChange: (value: string) => void; options: Array<{ value: string; label: string }>; placeholder: string; ariaLabel: string }) => (
+  <Select selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : "")} placeholder={placeholder} aria-label={ariaLabel}>
+    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
+  </Select>
+);
 
 const sectionClassName = "rounded-xl border border-slate-200 bg-white p-4 shadow-sm";
 
@@ -631,8 +629,11 @@ const NablCalibrationProcessPage = () => {
         setObservations(normalizedObservationSnapshot);
 
         const formValues = form.getValues();
+        const rawSpecifications = formValues.specifications ?? effectiveSpecifications ?? null;
         const normalizedSpecifications = normalizeCalibrationSpecifications(
-          formValues.specifications ?? effectiveSpecifications ?? null
+          Array.isArray(rawSpecifications)
+            ? rawSpecifications.filter((value): value is string => typeof value === 'string')
+            : rawSpecifications
         );
         const specificationSnapshotKey = JSON.stringify(normalizedSpecifications ?? null);
         if (lastSpecsKeyRef.current !== specificationSnapshotKey) {
@@ -647,7 +648,7 @@ const NablCalibrationProcessPage = () => {
           gauge_condition: formValues.gauge_condition,
           gauge_name: formValues.gauge_name,
           identification_number: formValues.identification_number,
-          specifications: normalizedSpecifications,
+          specifications: normalizedSpecifications ?? undefined,
           serial_number: formValues.serial_number,
           make: formValues.make,
           calibration_frequency: formValues.calibration_frequency ? Number(formValues.calibration_frequency) : undefined,
@@ -695,7 +696,9 @@ const NablCalibrationProcessPage = () => {
           calibration_method: formValues.calibration_method,
           certificate_date: formValues.certificate_date,
           calibration_date: formValues.calibration_date,
-          specifications: normalizedSpecifications,
+          specifications: Array.isArray(normalizedSpecifications)
+            ? undefined
+            : normalizedSpecifications ?? undefined,
         };
 
 
@@ -938,7 +941,7 @@ const NablCalibrationProcessPage = () => {
         </div>
 
         <FormProvider {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmitCalibration)}>
+          <form onSubmit={(event) => { void form.handleSubmit((values) => handleSubmitCalibration(values, true))(event); }}>
             <div className="p-2">
               {/* Section 1: Certificate Information */}
               <div className={sectionClassName}>
@@ -950,18 +953,18 @@ const NablCalibrationProcessPage = () => {
                     <label className={fieldLabelClassName}>Company Name</label>
                     <Input
                       value={gaugeData?.client_org_name || "N/A"}
-                      isReadOnly
+                      readOnly
                       aria-label="client name"
-                      classNames={readOnlyFieldClassNames}
+                      className={readOnlyFieldClassName}
                     />
                   </div>
                   <div>
                     <label className={fieldLabelClassName}>DC No</label>
                     <Input
                       value={gaugeData?.client_dc_no || "N/A"}
-                      isReadOnly
+                      readOnly
 
-                      classNames={readOnlyFieldClassNames}
+                      className={readOnlyFieldClassName}
                     />
                   </div>
                   <div>
@@ -974,9 +977,9 @@ const NablCalibrationProcessPage = () => {
                           year: "numeric",
                         })
                         : "N/A"}
-                      isReadOnly
+                      readOnly
                       aria-label="client dc date"
-                      classNames={readOnlyFieldClassNames}
+                      className={readOnlyFieldClassName}
                     />
                   </div>
                   <div>
@@ -989,18 +992,18 @@ const NablCalibrationProcessPage = () => {
                           year: "numeric",
                         })
                         : "N/A"}
-                      isReadOnly
+                      readOnly
                       aria-label='inward date'
-                      classNames={readOnlyFieldClassNames}
+                      className={readOnlyFieldClassName}
                     />
                   </div>
                   <div>
                     <label className={fieldLabelClassName}>LAB ID</label>
                     <Input
                       value={gaugeData?.inward_gauge_lab_id || "N/A"}
-                      isReadOnly
+                      readOnly
                       aria-label="lab id"
-                      classNames={readOnlyFieldClassNames}
+                      className={readOnlyFieldClassName}
                     />
                   </div>
                   <div>
@@ -1015,7 +1018,7 @@ const NablCalibrationProcessPage = () => {
                         })
                       }
                       aria-label="certificate date"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1030,7 +1033,7 @@ const NablCalibrationProcessPage = () => {
                         })
                       }
                       aria-label="calibration date"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                 </div>
@@ -1048,7 +1051,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('gauge_name')}
                       placeholder="Enter gauge name"
                       aria-label="gauge name"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1057,7 +1060,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('make')}
                       placeholder="Enter make"
                       aria-label="make"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1066,7 +1069,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('identification_number')}
                       placeholder="Enter identification number"
                       aria-label="identification number"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1075,7 +1078,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('serial_number')}
                       placeholder="Enter serial number"
                       aria-label="serial number"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1086,28 +1089,9 @@ const NablCalibrationProcessPage = () => {
                         placeholder="e.g., 6"
                         type="number"
                         aria-label="calibration frequency"
-                        className="flex-1"
-                        classNames={editableFieldClassNames}
+                        className={editableFieldClassName}
                       />
-                      <Select
-                        {...form.register('calibration_frequency_unit')}
-                        placeholder="Unit"
-                        aria-label="calibration frequency unit"
-                        className="w-32"
-                        selectedKeys={[form.watch('calibration_frequency_unit') || 'months']}
-                        onSelectionChange={(keys) => {
-                          const value = Array.from(keys)[0] as "days" | "months" | "years";
-                          form.setValue('calibration_frequency_unit', value);
-                        }}
-                        classNames={{
-                          trigger: editableFieldClassNames.inputWrapper,
-                          value: "text-sm font-medium text-slate-900",
-                        }}
-                      >
-                        <SelectItem key="days" textValue="Days">Days</SelectItem>
-                        <SelectItem key="months" textValue="Months">Months</SelectItem>
-                        <SelectItem key="years" textValue="Years">Years</SelectItem>
-                      </Select>
+                      <V3Select value={form.watch('calibration_frequency_unit') || 'months'} ariaLabel="calibration frequency unit" placeholder="Unit" onChange={(value) => form.setValue('calibration_frequency_unit', value as "days" | "months" | "years")} options={[{ value: "days", label: "Days" }, { value: "months", label: "Months" }, { value: "years", label: "Years" }]} />
                     </div>
                   </div>
                   <div>
@@ -1116,7 +1100,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('gauge_condition')}
                       placeholder="e.g., Good, Minor scratches"
                       aria-label="gauge condition"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
 
@@ -1135,7 +1119,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('environmental_conditions')}
                       // placeholder="e.g., Temp: 23°C ± 2°C, Humidity: 50% ± 10%"
                       aria-label="environmental conditions"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1144,7 +1128,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('uncertainty')}
                       placeholder="e.g., ±0.002 mm"
                       aria-label="uncertainty measurement"
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1153,7 +1137,7 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('calibration_method')}
                       placeholder="e.g., Optical Comparator"
                       aria-label='calibration method'
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
@@ -1162,44 +1146,24 @@ const NablCalibrationProcessPage = () => {
                       {...form.register('calibration_location')}
                       placeholder="e.g., Laboratory, On-site"
                       aria-label='calibration location'
-                      classNames={editableFieldClassNames}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>
                     <label className={fieldLabelClassName}>Calibration Type *</label>
-                    <Select
-                      {...form.register('calibration_type')}
-                      placeholder="Select calibration type"
-                      aria-label='calibration type'
-                      selectedKeys={[form.watch('calibration_type') || 'fully']}
-                      onSelectionChange={(keys) => {
-                        const value = Array.from(keys)[0] as 'fully' | 'partially';
-                        form.setValue('calibration_type', value);
-                      }}
-                      classNames={{
-                        trigger: editableFieldClassNames.inputWrapper,
-                        value: "text-sm font-medium text-slate-900",
-                      }}
-                    >
-                      <SelectItem key="fully" textValue="Fully Calibrated">Fully Calibrated</SelectItem>
-                      <SelectItem key="partially" textValue="Partially Calibrated">Partially Calibrated</SelectItem>
-                    </Select>
+                    <V3Select value={form.watch('calibration_type') || 'fully'} ariaLabel="calibration type" placeholder="Select calibration type" onChange={(value) => form.setValue('calibration_type', value as 'fully' | 'partially')} options={[{ value: "fully", label: "Fully Calibrated" }, { value: "partially", label: "Partially Calibrated" }]} />
                   </div>
 
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 mb-2">
                   <div>
                     <label className={fieldLabelClassName}>Conformity Statement with Decision Rule</label>
-                    <Textarea
+                    <TextArea
                       {...form.register('conformity_statement')}
                       placeholder="Enter conformity statement and decision rule applied"
                       aria-label='conformity statement'
-                      minRows={2}
-                      classNames={{
-                        input: "text-sm font-medium text-slate-900",
-                        inputWrapper:
-                          "border border-slate-200 bg-slate-50 shadow-sm group-data-[focus=true]:border-blue-500",
-                      }}
+                      rows={2}
+                      className={editableFieldClassName}
                     />
                   </div>
                   <div>

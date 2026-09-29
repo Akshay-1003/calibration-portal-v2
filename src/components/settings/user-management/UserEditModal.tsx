@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Button, Modal, ModalBody, ModalContent, ModalHeader, Spinner } from '@heroui-v2/react';
+import { Button, Modal, Spinner } from '@heroui/react';
 import { useUserPermissionsQuery } from '../../../hooks/queries/users';
 import type { User } from '../../../features/auth/types/auth.types';
 import { UserForm } from './UserForm';
+import { normalizePermissionScope } from '../../../features/auth/utils/permissionHelpers';
 import type { ManagedUserFormValues } from './userManagementSchema';
 import { UserResetPasswordModal, type ResetUserPasswordFormValues } from './UserResetPasswordModal';
 
@@ -36,40 +37,43 @@ export const UserEditModal = ({
 
   return (
     <>
-      <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="5xl" scrollBehavior="inside">
-        <ModalContent>
-          <ModalHeader className="flex items-center justify-between gap-4">
-            <span>Edit User</span>
+      <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onOpenChange(); }}>
+        <Modal.Backdrop>
+          <Modal.Container size="lg" scroll="inside">
+            <Modal.Dialog>
+              <Modal.Header className="flex items-center justify-between gap-4">
+                <Modal.Heading>Edit User</Modal.Heading>
             {user ? (
               <Button
                 size="sm"
-                variant="flat"
-                color="primary"
+                variant="primary"
                 onPress={() => setIsResetPasswordOpen(true)}
               >
                 Reset Password
               </Button>
             ) : null}
-          </ModalHeader>
-          <ModalBody className="pb-6">
+              </Modal.Header>
+              <Modal.Body className="pb-6">
             {!user || permissionsQuery.isLoading ? (
               <div className="flex min-h-[240px] items-center justify-center">
-                <Spinner label="Loading user permissions..." />
+                <Spinner aria-label="Loading user permissions..." />
               </div>
             ) : (
               <UserForm
                 mode="edit"
                 initialUser={user}
-                initialPermissions={permissionsQuery.data ?? user.permissions ?? null}
+                initialPermissions={normalizePermissionScope(permissionsQuery.data ?? user.permissions ?? null)}
                 onSubmit={onSubmit}
                 onClose={onClose}
                 isLoading={isLoading}
                 userType={userType}
               />
             )}
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+              </Modal.Body>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal.Root>
 
       <UserResetPasswordModal
         user={user}

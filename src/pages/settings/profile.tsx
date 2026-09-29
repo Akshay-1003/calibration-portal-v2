@@ -5,9 +5,7 @@ import {
   Input,
   Button,
   Card,
-  CardHeader,
-  CardBody,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import { ArrowUpTrayIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import { FormField } from '../../components/ui/form-field';
 import {
@@ -204,24 +202,24 @@ export const SettingsProfile = () => {
   return (
     <div className="space-y-6">
       <Card className="border border-gray-200">
-        <CardHeader className="pb-4 border-b border-gray-200">
+        <Card.Header className="pb-4 border-b border-gray-200">
           <div>
             <h2 className="text-lg font-semibold">Profile Information</h2>
             <p className="text-sm text-gray-500 mt-1">
               Your account details are loaded from the authenticated profile response.
             </p>
           </div>
-        </CardHeader>
+        </Card.Header>
 
-        <CardBody className="p-6">
+        <Card.Content className="p-6">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid md:grid-cols-2 gap-6">
               <FormField label="Username">
-                <Input value={user.username || ''} isReadOnly />
+                <Input value={user.username || ''} readOnly />
               </FormField>
 
               <FormField label="Role">
-                <Input value={roleLabel} isReadOnly />
+                <Input value={roleLabel} readOnly />
               </FormField>
 
               <FormField label="First Name" required error={form.formState.errors.first_name?.message}>
@@ -243,11 +241,11 @@ export const SettingsProfile = () => {
               {!isPlatformSuperAdmin && (
                 <>
                   <FormField label="Organization">
-                    <Input value={organizationLabel} isReadOnly />
+                    <Input value={organizationLabel} readOnly />
                   </FormField>
 
                   <FormField label="Lab ID">
-                    <Input value={formatNullable(user.lab_id)} isReadOnly />
+                    <Input value={formatNullable(user.lab_id)} readOnly />
                   </FormField>
                 </>
               )}
@@ -261,7 +259,7 @@ export const SettingsProfile = () => {
               ) : null}
               <Button
                 type="button"
-                variant="flat"
+                variant="secondary"
                 onPress={() => form.reset(defaultValues)}
               >
                 Cancel
@@ -269,18 +267,18 @@ export const SettingsProfile = () => {
 
               <Button
                 type="submit"
-                color="primary"
-                isLoading={updateProfileMutation.isPending}
+                variant="primary"
+                isDisabled={updateProfileMutation.isPending}
               >
-                Save Changes
+                {updateProfileMutation.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           </form>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       <Card className="border border-gray-200">
-        <CardHeader className="pb-4 border-b border-gray-200">
+        <Card.Header className="pb-4 border-b border-gray-200">
           <div className="flex items-center justify-between w-full gap-4">
             <div>
               <h2 className="text-lg font-semibold">Signature Upload</h2>
@@ -289,9 +287,9 @@ export const SettingsProfile = () => {
               </p>
             </div>
           </div>
-        </CardHeader>
+        </Card.Header>
 
-        <CardBody className="p-6 space-y-5">
+        <Card.Content className="p-6 space-y-5">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex h-40 w-full max-w-sm items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50">
               {signaturePreviewUrl ? (
@@ -319,10 +317,10 @@ export const SettingsProfile = () => {
 
               <div className="space-y-2">
                 <Button
-                  variant="flat"
-                  startContent={<ArrowUpTrayIcon className="h-4 w-4" />}
+                  variant="secondary"
                   onPress={() => fileInputRef.current?.click()}
                 >
+                  <ArrowUpTrayIcon className="h-4 w-4" />
                   Select Signature File
                 </Button>
                 <p className="text-sm text-gray-600">
@@ -337,15 +335,14 @@ export const SettingsProfile = () => {
 
               <div className="flex gap-3">
                 <Button
-                  color="primary"
+                  variant="primary"
                   isDisabled={!selectedSignatureFile}
-                  isLoading={uploadSignatureMutation.isPending}
                   onPress={handleSignatureUpload}
                 >
-                  Upload Signature
+                  {uploadSignatureMutation.isPending ? "Uploading..." : "Upload Signature"}
                 </Button>
                 <Button
-                  variant="flat"
+                  variant="secondary"
                   isDisabled={!selectedSignatureFile}
                   onPress={() => {
                     setSelectedSignatureFile(null);
@@ -360,7 +357,7 @@ export const SettingsProfile = () => {
               </div>
             </div>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

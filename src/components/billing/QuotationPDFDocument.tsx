@@ -790,14 +790,14 @@ export const QuotationPDFDocument: React.FC<{ data: Quotation }> = ({
                             styles.partyDetail,
                             index === senderDetails.length - 1
                               ? styles.partyDetailLast
-                              : null,
+                              : undefined,
                           ]}
                         >
                           <Text style={styles.partyLabel}>{detail.label}</Text>
                           <Text
                             style={[
                               styles.partyValue,
-                              detail.emphasis ? styles.partyValueStrong : null,
+                              detail.emphasis ? styles.partyValueStrong : undefined,
                             ]}
                           >
                             {detail.value}
@@ -817,14 +817,14 @@ export const QuotationPDFDocument: React.FC<{ data: Quotation }> = ({
                             styles.partyDetail,
                             index === customerDetails.length - 1
                               ? styles.partyDetailLast
-                              : null,
+                              : undefined,
                           ]}
                         >
                           <Text style={styles.partyLabel}>{detail.label}</Text>
                           <Text
                             style={[
                               styles.partyValue,
-                              detail.emphasis ? styles.partyValueStrong : null,
+                              detail.emphasis ? styles.partyValueStrong : undefined,
                             ]}
                           >
                             {detail.value}
@@ -863,10 +863,10 @@ export const QuotationPDFDocument: React.FC<{ data: Quotation }> = ({
                     key={item.id}
                     style={[
                       styles.itemRow,
-                      (startIndex + index) % 2 === 1 ? styles.itemRowAlt : null,
+                      (startIndex + index) % 2 === 1 ? styles.itemRowAlt : undefined,
                       index === pageItems.length - 1
                         ? styles.lastItemRow
-                        : null,
+                        : undefined,
                     ]}
                   >
                     <Text style={[styles.td, styles.colSr, styles.textCenter]}>
@@ -959,14 +959,14 @@ export const QuotationPDFDocument: React.FC<{ data: Quotation }> = ({
                             key={row.label}
                             style={[
                               styles.summaryRow,
-                              index === 0 ? styles.firstRow : null,
-                              row.strong ? styles.grandTotalRow : null,
+                              index === 0 ? styles.firstRow : undefined,
+                              row.strong ? styles.grandTotalRow : undefined,
                             ]}
                           >
                             <Text
                               style={[
                                 styles.summaryLabel,
-                                row.strong ? styles.grandTotalLabel : null,
+                                row.strong ? styles.grandTotalLabel : undefined,
                               ]}
                             >
                               {row.label}

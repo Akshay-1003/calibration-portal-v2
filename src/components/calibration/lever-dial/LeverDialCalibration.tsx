@@ -1,11 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useRef } from "react";
-import {
-  Input,
-  Checkbox,
-  Spinner,
-} from "@heroui/react";
+import { Input, Checkbox, Spinner } from "@heroui/react";
 import { useFieldArray, useFormContext, useWatch, Controller } from "react-hook-form";
 import { useDialReadingTableQuery } from "../../../hooks/queries/dialReadingTable";
 import { TypeAReadingSection } from "../od-id-limit-gauges/TypeAReadingSection";
@@ -15,7 +11,6 @@ import {
   isValidDecimalInput,
 } from "../../../utils/calibrationCalculations";
 import type {
-  LeverDialReadingRow as ReadingRow,
   LeverDialCalibrationForm as CalibrationForm,
   LeverDialObservationsObj as ObservationsObj,
 } from "../observationSchemas";
@@ -362,10 +357,7 @@ export function LeverDialCalibration({
                           aria-label="Turn"
                           readOnly
                           value={row?.turn ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-700",
-                          }}
+                          className="h-9 w-full border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                         />
                       </td>
 
@@ -375,10 +367,7 @@ export function LeverDialCalibration({
                           aria-label="Range"
                           readOnly
                           value={row?.range ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-700",
-                          }}
+                          className="h-9 w-full border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                         />
                       </td>
 
@@ -388,10 +377,7 @@ export function LeverDialCalibration({
                           aria-label="Value"
                           readOnly
                           value={row?.value ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 w-full border-1 border-slate-200 bg-white shadow-sm",
-                            input: "text-sm text-center font-medium text-slate-700",
-                          }}
+                          className="h-9 w-full border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                         />
                       </td>
 
@@ -407,11 +393,8 @@ export function LeverDialCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Upward Stylus Up Actual Reading"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all",
-                                input: "text-sm text-center font-medium text-slate-700",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-9 w-full min-w-[100px] border border-emerald-200 bg-emerald-50/40 text-sm text-center font-medium text-slate-700 hover:border-emerald-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all"
                               onChange={(e) => {
                                 const v = e.target.value;
                                 if (isValidDecimalInput(v)) {
@@ -437,10 +420,7 @@ export function LeverDialCalibration({
                               {...field}
                               readOnly
                               value={upwardStylusUpError || field.value || ""}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-emerald-200 bg-emerald-50/40 shadow-sm",
-                                input: "text-sm text-center font-medium text-slate-600",
-                              }}
+                              className="h-9 w-full min-w-[100px] border border-emerald-200 bg-emerald-50/40 text-sm text-center font-medium text-slate-600 shadow-sm"
                             />
                           )}
                         />
@@ -458,11 +438,8 @@ export function LeverDialCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Upward Stylus Down Actual Reading"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all",
-                                input: "text-sm text-center font-medium text-slate-700",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-9 w-full min-w-[100px] border border-emerald-200 bg-emerald-50/40 text-sm text-center font-medium text-slate-700 hover:border-emerald-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all"
                               onChange={(e) => {
                                 const v = e.target.value;
                                 if (isValidDecimalInput(v)) {
@@ -488,10 +465,7 @@ export function LeverDialCalibration({
                               {...field}
                               readOnly
                               value={upwardStylusDownError || field.value || ""}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-emerald-200 bg-emerald-50/40 shadow-sm",
-                                input: "text-sm text-center font-medium text-slate-600",
-                              }}
+                              className="h-9 w-full min-w-[100px] border border-emerald-200 bg-emerald-50/40 text-sm text-center font-medium text-slate-600 shadow-sm"
                             />
                           )}
                         />
@@ -509,11 +483,8 @@ export function LeverDialCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Downward Stylus Up Actual Reading"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-pink-200 bg-pink-50/40 hover:border-pink-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all",
-                                input: "text-sm text-center font-medium text-slate-700",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-9 w-full min-w-[100px] border border-pink-200 bg-pink-50/40 text-sm text-center font-medium text-slate-700 hover:border-pink-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all"
                               onChange={(e) => {
                                 const v = e.target.value;
                                 if (isValidDecimalInput(v)) {
@@ -539,10 +510,7 @@ export function LeverDialCalibration({
                               {...field}
                               readOnly
                               value={downwardStylusUpError || field.value || ""}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-pink-200 bg-pink-50/40 shadow-sm",
-                                input: "text-sm text-center font-medium text-slate-600",
-                              }}
+                              className="h-9 w-full min-w-[100px] border border-pink-200 bg-pink-50/40 text-sm text-center font-medium text-slate-600 shadow-sm"
                             />
                           )}
                         />
@@ -560,11 +528,8 @@ export function LeverDialCalibration({
                               type="text"
                               inputMode="decimal"
                               aria-label="Downward Stylus Down Actual Reading"
-                              isDisabled={isReadOnly}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-pink-200 bg-pink-50/40 hover:border-pink-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all",
-                                input: "text-sm text-center font-medium text-slate-700",
-                              }}
+                              disabled={isReadOnly}
+                              className="h-9 w-full min-w-[100px] border border-pink-200 bg-pink-50/40 text-sm text-center font-medium text-slate-700 hover:border-pink-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all"
                               onChange={(e) => {
                                 const v = e.target.value;
                                 if (isValidDecimalInput(v)) {
@@ -590,10 +555,7 @@ export function LeverDialCalibration({
                               {...field}
                               readOnly
                               value={downwardStylusDownError || field.value || ""}
-                              classNames={{
-                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-pink-200 bg-pink-50/40 shadow-sm",
-                                input: "text-sm text-center font-medium text-slate-600",
-                              }}
+                              className="h-9 w-full min-w-[100px] border border-pink-200 bg-pink-50/40 text-sm text-center font-medium text-slate-600 shadow-sm"
                             />
                           )}
                         />
@@ -654,7 +616,7 @@ export function LeverDialCalibration({
                   <Checkbox
                     isSelected={tablesToPrint.includes(key)}
                     isDisabled={isReadOnly}
-                    onValueChange={(v: boolean) => {
+                        onChange={(v: boolean) => {
                       setValue(
                         "observations.tables_to_print",
                         v
@@ -687,7 +649,7 @@ export function LeverDialCalibration({
                   <Checkbox
                     isSelected={tablesToPrint.includes(key)}
                     isDisabled={isReadOnly}
-                    onValueChange={(v: boolean) => {
+                    onChange={(v: boolean) => {
                       setValue(
                         "observations.tables_to_print",
                         v

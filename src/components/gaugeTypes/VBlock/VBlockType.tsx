@@ -57,39 +57,18 @@ export default function VBlockType({ unit, title, readOnly = false, initialData 
     <>
       {title && <div className="text-sm font-medium text-gray-700">{title}</div>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Input
-          {...register('specifications.length')}
-          placeholder="0"
-          size="sm"
-          label={`Length (${displayUnit})`}
-          labelPlacement="outside"
-          variant="bordered"
-          classNames={{
-            label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-          }}
-        />
-        <Input
-          {...register('specifications.width')}
-          placeholder="0"
-          size="sm"
-          label={`Width (${displayUnit})`}
-          labelPlacement="outside"
-          variant="bordered"
-          classNames={{
-            label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-          }}
-        />
-        <Input
-          {...register('specifications.height')}
-          placeholder="0"
-          size="sm"
-          label={`Height (${displayUnit})`}
-          labelPlacement="outside"
-          variant="bordered"
-          classNames={{
-            label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-          }}
-        />
+        <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+          {`Length (${displayUnit})`}
+          <Input {...register('specifications.length')} placeholder="0" className="border border-gray-300" />
+        </label>
+        <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+          {`Width (${displayUnit})`}
+          <Input {...register('specifications.width')} placeholder="0" className="border border-gray-300" />
+        </label>
+        <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+          {`Height (${displayUnit})`}
+          <Input {...register('specifications.height')} placeholder="0" className="border border-gray-300" />
+        </label>
       </div>
     </>
   );

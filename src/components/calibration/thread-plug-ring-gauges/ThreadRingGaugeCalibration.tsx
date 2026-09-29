@@ -346,7 +346,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
 
   // Validate against specifications and generate remarks using uncertainty bands
   const goRemarkAResult = useMemo(() => {
-    if (goObservedSizeA === null) return null;
+    if (goObservedSizeA == null) return null;
     
     const goSpec: CalibrationSpecLimits = {
       max_limit: parseNumber(specifications?.specification_table?.go?.max_wear_limit) ?? undefined,
@@ -357,7 +357,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
   }, [goObservedSizeA, specifications?.specification_table?.go, uncertainty]);
 
   const goRemarkBResult = useMemo(() => {
-    if (goObservedSizeB === null) return null;
+    if (goObservedSizeB == null) return null;
     
     const goSpec: CalibrationSpecLimits = {
       max_limit: parseNumber(specifications?.specification_table?.go?.max_wear_limit) ?? undefined,
@@ -368,7 +368,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
   }, [goObservedSizeB, specifications?.specification_table?.go, uncertainty]);
 
   const noGoRemarkAResult = useMemo(() => {
-    if (noGoObservedSizeA === null) return null;
+    if (noGoObservedSizeA == null) return null;
     
     const noGoSpec: CalibrationSpecLimits = {
       max_limit: parseNumber(specifications?.specification_table?.no_go?.max_wear_limit) ?? undefined,
@@ -380,7 +380,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
   }, [noGoObservedSizeA, specifications?.specification_table?.no_go, uncertainty]);
 
   const noGoRemarkBResult = useMemo(() => {
-    if (noGoObservedSizeB === null) return null;
+    if (noGoObservedSizeB == null) return null;
     
     const noGoSpec: CalibrationSpecLimits = {
       max_limit: parseNumber(specifications?.specification_table?.no_go?.max_wear_limit) ?? undefined,
@@ -506,12 +506,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                         onBlur={field.onBlur}
                         disabled={isReadOnly}
-                        isInvalid={!!showError}
-                        errorMessage={showError ? fieldState.error?.message : undefined}
-                        classNames={{
-                          inputWrapper: `bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'
-                            } shadow-none`,
-                        }}
+                        className={`bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'} shadow-none`}
                       />
                     </div>
                   );
@@ -549,12 +544,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                         onBlur={field.onBlur}
                         disabled={isReadOnly}
-                        isInvalid={!!showError}
-                        errorMessage={showError ? fieldState.error?.message : undefined}
-                        classNames={{
-                          inputWrapper: `bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'
-                            } shadow-none`,
-                        }}
+                        className={`bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'} shadow-none`}
                       />
                     </div>
                   );
@@ -592,12 +582,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                         onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                         onBlur={field.onBlur}
                         disabled={isReadOnly}
-                        isInvalid={!!showError}
-                        errorMessage={showError ? fieldState.error?.message : undefined}
-                        classNames={{
-                          inputWrapper: `bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'
-                            } shadow-none`,
-                        }}
+                        className={`bg-white border ${showError ? 'border-red-500' : 'border-gray-300 hover:border-gray-400 focus:border-primary'} shadow-none`}
                       />
                     </div>
                   );
@@ -620,9 +605,7 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                     onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                     onBlur={field.onBlur}
                     disabled={isReadOnly}
-                    classNames={{
-                      inputWrapper: "bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none",
-                    }}
+                    className="bg-white border border-gray-300 hover:border-gray-400 focus:border-primary shadow-none"
                   />
                 )}
               />
@@ -679,12 +662,9 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                           {...field}
                           type="text"
                           inputMode="decimal"
-                          isDisabled={isReadOnly}
+                          disabled={isReadOnly}
                           value={field.value ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                            input: "text-sm text-center font-semibold",
-                          }}
+                          className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-semibold"
                           placeholder="0.000"
                           onFocus={() => {
                             meanEditingRef.current.goA = true;
@@ -744,12 +724,9 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                           {...field}
                           type="text"
                           inputMode="decimal"
-                          isDisabled={isReadOnly}
+                          disabled={isReadOnly}
                           value={field.value ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                            input: "text-sm text-center font-semibold",
-                          }}
+                          className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-semibold"
                           placeholder="0.000"
                           onFocus={() => {
                             meanEditingRef.current.noGoA = true;
@@ -833,12 +810,9 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                           {...field}
                           type="text"
                           inputMode="decimal"
-                          isDisabled={isReadOnly}
+                          disabled={isReadOnly}
                           value={field.value ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                            input: "text-sm text-center font-semibold",
-                          }}
+                          className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-semibold"
                           placeholder="0.000"
                           onFocus={() => {
                             meanEditingRef.current.goB = true;
@@ -898,12 +872,9 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                           {...field}
                           type="text"
                           inputMode="decimal"
-                          isDisabled={isReadOnly}
+                          disabled={isReadOnly}
                           value={field.value ?? ""}
-                          classNames={{
-                            inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                            input: "text-sm text-center font-semibold",
-                          }}
+                          className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-semibold"
                           placeholder="0.000"
                           onFocus={() => {
                             meanEditingRef.current.noGoB = true;
@@ -969,44 +940,33 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                   <Checkbox
                     isSelected={showGo}
                     isDisabled={isReadOnly}
-                    onValueChange={(value: boolean) => toggleTableToPrint("go", value)}
-                    classNames={{
-                      label: "text-sm font-medium text-gray-900",
-                    }}
+                    onChange={(value: boolean) => toggleTableToPrint("go", value)}
+                    className="text-sm font-medium text-gray-900"
                   >
                     Go
                   </Checkbox>
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.go?.max_wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.go?.max_wear_limit ?? "")}
+                    className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.go?.min_wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.go?.min_wear_limit ?? "")}
+                    className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.go?.wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.go?.wear_limit ?? "")}
+                    className="h-9 border border-gray-300 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
@@ -1033,18 +993,12 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                             type="number"
                             step="0.001"
                             placeholder="0"
-                            className="h-9 text-sm text-center"
                             value={field.value ?? (calcResult?.calculatedValue?.toString() || '') ?? ""}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                             onBlur={field.onBlur}
                             disabled={isReadOnly || !showGo}
-                            isReadOnly={isValid && !isReadOnly}
-                            isInvalid={showError}
-                            classNames={{
-                              inputWrapper: isValid
-                                ? "bg-gray-50 border-gray-300"
-                                : "border-red-500",
-                            }}
+                            readOnly={isValid && !isReadOnly}
+                            className={`h-9 text-sm text-center ${isValid ? "bg-gray-50 border-gray-300" : "border-red-500"}`}
                           />
                           {showError && calcResult?.error && (
                             <p className="text-xs text-red-600 mt-1 break-words whitespace-normal">{calcResult.error}</p>
@@ -1077,18 +1031,12 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                             type="number"
                             step="0.001"
                             placeholder="0"
-                            className="h-9 text-sm text-center"
                             value={field.value ?? (calcResult?.calculatedValue?.toString() || '') ?? ""}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                             onBlur={field.onBlur}
                             disabled={isReadOnly || !showGo}
-                            isReadOnly={isValid && !isReadOnly}
-                            isInvalid={showError}
-                            classNames={{
-                              inputWrapper: isValid
-                                ? "bg-gray-50 border-gray-300"
-                                : "border-red-500",
-                            }}
+                            readOnly={isValid && !isReadOnly}
+                            className={`h-9 text-sm text-center ${isValid ? "bg-gray-50 border-gray-300" : "border-red-500"}`}
                           />
                           {showError && calcResult?.error && (
                             <p className="text-xs text-red-600 mt-1 break-words whitespace-normal">{calcResult.error}</p>
@@ -1126,17 +1074,13 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                         <Input
                           type="text"
                           placeholder="-"
-                          className="h-9 text-sm"
                           value={goRemark || ""}
                           disabled={true} // Always read-only since it's derived
-                          classNames={{
-                            input: remarkColor,
-                            inputWrapper: overallStatus === 'out_of_specification'
+                          className={`h-9 text-sm ${remarkColor} ${overallStatus === 'out_of_specification'
                               ? "bg-red-50 border-red-300"
                               : overallStatus === 'within_wear_limit'
                               ? "bg-green-50 border-green-300"
-                              : "bg-blue-50 border-blue-300",
-                          }}
+                              : "bg-blue-50 border-blue-300"}`}
                         />
                       </div>
                     );
@@ -1149,44 +1093,33 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                   <Checkbox
                     isSelected={showNoGo}
                     isDisabled={isReadOnly}
-                    onValueChange={(value: boolean) => toggleTableToPrint("nogo", value)}
-                    classNames={{
-                      label: "text-sm font-medium text-gray-900",
-                    }}
+                    onChange={(value: boolean) => toggleTableToPrint("nogo", value)}
+                    className="text-sm font-medium text-gray-900"
                   >
                     No Go
                   </Checkbox>
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.no_go?.max_wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.no_go?.max_wear_limit ?? "")}
+                    className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.no_go?.min_wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300 bg-gray-100",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.no_go?.min_wear_limit ?? "")}
+                    className="h-9 border border-gray-300 bg-gray-100 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
                 <td className="px-3 py-2 text-center">
                   <Input
-                    isReadOnly
-                    value={specifications?.specification_table?.no_go?.wear_limit ?? ""}
-                    classNames={{
-                      inputWrapper: "h-9 border-1 border-gray-300",
-                      input: "text-sm text-center font-medium",
-                    }}
+                    readOnly
+                    value={String(specifications?.specification_table?.no_go?.wear_limit ?? "")}
+                    className="h-9 border border-gray-300 text-sm text-center font-medium"
                     placeholder="--"
                   />
                 </td>
@@ -1213,18 +1146,12 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                             type="number"
                             step="0.001"
                             placeholder="0"
-                            className="h-9 text-sm text-center"
                             value={field.value ?? (calcResult?.calculatedValue?.toString() || '') ?? ""}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                             onBlur={field.onBlur}
                             disabled={isReadOnly || !showNoGo}
-                            isReadOnly={isValid && !isReadOnly}
-                            isInvalid={showError}
-                            classNames={{
-                              inputWrapper: isValid
-                                ? "bg-gray-50 border-gray-300"
-                                : "border-red-500",
-                            }}
+                            readOnly={isValid && !isReadOnly}
+                            className={`h-9 text-sm text-center ${isValid ? "bg-gray-50 border-gray-300" : "border-red-500"}`}
                           />
                           {showError && calcResult?.error && (
                             <p className="text-xs text-red-600 mt-1 break-words whitespace-normal">{calcResult.error}</p>
@@ -1257,18 +1184,12 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                             type="number"
                             step="0.001"
                             placeholder="0"
-                            className="h-9 text-sm text-center"
                             value={field.value ?? (calcResult?.calculatedValue?.toString() || '') ?? ""}
                             onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : '')}
                             onBlur={field.onBlur}
                             disabled={isReadOnly || !showNoGo}
-                            isReadOnly={isValid && !isReadOnly}
-                            isInvalid={showError}
-                            classNames={{
-                              inputWrapper: isValid
-                                ? "bg-gray-50 border-gray-300"
-                                : "border-red-500",
-                            }}
+                            readOnly={isValid && !isReadOnly}
+                            className={`h-9 text-sm text-center ${isValid ? "bg-gray-50 border-gray-300" : "border-red-500"}`}
                           />
                           {showError && calcResult?.error && (
                             <p className="text-xs text-red-600 mt-1 break-words whitespace-normal">{calcResult.error}</p>
@@ -1310,19 +1231,15 @@ export const PlainThreadPlugRingGaugeCalibration: React.FC<ThreadPlugRingGaugeCa
                         <Input
                           type="text"
                           placeholder="-"
-                          className="h-9 text-sm"
                           value={noGoRemark || ""}
                           disabled={true} // Always read-only since it's derived
-                          classNames={{
-                            input: remarkColor,
-                            inputWrapper: overallStatus === 'out_of_specification'
+                          className={`h-9 text-sm ${remarkColor} ${overallStatus === 'out_of_specification'
                               ? "bg-red-50 border-red-300"
                               : overallStatus === 'within_wear_limit'
                                 ? "bg-green-50 border-green-300"
                               : overallStatus === 'within_specification'
                                 ? "bg-blue-50 border-blue-300"
-                                : "bg-white border border-gray-300",
-                          }}
+                                : "bg-white border border-gray-300"}`}
                         />
                       </div>
                     );

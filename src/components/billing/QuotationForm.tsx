@@ -1,15 +1,14 @@
 import React, { useCallback, useEffect, useMemo } from 'react';
 import {
   Autocomplete,
-  AutocompleteItem,
   Button,
   Input,
+  Label,
+  ListBox,
   Select,
-  SelectItem,
-} from '@heroui-v2/react';
+} from '@heroui/react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PlusIcon } from '@heroicons/react/24/outline';
 import { useGaugeMastersWithQuery } from '../../hooks/useGaugeMastersWithQuery';
 import { useQuotationStore } from '../../store/quotationStore';
 import {
@@ -42,11 +41,138 @@ const INPUT_CLASS_NAMES = {
   input: 'text-sm',
 };
 
-const SELECT_CLASS_NAMES = {
-  trigger:
-    'min-h-[42px] rounded-md border border-slate-200 bg-white shadow-none hover:border-slate-300 data-[open=true]:border-blue-400',
-  value: 'text-sm text-slate-700',
+type QuotationAutocompleteOption = { id: string; label: string };
+
+const QuotationAutocomplete = ({
+  label,
+  placeholder,
+  selectedKey,
+  inputValue,
+  onSelectionChange,
+  onInputChange,
+  options,
+  isLoading = false,
+  allowsCustomValue = false,
+  isRequired = false,
+  isInvalid = false,
+  errorMessage,
+}: {
+  label: string;
+  placeholder: string;
+  selectedKey: string | null;
+  inputValue: string;
+  onSelectionChange: (key: React.Key | null) => void;
+  onInputChange: (value: string) => void;
+  options: QuotationAutocompleteOption[];
+  isLoading?: boolean;
+  allowsCustomValue?: boolean;
+  isRequired?: boolean;
+  isInvalid?: boolean;
+  errorMessage?: string;
+}) => (
+  void allowsCustomValue,
+  <div className="flex flex-col gap-2">
+    <Label isRequired={isRequired}>{label}</Label>
+    <Autocomplete
+      selectedKey={selectedKey || undefined}
+      onSelectionChange={onSelectionChange}
+      isInvalid={isInvalid}
+      aria-label={label}
+      className="w-full"
+    >
+      <Autocomplete.Trigger>
+        <Autocomplete.Filter>
+          <Input className="w-full" placeholder={placeholder} value={inputValue} onChange={(event) => onInputChange(event.target.value)} />
+        </Autocomplete.Filter>
+        <Autocomplete.Indicator />
+      </Autocomplete.Trigger>
+      <Autocomplete.Popover>
+        <ListBox>
+          {isLoading ? (
+            <ListBox.Item id="loading" isDisabled>Loading...</ListBox.Item>
+          ) : options.map((option) => (
+            <ListBox.Item key={option.id} id={option.id} textValue={option.label}>
+              {option.label}
+              <ListBox.ItemIndicator />
+            </ListBox.Item>
+          ))}
+        </ListBox>
+      </Autocomplete.Popover>
+    </Autocomplete>
+    {isInvalid && errorMessage && <p className="text-sm text-danger">{errorMessage}</p>}
+  </div>
+);
+
+const QuotationSelect = ({
+  label,
+  selectedKey,
+  onSelectionChange,
+  isInvalid = false,
+  errorMessage,
+}: {
+  label: string;
+  selectedKey: string;
+  onSelectionChange: (key: string) => void;
+  isInvalid?: boolean;
+  errorMessage?: string;
+}) => (
+  <div className="flex flex-col gap-2">
+    <Label>{label}</Label>
+    <Select
+      selectedKey={selectedKey}
+      aria-label={label}
+      isInvalid={isInvalid}
+      onSelectionChange={(key) => key !== null && onSelectionChange(String(key))}
+    >
+      <Select.Trigger className="w-full">
+        <Select.Value />
+        <Select.Indicator />
+      </Select.Trigger>
+      <Select.Popover>
+        <ListBox>
+          <ListBox.Item id="none" textValue="No Discount">No Discount<ListBox.ItemIndicator /></ListBox.Item>
+          <ListBox.Item id="percentage" textValue="Percentage Discount">Percentage Discount<ListBox.ItemIndicator /></ListBox.Item>
+          <ListBox.Item id="flat" textValue="Flat Discount Amount">Flat Discount Amount<ListBox.ItemIndicator /></ListBox.Item>
+        </ListBox>
+      </Select.Popover>
+    </Select>
+    {isInvalid && errorMessage && <p className="text-sm text-danger">{errorMessage}</p>}
+  </div>
+);
+
+type QuotationFieldProps = React.ComponentProps<typeof Input> & {
+  label?: string;
+  labelPlacement?: string;
+  isReadOnly?: boolean;
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  isInvalid?: boolean;
+  errorMessage?: string;
+  classNames?: { input?: string; inputWrapper?: string };
+  startContent?: React.ReactNode;
 };
+
+const QuotationField = ({
+  label,
+  labelPlacement: _labelPlacement,
+  isReadOnly,
+  isRequired,
+  isDisabled,
+  isInvalid,
+  errorMessage,
+  classNames: _classNames,
+  startContent,
+  ...inputProps
+}: QuotationFieldProps) => (
+  <div className="flex flex-col gap-2">
+    {label && <Label isRequired={isRequired}>{label}</Label>}
+    <div className="flex items-center gap-1">
+      {startContent}
+      <Input {...inputProps} aria-invalid={isInvalid} className={`w-full ${inputProps.className || _classNames?.input || ''}`} disabled={isReadOnly || isDisabled} />
+    </div>
+    {isInvalid && errorMessage && <p className="text-sm text-danger">{errorMessage}</p>}
+  </div>
+);
 
 export const QuotationForm: React.FC<QuotationFormProps> = ({
   onItemAdded,
@@ -473,35 +599,19 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
         </div>
         <div className="space-y-3">
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2">
-            <Autocomplete
+            <QuotationAutocomplete
               label="From"
-              placeholder={
-                accountDetailsQuery.isLoading || accountDetailsQuery.isFetching
-                  ? 'Loading firms...'
-                  : 'Select or type sender firm'
-              }
+              placeholder={accountDetailsQuery.isLoading || accountDetailsQuery.isFetching ? 'Loading firms...' : 'Select or type sender firm'}
               selectedKey={billingFirmId || null}
               inputValue={billingFirmName}
               onSelectionChange={handleBillingFirmSelectionChange}
               onInputChange={handleBillingFirmInputChange}
-              isLoading={
-                accountDetailsQuery.isLoading || accountDetailsQuery.isFetching
-              }
+              isLoading={accountDetailsQuery.isLoading || accountDetailsQuery.isFetching}
               allowsCustomValue
-              labelPlacement="outside"
               isRequired
-              classNames={INPUT_CLASS_NAMES}
-            >
-              {accountDetails.map((account) => (
-                <AutocompleteItem
-                  key={account.id}
-                  textValue={account.firm_name}
-                >
-                  {account.firm_name}
-                </AutocompleteItem>
-              ))}
-            </Autocomplete>
-            <Input
+              options={accountDetails.map((account) => ({ id: account.id, label: account.firm_name }))}
+            />
+            <QuotationField
               label="Firm Address"
               placeholder="Enter firm address"
               value={billingFirmAddress}
@@ -510,7 +620,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   billing_firm_address: e.target.value || undefined,
                 })
               }
-              size="md"
               labelPlacement="outside"
               isReadOnly={!!selectedBillingFirm}
               classNames={{
@@ -520,7 +629,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
             />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2">
-            <Input
+            <QuotationField
               label="Contact"
               placeholder="Enter contact number"
               value={billingFirmContact}
@@ -529,7 +638,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   billing_firm_contact: e.target.value || undefined,
                 })
               }
-              size="md"
               labelPlacement="outside"
               isReadOnly={!!selectedBillingFirm}
               classNames={{
@@ -537,7 +645,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                 input: `${INPUT_CLASS_NAMES.input} ${selectedBillingFirm ? 'bg-gray-50' : ''}`,
               }}
             />
-            <Input
+            <QuotationField
               label="Email"
               placeholder="Enter email"
               value={billingFirmEmail}
@@ -546,7 +654,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   billing_firm_email: e.target.value || undefined,
                 })
               }
-              size="md"
               labelPlacement="outside"
               isReadOnly={!!selectedBillingFirm}
               classNames={{
@@ -556,7 +663,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
             />
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-2">
-            <Input
+            <QuotationField
               label="GST No"
               placeholder="Enter GST number"
               value={billingFirmGst}
@@ -565,7 +672,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   billing_firm_gst: e.target.value || undefined,
                 })
               }
-              size="md"
               labelPlacement="outside"
               isReadOnly={!!selectedBillingFirm}
               classNames={{
@@ -587,32 +693,20 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
               </div>
             </div>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-2">
-              <Autocomplete
+              <QuotationAutocomplete
                 label="Client Name"
-                placeholder={
-                  orgLoading
-                    ? 'Loading clients...'
-                    : 'Select or type new client name'
-                }
+                placeholder={orgLoading ? 'Loading clients...' : 'Select or type new client name'}
                 selectedKey={selectedClientId || null}
                 inputValue={customerName}
                 onSelectionChange={handleClientSelectionChange}
                 onInputChange={handleClientInputChange}
-                size="md"
                 isLoading={orgLoading}
                 allowsCustomValue
                 isRequired
-                labelPlacement="outside"
-                classNames={INPUT_CLASS_NAMES}
-              >
-                {organizations.map((org) => (
-                  <AutocompleteItem key={org.id} textValue={org.name}>
-                    {org.name}
-                  </AutocompleteItem>
-                ))}
-              </Autocomplete>
+                options={organizations.map((org) => ({ id: org.id, label: org.name }))}
+              />
 
-              <Input
+            <QuotationField
                 label="Address"
                 placeholder="Enter address"
                 value={customerAddress}
@@ -621,7 +715,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     customer_address: e.target.value || undefined,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 isReadOnly={!!selectedClientId}
                 classNames={{
@@ -631,7 +724,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
               />
             </div>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 mt-2.5">
-              <Input
+            <QuotationField
                 label="Quotation Date"
                 type="date"
                 value={quotationDateValue}
@@ -640,11 +733,10 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     quotation_date: e.target.value,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 classNames={INPUT_CLASS_NAMES}
               />
-              <Input
+            <QuotationField
                 label="Contact Number"
                 placeholder="Enter contact number"
                 value={customerContact}
@@ -653,7 +745,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     customer_contact: e.target.value || undefined,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 isReadOnly={!!selectedClientId}
                 classNames={{
@@ -661,7 +752,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   input: `${INPUT_CLASS_NAMES.input} ${selectedClientId ? 'bg-gray-50' : ''}`,
                 }}
               />
-              <Input
+            <QuotationField
                 label="Email"
                 placeholder="Enter email address"
                 type="email"
@@ -671,7 +762,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     customer_email: e.target.value || undefined,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 isReadOnly={!!selectedClientId}
                 classNames={{
@@ -679,7 +769,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   input: `${INPUT_CLASS_NAMES.input} ${selectedClientId ? 'bg-gray-50' : ''}`,
                 }}
               />
-              <Input
+            <QuotationField
                 label="GST No"
                 placeholder="Enter GST number"
                 value={customerGst}
@@ -688,7 +778,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     customer_gst: e.target.value || undefined,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 isReadOnly={!!selectedClientId}
                 classNames={{
@@ -719,35 +808,23 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
             className="space-y-3"
             aria-label="Add quotation item form"
           >
-            <Autocomplete
-              label="Select Gauge "
-              placeholder={
-                gaugeLoading
-                  ? 'Loading gauges...'
-                  : 'Select or type new gauge name'
-              }
+            <QuotationAutocomplete
+              label="Select Gauge"
+              placeholder={gaugeLoading ? 'Loading gauges...' : 'Select or type new gauge name'}
               selectedKey={selectedGaugeId || null}
               inputValue={gaugeInputValue}
               onSelectionChange={handleGaugeSelectionChange}
               onInputChange={handleGaugeInputChange}
-              size="md"
-              labelPlacement="outside"
               isLoading={gaugeLoading}
               allowsCustomValue
               isRequired
               isInvalid={!!errors.gauge_name}
               errorMessage={errors.gauge_name?.message}
-              classNames={INPUT_CLASS_NAMES}
-            >
-              {gaugeMasterList.map((gauge) => (
-                <AutocompleteItem key={gauge.id} textValue={gauge.name}>
-                  {gauge.name}
-                </AutocompleteItem>
-              ))}
-            </Autocomplete>
+              options={gaugeMasterList.map((gauge) => ({ id: gauge.id, label: gauge.name }))}
+            />
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              <Input
+            <QuotationField
                 label="Serial Number"
                 placeholder="Enter serial number"
                 value={serialNumberValue}
@@ -757,11 +834,10 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     shouldDirty: true,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 classNames={INPUT_CLASS_NAMES}
               />
-              <Input
+            <QuotationField
                 label="Make"
                 placeholder="Enter make"
                 value={makeValue}
@@ -771,11 +847,10 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     shouldDirty: true,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 classNames={INPUT_CLASS_NAMES}
               />
-              <Input
+            <QuotationField
                 label="Unit"
                 placeholder="mm"
                 value={unitValue}
@@ -785,14 +860,13 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     shouldDirty: true,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 classNames={INPUT_CLASS_NAMES}
               />
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-6">
-              <Input
+            <QuotationField
                 label="HSN / SAC"
                 placeholder="Enter HSN/SAC"
                 value={hsnSacValue}
@@ -802,11 +876,10 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     shouldDirty: true,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 classNames={INPUT_CLASS_NAMES}
               />
-              <Input
+            <QuotationField
                 label="Qty"
                 placeholder="1"
                 type="number"
@@ -820,7 +893,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                 isRequired
                 isInvalid={!!errors.quantity}
                 errorMessage={errors.quantity?.message}
-                size="md"
                 labelPlacement="outside"
                 min="1"
                 step="1"
@@ -828,7 +900,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
               />
               {showRangeFields ? (
                 <>
-                  <Input
+            <QuotationField
                     label="Range From"
                     placeholder="Enter range start"
                     value={rangeFrom}
@@ -841,14 +913,13 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     isRequired
                     isInvalid={!!errors.range_from}
                     errorMessage={errors.range_from?.message}
-                    size="md"
                     labelPlacement="outside"
                     type="number"
                     step="0.01"
                     min="0"
                     classNames={INPUT_CLASS_NAMES}
                   />
-                  <Input
+            <QuotationField
                     label="Range To"
                     placeholder="Enter range end"
                     value={rangeTo}
@@ -861,7 +932,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     isRequired
                     isInvalid={!!errors.range_to}
                     errorMessage={errors.range_to?.message}
-                    size="md"
                     labelPlacement="outside"
                     type="number"
                     step="0.01"
@@ -871,7 +941,7 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                 </>
               ) : null}
               {showBasicSizeField ? (
-                <Input
+            <QuotationField
                   label="Basic Size "
                   placeholder="Enter basic size"
                   value={basicSize}
@@ -884,12 +954,11 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                   isRequired
                   isInvalid={!!errors.basic_size}
                   errorMessage={errors.basic_size?.message}
-                  size="md"
                   labelPlacement="outside"
                   classNames={INPUT_CLASS_NAMES}
                 />
               ) : null}
-              <Input
+            <QuotationField
                 label="Base Price "
                 placeholder="Enter base price"
                 type="number"
@@ -903,7 +972,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                 isRequired
                 isInvalid={!!errors.base_price}
                 errorMessage={errors.base_price?.message}
-                size="md"
                 labelPlacement="outside"
                 startContent={<span className="text-gray-500">₹</span>}
                 min="0"
@@ -914,37 +982,25 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                 name="discount_type"
                 control={control}
                 render={({ field, fieldState }) => (
-                  <Select
-                    label="Discount Type "
-                    placeholder="Select discount type"
-                    selectedKeys={field.value ? [field.value] : ['none']}
-                    onSelectionChange={(keys) => {
-                      const value = Array.from(
-                        keys,
-                      )[0] as QuotationItemFormInput['discount_type'];
-                      field.onChange(value);
-                      if (value === 'none') {
+                  <QuotationSelect
+                    label="Discount Type"
+                    selectedKey={field.value || 'none'}
+                    onSelectionChange={(value) => {
+                      const discountTypeValue = value as QuotationItemFormInput['discount_type'];
+                      field.onChange(discountTypeValue);
+                      if (discountTypeValue === 'none') {
                         setValue('discount_value', '', {
                           shouldValidate: true,
                           shouldDirty: true,
                         });
                       }
                     }}
-                    size="md"
-                    labelPlacement="outside"
                     isInvalid={fieldState.invalid}
                     errorMessage={fieldState.error?.message}
-                    classNames={SELECT_CLASS_NAMES}
-                  >
-                    <SelectItem key="none">No Discount</SelectItem>
-                    <SelectItem key="percentage">
-                      Percentage Discount
-                    </SelectItem>
-                    <SelectItem key="flat">Flat Discount Amount</SelectItem>
-                  </Select>
+                  />
                 )}
               />
-              <Input
+            <QuotationField
                 label={
                   discountType === 'percentage'
                     ? 'Discount %'
@@ -961,7 +1017,6 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
                     shouldDirty: true,
                   })
                 }
-                size="md"
                 labelPlacement="outside"
                 isDisabled={discountType === 'none'}
                 isInvalid={!!errors.discount_value}
@@ -1008,10 +1063,9 @@ export const QuotationForm: React.FC<QuotationFormProps> = ({
             )}
 
             <Button
-              color="primary"
+              variant="primary"
               type="submit"
               className="w-full bg-blue-600 text-white hover:bg-blue-700"
-              startContent={<PlusIcon className="h-4 w-4" />}
               isDisabled={!gaugeInputValue.trim() || !basePrice}
             >
               Add to Quotation

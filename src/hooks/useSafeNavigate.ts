@@ -36,7 +36,7 @@ export function useSafeNavigate() {
   const { isReady: isRouterReady } = useRouterReady();
   const [isNavigating, setIsNavigating] = useState(false);
   const lastNavigationRef = useRef<{ path: string; timestamp: number } | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -161,7 +161,6 @@ export function useSafeNavigate() {
     isRouterReady,
   };
 }
-
 
 
 

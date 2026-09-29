@@ -8,7 +8,7 @@
 import { useThreadRingPlugsQuery, useCreateThreadRingPlugMutation, useUpdateThreadRingPlugMutation, useDeleteThreadRingPlugMutation } from './queries/threadRingPlugs';
 import { useBridgeQueryToStore } from './queries/zustandBridge';
 import { useThreadRingPlugStore } from '../store/threadRingPlugStore';
-import type { ThreadRingPlugFormData, ThreadRingPlugApiResponse } from '../store/threadRingPlugStore';
+import type { ThreadRingPlugFormData } from '../store/threadRingPlugStore';
 
 /**
  * Enhanced hook that uses TanStack Query with Zustand bridge
@@ -92,7 +92,6 @@ export function useThreadRingPlugsWithQuery() {
     isDeleting: deleteMutation.isPending,
   };
 }
-
 
 
 

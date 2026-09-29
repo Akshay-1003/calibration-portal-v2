@@ -1,13 +1,14 @@
 "use client"
 
+import type { InputHTMLAttributes } from "react"
 import { useForm, Controller } from "react-hook-form"
 import { useNavigate } from "react-router-dom"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { Trash2, Plus } from "lucide-react"
 import type { EquipmentRange } from "../../types/equipment"
-import { Input, Button, DatePicker } from "@heroui/react"
-import { parseDate } from "@internationalized/date"
+import { Button, Calendar, DateField, DatePicker, Input } from "@heroui/react"
+import { parseDate, type DateValue } from "@internationalized/date"
 import { equipmentMasterSchema, zodResolver, type EquipmentMasterFormData } from "../../lib/validations"
 import { FormDateProvider } from "./FormDateProvider"
 import { useEquipmentQuery } from "../../hooks/queries/equipments"
@@ -15,8 +16,11 @@ import { useEquipmentsWithQuery } from "../../hooks/useEquipmentsWithQuery"
 
 // Define ApiError class if not imported
 class ApiError extends Error {
-  constructor(message: string, public statusCode?: number) {
+  statusCode?: number;
+
+  constructor(message: string, statusCode?: number) {
     super(message);
+    this.statusCode = statusCode;
     this.name = 'ApiError';
   }
 }
@@ -28,6 +32,42 @@ const extractDatePart = (dateString: string | null | undefined): string | null =
   const match = dateString.match(/^(\d{4}-\d{2}-\d{2})/);
   return match ? match[1] : null;
 }
+
+const FieldInput = ({ label, error, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <Input {...props} className={`w-full ${props.className ?? ''}`} aria-invalid={Boolean(error)} />
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+)
+
+const FormDatePicker = ({ label, value, onChange, error }: { label: string; value: DateValue | null; onChange: (value: DateValue | null) => void; error?: string }) => (
+  <label className="flex flex-col gap-2 text-sm font-medium text-foreground">
+    {label}
+    <DatePicker className="w-full" value={value} onChange={onChange} aria-label={label} granularity="day">
+      <DateField.Group fullWidth>
+        <DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+        <DateField.Suffix>
+          <DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger>
+        </DateField.Suffix>
+      </DateField.Group>
+      <DatePicker.Popover>
+        <Calendar aria-label={label}>
+          <Calendar.Header>
+            <Calendar.YearPickerTrigger><Calendar.YearPickerTriggerHeading /><Calendar.YearPickerTriggerIndicator /></Calendar.YearPickerTrigger>
+            <Calendar.NavButton slot="previous" /><Calendar.NavButton slot="next" />
+          </Calendar.Header>
+          <Calendar.Grid>
+            <Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader>
+            <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
+          </Calendar.Grid>
+          <Calendar.YearPickerGrid><Calendar.YearPickerGridBody>{({ year }) => <Calendar.YearPickerCell year={year} />}</Calendar.YearPickerGridBody></Calendar.YearPickerGrid>
+        </Calendar>
+      </DatePicker.Popover>
+    </DatePicker>
+    {error ? <span className="font-normal text-red-600">{error}</span> : null}
+  </label>
+)
 
 interface EquipmentMasterFormProps {
   mode?: 'create' | 'edit';
@@ -202,8 +242,8 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
   if (shouldShowLoading) {
     return (
       <div className="w-full">
-        <div className="shadow-lg border rounded-xl bg-card">
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+        <div className="shadow-sm border rounded-md bg-card">
+          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
             {mode === "edit" ? "Edit Equipment Master" : "New Equipment Master"}
           </div>
           <div className="p-8">
@@ -220,8 +260,8 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
   return (
     <FormDateProvider>
       <div className="w-full">
-        <div className="shadow-lg border rounded-xl bg-card">
-          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-xl text-xl font-semibold">
+        <div className="shadow-sm border rounded-md bg-card">
+          <div className="bg-blue-600 text-white px-4 py-3 rounded-t-md text-xl font-semibold">
             {mode === "edit" ? "Edit Equipment Master" : "New Equipment Master"}
           </div>
 
@@ -231,14 +271,12 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
               {/* Equipment Master Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {textFields.map((field) => (
-                  <Input
+                  <FieldInput
                     key={field.key}
                     label={field.label}
-                    labelPlacement="outside"
                     placeholder={field.placeholder}
                     {...register(field.key as keyof EquipmentMasterFormData)}
-                    isInvalid={!!errors[field.key as keyof EquipmentMasterFormData]}
-                    errorMessage={errors[field.key as keyof EquipmentMasterFormData]?.message}
+                    error={errors[field.key as keyof EquipmentMasterFormData]?.message}
                   />
                 ))}
 
@@ -249,17 +287,8 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
                     name={field.key as keyof EquipmentMasterFormData}
                     control={control}
                     render={({ field: { onChange, value } }) => {
-                      const dateValue = value ? extractDatePart(value) : null;
-                      return (
-                        <DatePicker
-                          label={field.label}
-                          labelPlacement="outside"
-                          value={dateValue ? parseDate(dateValue) : null}
-                          onChange={(date) => onChange(date ? date.toString() : "")}
-                          isInvalid={!!errors[field.key as keyof EquipmentMasterFormData]}
-                          errorMessage={errors[field.key as keyof EquipmentMasterFormData]?.message}
-                        />
-                      );
+                      const dateValue = typeof value === "string" ? extractDatePart(value) : null;
+                      return <FormDatePicker label={field.label} value={dateValue ? parseDate(dateValue) : null} onChange={(date) => onChange(date ? String(date) : "")} error={errors[field.key as keyof EquipmentMasterFormData]?.message} />;
                     }}
                   />
                 ))}
@@ -271,29 +300,27 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
                   <h3 className="text-base font-semibold text-foreground">Equipment Ranges</h3>
                   <Button
                     type="button"
-                    onClick={handleAddRange}
+                    onPress={handleAddRange}
                     isDisabled={!newRange.range.trim() || !newRange.max_error.trim()}
-                    color="primary"
+                    variant="primary"
                     size="sm"
-                    startContent={<Plus className="h-4 w-4" />}
                   >
+                    <Plus className="h-4 w-4" />
                     Add Range
                   </Button>
                 </div>
 
                 {/* Add New Range */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
-                  <Input
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-muted/50 rounded-md">
+                  <FieldInput
                     label="Range"
-                    labelPlacement="outside"
                     value={newRange.range}
                     onChange={(e) => handleRangeChange('range', e.target.value)}
                     placeholder="Enter range (e.g., 0-50 mm)"
                   />
 
-                  <Input
+                  <FieldInput
                     label="Max Error"
-                    labelPlacement="outside"
                     value={newRange.max_error}
                     onChange={(e) => handleRangeChange('max_error', e.target.value)}
                     placeholder="Enter max error (e.g., ±0.02 mm)"
@@ -304,11 +331,11 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
                 {ranges.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-foreground">Current Ranges ({ranges.length})</h4>
-                    <div className="max-h-48 overflow-y-auto space-y-2 border rounded-lg p-3 bg-card">
+                    <div className="max-h-48 overflow-y-auto space-y-2 border rounded-md p-3 bg-card">
                       {ranges.map((range, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border"
+                          className="flex items-center justify-between p-3 bg-muted/50 rounded-md border"
                         >
                           <div className="flex-1">
                             <div className="text-sm font-medium text-foreground">
@@ -320,7 +347,7 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
                           </div>
                           <Button
                             type="button"
-                            variant="light"
+                            variant="ghost"
                             size="sm"
                             onPress={() => handleRemoveRange(index)}
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0"
@@ -336,10 +363,10 @@ const EquipmentMasterForm = ({ mode = 'create', equipmentId, onSuccess, onCancel
 
               {/* Actions */}
               <div className="flex gap-3 pt-2">
-                <Button type="submit" color="primary" isDisabled={loading || isSubmitting}>
-                  {mode === "edit" ? "Update" : "Save"}
+                <Button type="submit" variant="primary" isDisabled={loading || isSubmitting}>
+                  {loading || isSubmitting ? "Saving..." : mode === "edit" ? "Update" : "Save"}
                 </Button>
-                <Button variant="bordered" onPress={onCancel || (() => navigate(-1))}>
+                <Button variant="outline" onPress={onCancel || (() => navigate(-1))}>
                   Cancel
                 </Button>
               </div>

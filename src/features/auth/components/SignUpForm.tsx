@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import { Button, Input, Checkbox, Link } from "@heroui/react";
+import { Button, Input, InputGroup, Checkbox, Link } from "@heroui/react";
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { BrandLogo } from '../../../components/common/BrandLogo';
 
@@ -44,6 +44,8 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
   } = useForm<SignUpFormData>({
     resolver: zodResolver(signUpSchema) as any,
@@ -73,7 +75,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       className="flex h-full w-full items-center justify-center"
     >
       
-      <div className="rounded-large bg-content1 shadow-small flex w-full max-w-md flex-col gap-4 px-8 pt-6 pb-10">
+      <div className="rounded-md bg-content1 shadow-sm flex min-w-0 w-full max-w-full flex-col gap-4 px-8 pt-6 pb-10">
           <div className="mb-2">
             <BrandLogo
               className="h-16 w-auto mx-auto"
@@ -88,105 +90,97 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
         </p>
         <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)}>
           <Input
-            isRequired
-            label="Username"
-            labelPlacement="outside"
+            required
+            aria-label="Username"
+            className="w-full min-w-0"
             placeholder="Enter your username"
             type="text"
-            variant="bordered"
             {...register('username')}
-            isInvalid={!!errors.username}
-            errorMessage={errors.username?.message}
+            aria-invalid={!!errors.username}
           />
           <Input
-            isRequired
-            label="First Name"
-            labelPlacement="outside"
+            required
+            aria-label="First Name"
             placeholder="Enter your first name"
             type="text"
-            variant="bordered"
+            variant="secondary"
+            className="w-full min-w-0"
             {...register('first_name')}
-            isInvalid={!!errors.first_name}
-            errorMessage={errors.first_name?.message}
+            aria-invalid={!!errors.first_name}
           />
           <Input
-            isRequired
-            label="Last Name"
-            labelPlacement="outside"
+            required
+            aria-label="Last Name"
             placeholder="Enter your last name"
             type="text"
-            variant="bordered"
+            variant="secondary"
+            className="w-full min-w-0"
             {...register('last_name')}
-            isInvalid={!!errors.last_name}
-            errorMessage={errors.last_name?.message}
+            aria-invalid={!!errors.last_name}
           />
           <Input
-            isRequired
-            label="Email"
-            labelPlacement="outside"
+            required
+            aria-label="Email"
             placeholder="Enter your email"
             type="email"
-            variant="bordered"
+            variant="secondary"
+            className="w-full min-w-0"
             {...register('email')}
-            isInvalid={!!errors.email}
-            errorMessage={errors.email?.message}
+            aria-invalid={!!errors.email}
           />
-          <Input
-            isRequired
-            endContent={
-              <button type="button" onClick={toggleVisibility} className="text-default-400">
-                {isVisible ? (
-                  <EyeSlashIcon className="w-5 h-5" />
-                ) : (
-                  <EyeIcon className="w-5 h-5" />
-                )}
-              </button>
-            }
-            label="Password"
-            labelPlacement="outside"
+          <InputGroup className="w-full" variant="secondary">
+          <InputGroup.Input
+            required
+            aria-label="Password"
             placeholder="Enter your password"
             type={isVisible ? "text" : "password"}
-            variant="bordered"
             {...register('password')}
-            isInvalid={!!errors.password}
-            errorMessage={errors.password?.message}
+            aria-invalid={!!errors.password}
           />
-          <Input
-            isRequired
-            endContent={
-              <button type="button" onClick={toggleConfirmVisibility} className="text-default-400">
-                {isConfirmVisible ? (
-                  <EyeSlashIcon className="w-5 h-5" />
-                ) : (
-                  <EyeIcon className="w-5 h-5" />
-                )}
-              </button>
-            }
-            label="Confirm Password"
-            labelPlacement="outside"
+          <InputGroup.Suffix>
+            <button type="button" onClick={toggleVisibility} className="text-default-400">
+              {isVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+            </button>
+          </InputGroup.Suffix>
+          </InputGroup>
+          <InputGroup className="w-full" variant="secondary">
+          <InputGroup.Input
+            required
+            aria-label="Confirm Password"
             placeholder="Confirm your password"
             type={isConfirmVisible ? "text" : "password"}
-            variant="bordered"
             {...register('confirmPassword')}
-            isInvalid={!!errors.confirmPassword}
-            errorMessage={errors.confirmPassword?.message}
+            aria-invalid={!!errors.confirmPassword}
           />
-          <Checkbox isRequired className="py-4" size="sm" {...register('agreeToTerms')}>
-            I agree with&nbsp;
-            <Link className="relative z-1" href="#" size="sm">
-              Terms
-            </Link>
-            &nbsp; and&nbsp;
-            <Link className="relative z-1" href="#" size="sm">
-              Privacy Policy
-            </Link>
+          <InputGroup.Suffix>
+            <button type="button" onClick={toggleConfirmVisibility} className="text-default-400">
+              {isConfirmVisible ? <EyeSlashIcon className="w-5 h-5" /> : <EyeIcon className="w-5 h-5" />}
+            </button>
+          </InputGroup.Suffix>
+          </InputGroup>
+          <Checkbox
+            isRequired
+            className="w-full py-4"
+            isSelected={watch('agreeToTerms')}
+            onChange={(isSelected) => setValue('agreeToTerms', isSelected, { shouldValidate: true })}
+            render={(props) => <div {...props} />}
+          >
+            <Checkbox.Content className="flex flex-wrap items-center gap-x-1 gap-y-0.5">
+              <Checkbox.Control>
+                <Checkbox.Indicator />
+              </Checkbox.Control>
+              <span>I agree with</span>
+              <Link className="relative z-1 text-sm" href="#">Terms</Link>
+              <span>and</span>
+              <Link className="relative z-1 text-sm" href="#">Privacy Policy</Link>
+            </Checkbox.Content>
           </Checkbox>
           {errors.root && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
               {errors.root.message}
             </div>
           )}
-          <Button color="primary" type="submit" disabled={isSubmitting}>
+          <Button variant="primary" type="submit" isDisabled={isSubmitting}>
             {isSubmitting ? 'Creating account...' : 'Sign Up'}
           </Button>
         </form>
@@ -194,7 +188,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           {onSwitchToSignIn && (
             <Button
               type="button"
-              variant="light"
+              variant="ghost"
               size="sm"
               onPress={onSwitchToSignIn}
               className="text-blue-500 hover:text-blue-600 p-0 h-auto"

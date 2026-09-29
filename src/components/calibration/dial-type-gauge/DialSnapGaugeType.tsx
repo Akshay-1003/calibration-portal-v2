@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState, useRef } from "react";
-import {
-    Input,
-    Checkbox,
-} from "@heroui/react";
+import { Input, Checkbox } from "@heroui/react";
 import { Trash2 } from "lucide-react";
 import { useFieldArray, useFormContext, useWatch, Controller } from "react-hook-form";
 import { TypeAReadingSection } from "../od-id-limit-gauges/TypeAReadingSection";
@@ -17,7 +14,6 @@ import {
 } from "../../../utils/calibrationCalculations";
 import type {
   DialSnapReadingRow as ReadingRow,
-  DialSnapMasterSettingSizeRow as MasterSettingSizeRow,
   DialSnapCalibrationForm as CalibrationForm,
   DialSnapObservationsObj as ObservationsObj,
 } from "../observationSchemas";
@@ -32,15 +28,6 @@ interface Props {
     master_readings?: number[];
     specifications?: any;
     isRepeatability?: boolean;
-}
-
-interface MasterReadingResponse {
-    id: string;
-    master_gauge_id: string;
-    readings: number[];
-    from?: string;
-    to?: string;
-    leastCount?: string;
 }
 
 function isObservationsObj(val: unknown): val is ObservationsObj {
@@ -518,13 +505,10 @@ export function DialTypeSnapGaugeCalibration({
                     <Checkbox
                         isSelected={printValue}
                         isDisabled={isReadOnly}
-                        onValueChange={(v: boolean) => {
+                        onChange={(v: boolean) => {
                             setValue("observations.print", v, { shouldDirty: true });
                         }}
-                        classNames={{
-                            label: "text-white text-xs font-semibold",
-                            base: "text-white",
-                        }}
+                        className="text-white text-xs font-semibold"
                     >
                         PRINT
                     </Checkbox>
@@ -578,10 +562,7 @@ export function DialTypeSnapGaugeCalibration({
                                                     aria-label="Measured Dimension"
                                                     readOnly
                                                     value={row?.measured_dimension?.toString() ?? ""}
-                                                    classNames={{
-                                                        inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                                                        input: "text-sm text-center font-medium text-slate-700",
-                                                    }}
+                                                    className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                                                 />
                                             </td>
 
@@ -615,14 +596,11 @@ export function DialTypeSnapGaugeCalibration({
                                                                 type="text"
                                                                 inputMode="decimal"
                                                                 aria-label="Reading 1"
-                                                                isDisabled={isReadOnly}
-                                                                classNames={{
-                                                                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
+                                                                disabled={isReadOnly}
+                                                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
                                                                         ? "border-red-400 shadow-sm"
                                                                         : "border-slate-200"
-                                                                        } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                                                    input: "text-sm text-center font-medium text-slate-700",
-                                                                }}
+                                                                        } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                                                 onChange={(e) => {
                                                                     controllerField.onChange(e);
                                                                 }}
@@ -670,14 +648,11 @@ export function DialTypeSnapGaugeCalibration({
                                                                 type="text"
                                                                 inputMode="decimal"
                                                                 aria-label="Reading 2"
-                                                                isDisabled={isReadOnly}
-                                                                classNames={{
-                                                                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
+                                                                disabled={isReadOnly}
+                                                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
                                                                         ? "border-red-400 shadow-sm"
                                                                         : "border-slate-200"
-                                                                        } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                                                    input: "text-sm text-center font-medium text-slate-700",
-                                                                }}
+                                                                        } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                                                 onChange={(e) => {
                                                                     controllerField.onChange(e);
                                                                 }}
@@ -725,14 +700,11 @@ export function DialTypeSnapGaugeCalibration({
                                                                 type="text"
                                                                 inputMode="decimal"
                                                                 aria-label="Reading 3"
-                                                                isDisabled={isReadOnly}
-                                                                classNames={{
-                                                                    inputWrapper: `h-9 w-full min-w-[100px] border-1 ${fieldState.error
+                                                                disabled={isReadOnly}
+                                                                className={`h-9 w-full min-w-[100px] border ${fieldState.error
                                                                         ? "border-red-400 shadow-sm"
                                                                         : "border-slate-200"
-                                                                        } bg-white hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`,
-                                                                    input: "text-sm text-center font-medium text-slate-700",
-                                                                }}
+                                                                        } bg-white text-sm text-center font-medium text-slate-700 hover:border-slate-300 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all`}
                                                                 onChange={(e) => {
                                                                     controllerField.onChange(e);
                                                                 }}
@@ -762,17 +734,14 @@ export function DialTypeSnapGaugeCalibration({
                                                             aria-label="Actual Reading"
                                                             type="text"
                                                             inputMode="decimal"
-                                                            isDisabled={isReadOnly}
+                                                            disabled={isReadOnly}
                                                             value={
                                                                 controllerField.value === null ||
                                                                 controllerField.value === undefined
                                                                     ? ""
                                                                     : String(controllerField.value)
                                                             }
-                                                            classNames={{
-                                                                inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                                                                input: "text-sm text-center font-medium text-slate-700",
-                                                            }}
+                                                            className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-700 shadow-sm"
                                                             onFocus={() => {
                                                                 actualReadingEditingRef.current[index] = true;
                                                             }}
@@ -824,10 +793,7 @@ export function DialTypeSnapGaugeCalibration({
                                                     aria-label="Observed Error"
                                                     readOnly
                                                     value={row?.observed_error?.toFixed(3) ?? ""}
-                                                    classNames={{
-                                                        inputWrapper: "h-9 w-full min-w-[100px] border-1 border-slate-200 bg-white shadow-sm",
-                                                        input: "text-sm text-center font-medium text-slate-600",
-                                                    }}
+                                                    className="h-9 w-full min-w-[100px] border border-slate-200 bg-white text-sm text-center font-medium text-slate-600 shadow-sm"
                                                 />
                                             </td>
 
@@ -842,12 +808,10 @@ export function DialTypeSnapGaugeCalibration({
                                                             <Checkbox
                                                                 isSelected={controllerField.value}
                                                                 isDisabled={isReadOnly}
-                                                                onValueChange={(checked: boolean) => {
+                                                                onChange={(checked: boolean) => {
                                                                     controllerField.onChange(checked);
                                                                 }}
-                                                                classNames={{
-                                                                    base: "flex items-center justify-center",
-                                                                }}
+                                                                className="flex items-center justify-center"
                                                                 aria-label="Set As"
                                                             />
                                                         )}
@@ -890,11 +854,8 @@ export function DialTypeSnapGaugeCalibration({
                                     {...field}
                                     type="text"
                                     inputMode="decimal"
-                                    isDisabled={isReadOnly}
-                                    classNames={{
-                                        inputWrapper: "h-9 border-1 border-gray-300",
-                                        input: "text-sm",
-                                    }}
+                                    disabled={isReadOnly}
+                                    className="h-9 border border-gray-300 text-sm"
                                 />
                                 <span className="text-sm text-gray-600">μm.</span>
                             </div>

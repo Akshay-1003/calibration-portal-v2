@@ -20,7 +20,7 @@ export default function DialTableMasterPage() {
     isLoading,
     isError,
     refetch,
-  } = useDialTablesQuery() as { data: DialTableMasterData[]; isLoading: boolean; isError: boolean };
+  } = useDialTablesQuery() as { data: DialTableMasterData[]; isLoading: boolean; isError: boolean; refetch: () => Promise<unknown> };
 
   /* ---------------- Delete ---------------- */
   const deleteMutation = useMutation({

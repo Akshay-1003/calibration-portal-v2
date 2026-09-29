@@ -81,34 +81,27 @@ const EditableSimpleSpecificationInput = memo(
         <div className="text-sm font-medium text-gray-700">Specifications</div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Input
-            {...register(name, {
-              validate: (inputValue: unknown) => {
-                const normalizedValue = String(inputValue ?? "").trim();
+          <label className="flex flex-col gap-2 text-xs font-semibold uppercase text-gray-700">
+            {displayLabel}
+            <Input
+              {...register(name, {
+                validate: (inputValue: unknown) => {
+                  const normalizedValue = String(inputValue ?? "").trim();
 
-                if (!normalizedValue) {
-                  return true;
-                }
+                  if (!normalizedValue || isPlainNumericValue(normalizedValue)) {
+                    return true;
+                  }
 
-                if (isPlainNumericValue(normalizedValue)) {
-                  return true;
-                }
-
-                return `${displayLabel} must be a plain numeric value. Example: 0.75185. Remove brackets, tolerances, or text like (+0.00048).`;
-              },
-            })}
-            placeholder="0"
-            size="sm"
-            label={displayLabel}
-            labelPlacement="outside"
-            inputMode="decimal"
-            isInvalid={!!fieldError}
-            errorMessage={fieldError}
-            description="Enter a plain numeric value only."
-            classNames={{
-              label: "text-xs font-semibold text-gray-700 uppercase mb-1",
-            }}
-          />
+                  return `${displayLabel} must be a plain numeric value. Example: 0.75185. Remove brackets, tolerances, or text like (+0.00048).`;
+                },
+              })}
+              placeholder="0"
+              inputMode="decimal"
+              aria-invalid={!!fieldError}
+            />
+            <span className="font-normal normal-case text-gray-500">Enter a plain numeric value only.</span>
+            {fieldError ? <span className="font-normal normal-case text-red-600">{fieldError}</span> : null}
+          </label>
         </div>
 
       </>

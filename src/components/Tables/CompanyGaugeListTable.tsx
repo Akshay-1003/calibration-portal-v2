@@ -1,29 +1,22 @@
 "use client";
 
 import React from "react";
-import type { Key } from "@react-types/shared";
+import type { Key, Selection, SortDescriptor } from "@react-types/shared";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
-  Dropdown,
-  DropdownTrigger,
-  DropdownMenu,
-  DropdownItem,
-  Selection,
-  SortDescriptor,
+  Label,
+  ListBox,
   Pagination,
-} from "@heroui-v2/react";
+  Popover,
+  Select,
+} from "@heroui/react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { Select, SelectItem } from "@heroui-v2/react";
 import "../../styles/industrial-table.css";
+import { getTableColumnKey } from './tableColumnKey';
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
 
 export interface CompanyGaugeData {
@@ -126,6 +119,7 @@ export default function CompanyGaugeListTable({
   const [localPage, setLocalPage] = React.useState(1);
 
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [columnsOpen, setColumnsOpen] = React.useState(false);
   const [deleteTarget, setDeleteTarget] = React.useState<CompanyGaugeData | null>(null);
   const [isDeleting, setIsDeleting] = React.useState(false);
 
@@ -264,8 +258,8 @@ export default function CompanyGaugeListTable({
     [navigate, onDeleteGauge, page, requestDelete, rowsPerPage],
   );
 
-  const onRowsPerPageChange = React.useCallback((keys: Selection) => {
-    const value = Array.from(keys)[0] as string;
+  const onRowsPerPageChange = React.useCallback((key: Key | null) => {
+    const value = String(key ?? '10');
     const next = Number(value);
     if (controlledOnRowsPerPageChange) {
       controlledOnRowsPerPageChange(next);
@@ -327,7 +321,7 @@ export default function CompanyGaugeListTable({
           <p className="text-sm font-semibold text-red-500">Unable to load gauges</p>
           <p className="text-xs text-default-500">{error}</p>
           {onRefresh && (
-            <Button size="sm" variant="bordered" onClick={onRefresh}>
+            <Button size="sm" variant="outline" onPress={onRefresh}>
               Try Again
             </Button>
           )}
@@ -342,36 +336,42 @@ export default function CompanyGaugeListTable({
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <Input
-            isClearable
             className="w-full sm:max-w-[44%]"
             placeholder="Search gauges..."
-            startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
+            aria-label="Search gauges"
             value={filterValue}
-            onClear={onClear}
-            onValueChange={onSearchChange}
+            onChange={(event) => onSearchChange(event.target.value)}
           />
+          {filterValue ? (
+            <Button type="button" variant="ghost" aria-label="Clear gauge search" onPress={onClear}>
+              <MagnifyingGlassIcon className="w-4 h-4" />
+            </Button>
+          ) : null}
           <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button endContent={<ChevronDownIcon className="text-small" />} variant="flat">
-                  Columns
+            <Popover isOpen={columnsOpen} onOpenChange={setColumnsOpen}>
+              <Popover.Trigger>
+                <Button variant="secondary" className="hidden sm:flex" onPress={() => setColumnsOpen(true)}>
+                  Columns <ChevronDownIcon className="text-small" />
                 </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                disallowEmptySelection
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+              </Popover.Trigger>
+              <Popover.Content>
+                <Popover.Dialog>
+                  <ListBox
+                    aria-label="Table Columns"
+                    selectionMode="multiple"
+                    selectedKeys={visibleColumns}
+                    onSelectionChange={setVisibleColumns}
+                  >
+                    {columns.map((column) => (
+                      <ListBox.Item key={column.uid} id={column.uid} textValue={capitalize(column.name)}>
+                        {capitalize(column.name)}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Popover.Dialog>
+              </Popover.Content>
+            </Popover>
           </div>
         </div>
       </div>
@@ -394,37 +394,52 @@ export default function CompanyGaugeListTable({
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination
-            color="primary"
-            isCompact
-            showControls
-            showShadow
-            page={page}
-            total={pages}
-            onChange={(nextPage) => {
-              if (controlledOnPageChange) {
-                controlledOnPageChange(nextPage);
-              } else {
-                setLocalPage(nextPage);
-              }
-            }}
-          />
+          <Pagination size="sm">
+            <Pagination.Content>
+              <Pagination.Previous
+                isDisabled={page <= 1}
+                onPress={() => (controlledOnPageChange ? controlledOnPageChange(page - 1) : setLocalPage(page - 1))}
+              >
+                <Pagination.PreviousIcon />
+              </Pagination.Previous>
+              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}>
+                  <Pagination.Link
+                    isActive={pageNumber === page}
+                    onPress={() => (controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber))}
+                  >
+                    {pageNumber}
+                  </Pagination.Link>
+                </Pagination.Item>
+              ))}
+              <Pagination.Next
+                isDisabled={page >= pages}
+                onPress={() => (controlledOnPageChange ? controlledOnPageChange(page + 1) : setLocalPage(page + 1))}
+              >
+                <Pagination.NextIcon />
+              </Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
 
         {/* RIGHT - Rows per page */}
         <div className="flex-1 flex justify-end w-10">
           <Select
-            label="Rows per page"
-            selectedKeys={new Set([String(rowsPerPage)])}
+            selectedKey={String(rowsPerPage)}
             onSelectionChange={onRowsPerPageChange}
-            labelPlacement="outside-left"
-            size="sm"
             className="w-[160px]"
           >
-            <SelectItem key="10">10</SelectItem>
-            <SelectItem key="20">20</SelectItem>
-            <SelectItem key="50">50</SelectItem>
-            <SelectItem key="100">100</SelectItem>
+            <Label>Rows per page</Label>
+            <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {['10', '20', '50', '100'].map((size) => (
+                  <ListBox.Item key={size} id={size} textValue={size}>
+                    {size}<ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
           </Select>
         </div>
 
@@ -447,43 +462,41 @@ export default function CompanyGaugeListTable({
   return (
     <div className="p-2">
       <div className="industrial-table-wrapper">
-        <Table
-          aria-label="Company gauge list table"
-          isHeaderSticky
-          bottomContent={bottomContent}
-          bottomContentPlacement="outside"
-          classNames={{ wrapper: "max-h-[calc(100vh-320px)] p-0", base: "min-w-full" }}
-          selectedKeys={selectedKeys}
-          selectionMode="multiple"
-          sortDescriptor={sortDescriptor}
-          topContent={topContent}
-          topContentPlacement="outside"
-          onSelectionChange={setSelectedKeys}
-          onSortChange={setSortDescriptor}
-        >
-          <TableHeader columns={headerColumns}>
+        <div className="mb-4">{topContent}</div>
+        <Table aria-label="Company gauge list table" className="min-w-full">
+          <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+            <Table.Content
+              className="min-w-full"
+              selectedKeys={selectedKeys}
+              selectionMode="multiple"
+              sortDescriptor={sortDescriptor}
+              onSelectionChange={setSelectedKeys}
+              onSortChange={setSortDescriptor}
+            >
+          <Table.Header columns={headerColumns}>
             {(column) => (
-              <TableColumn key={column.uid} align={column.uid === "actions" || column.uid === "sr_no" ? "center" : "start"} allowsSorting={column.sortable}>
+              <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
                 {column.name}
-              </TableColumn>
+              </Table.Column>
             )}
-          </TableHeader>
-          <TableBody
-            emptyContent={emptyContent}
+          </Table.Header>
+          <Table.Body
+            renderEmptyState={() => gaugeMasterLoading ? <div className="py-8 text-center text-sm text-default-500">Loading...</div> : emptyContent}
             items={sortedItems}
-            isLoading={gaugeMasterLoading}
-            loadingContent={<div className="py-8 flex justify-center items-center text-sm text-default-500"><svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" /></svg>Loading...</div>}
           >
             {(item) => {
               const index = sortedItems.findIndex(i => i.id === item.id);
               return (
-                <TableRow key={item.id}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey, index)}</TableCell>}
-                </TableRow>
+                <Table.Row id={item.id} columns={headerColumns}>
+                  {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey), index)}</Table.Cell>}
+                </Table.Row>
               );
             }}
-          </TableBody>
+          </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
         </Table>
+        {bottomContent}
       </div>
       <DeleteConfirmModal
         isOpen={deleteOpen}

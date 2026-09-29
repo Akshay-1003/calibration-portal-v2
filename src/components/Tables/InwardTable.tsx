@@ -3,19 +3,20 @@
 import { useMemo, memo, useCallback, useEffect } from 'react';
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
+  Label,
+  ListBox,
   Pagination,
   Select,
-  SelectItem,
   DatePicker,
-} from '@heroui-v2/react';
+  DateField,
+  Calendar,
+} from '@heroui/react';
+import type { Key } from '@react-types/shared';
+import type { DateValue } from '@internationalized/date';
 import { I18nProvider } from '@react-aria/i18n';
+import { getTableColumnKey } from './tableColumnKey';
 import {
   MagnifyingGlassIcon,
   TrashIcon,
@@ -25,6 +26,7 @@ import {
 import type { ClientData } from '../../hooks/useInwardTableController';
 import type { InwardTableState, InwardTableHandlers } from '../../hooks/useInwardTableController';
 import '../../styles/industrial-table.css';
+import { SearchField } from '@heroui/react/search-field';
 
 type TableColumnKey =
   | 'sr_no'
@@ -35,6 +37,48 @@ type TableColumnKey =
   | 'inward_date'
   | 'received_date'
   | 'actions';
+
+function InwardDatePicker({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: DateValue | null;
+  onChange: (value: DateValue | null) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <DatePicker value={value} onChange={onChange} aria-label={ariaLabel} granularity="day">
+      <DateField.Group fullWidth>
+        <DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+        <DateField.Suffix>
+          <DatePicker.Trigger>
+            <DatePicker.TriggerIndicator />
+          </DatePicker.Trigger>
+        </DateField.Suffix>
+      </DateField.Group>
+      <DatePicker.Popover>
+        <Calendar aria-label={ariaLabel}>
+          <Calendar.Header>
+            <Calendar.YearPickerTrigger>
+              <Calendar.YearPickerTriggerHeading />
+              <Calendar.YearPickerTriggerIndicator />
+            </Calendar.YearPickerTrigger>
+            <Calendar.NavButton slot="previous" />
+            <Calendar.NavButton slot="next" />
+          </Calendar.Header>
+          <Calendar.Grid>
+            <Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader>
+            <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
+          </Calendar.Grid>
+          <Calendar.YearPickerGrid>
+            <Calendar.YearPickerGridBody>{({ year }) => <Calendar.YearPickerCell year={year} />}</Calendar.YearPickerGridBody>
+          </Calendar.YearPickerGrid>
+        </Calendar>
+      </DatePicker.Popover>
+    </DatePicker>
+  );
+}
 
 const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
   { name: 'SR NO', uid: 'sr_no' },
@@ -306,7 +350,7 @@ export const InwardTable = memo<InwardTableViewProps>(
           <div className="flex flex-col items-center gap-2 text-center py-8">
             <p className="text-red-500 text-sm font-semibold">Failed to load records</p>
             <p className="text-default-500 text-xs">{error}</p>
-            <Button size="sm" variant="bordered" onPress={onRefresh}>
+            <Button size="sm" variant="secondary" onPress={onRefresh}>
               Try Again
             </Button>
           </div>
@@ -324,21 +368,31 @@ export const InwardTable = memo<InwardTableViewProps>(
           {/* Search and Refresh Row */}
           <div className="flex flex-col sm:flex-row gap-3 items-end">
             {/* Search Input */}
+            <SearchField name="search">
+              <Label>Search</Label>
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input className="w-[280px]" placeholder="Search..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
             <Input
-              isClearable
               className="flex-1 min-w-[200px]"
               placeholder="Search by organization..."
-              startContent={<MagnifyingGlassIcon className="w-4 h-4" />}
               value={searchValue}
-              onClear={onSearchClear}
-              onValueChange={onSearchChange}
+              onChange={(event) => onSearchChange(event.target.value)}
             />
+            {searchValue ? (
+              <Button type="button" variant="ghost" aria-label="Clear organization search" onPress={onSearchClear}>
+                <MagnifyingGlassIcon className="w-4 h-4" />
+              </Button>
+            ) : null}
 
             {/* Refresh Button */}
             <Button
               onPress={onRefresh}
               size="sm"
-              variant="flat"
+              variant="secondary"
               isDisabled={loading}
               className="w-full sm:w-auto"
             >
@@ -350,49 +404,47 @@ export const InwardTable = memo<InwardTableViewProps>(
           <I18nProvider locale="en-GB">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
               <Select
-                placeholder="All Clients"
-                selectedKeys={clientOrgId ? new Set([clientOrgId]) : new Set(['all'])}
-                onSelectionChange={(keys) => {
-                  const key = Array.from(keys)[0] as string | undefined;
-                  onClientOrgChange(!key || key === 'all' ? null : key);
+                selectedKey={clientOrgId ?? 'all'}
+                onSelectionChange={(key) => {
+                  const value = String(key ?? 'all');
+                  onClientOrgChange(value === 'all' ? null : value);
                 }}
                 aria-label="Filter by client"
-                classNames={{ trigger: 'h-9 border border-gray-300 bg-white' }}
-                isLoading={organizationsLoading}
                 isDisabled={organizationsLoading}
               >
-                <SelectItem key="all" textValue="All Clients">
-                  All Clients
-                </SelectItem>
-                {organizations.map((org) => (
-                  <SelectItem key={org.id} textValue={org.name}>
-                    {org.name}
-                  </SelectItem>
-                ))}
+                <Label>Client</Label>
+                <Select.Trigger className="h-9 border border-gray-300 bg-white">
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    <ListBox.Item id="all" textValue="All Clients">All Clients<ListBox.ItemIndicator /></ListBox.Item>
+                    {organizations.map((org) => (
+                      <ListBox.Item key={org.id} id={org.id} textValue={org.name}>
+                        {org.name}<ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
               </Select>
-              
-              <DatePicker
-                value={startDate || undefined}
+
+              <InwardDatePicker
+                value={startDate}
                 onChange={onStartDateChange}
-                aria-label="From date"
-                granularity="day"
-                showMonthAndYearPickers
-                classNames={{ inputWrapper: 'h-9 border border-gray-300 bg-white min-h-[36px]' }}
+                ariaLabel="From date"
               />
 
-              <DatePicker
-                value={endDate || undefined}
+              <InwardDatePicker
+                value={endDate}
                 onChange={onEndDateChange}
-                aria-label="To date"
-                granularity="day"
-                showMonthAndYearPickers
-                classNames={{ inputWrapper: 'h-9 border border-gray-300 bg-white min-h-[36px]' }}
+                ariaLabel="To date"
               />
 
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  color="primary"
+                  variant="primary"
                   onPress={onApplyFilters}
                   aria-label="Apply filters"
                   className="flex-1"
@@ -401,7 +453,7 @@ export const InwardTable = memo<InwardTableViewProps>(
                 </Button>
                 <Button
                   size="sm"
-                  variant="flat"
+                  variant="secondary"
                   onPress={onClearFilters}
                   aria-label="Reset filters"
                   className="flex-1"
@@ -447,30 +499,44 @@ export const InwardTable = memo<InwardTableViewProps>(
               : `Total ${isServerPagination ? (totalItems ?? filteredItems.length) : filteredItems.length} items`}
           </span>
           <div className="sm:justify-self-center">
-            <Pagination
-              isCompact
-              showControls
-              showShadow
-              color="primary"
-              page={page}
-              total={pages}
-              onChange={onPageChange}
-            />
+            <Pagination>
+              <Pagination.Content>
+                <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}>
+                  <Pagination.PreviousIcon />
+                </Pagination.Previous>
+                {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
+                  <Pagination.Item key={pageNumber}>
+                    <Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>
+                      {pageNumber}
+                    </Pagination.Link>
+                  </Pagination.Item>
+                ))}
+                <Pagination.Next isDisabled={page >= pages} onPress={() => onPageChange(Math.min(pages, page + 1))}>
+                  <Pagination.NextIcon />
+                </Pagination.Next>
+              </Pagination.Content>
+            </Pagination>
           </div>
           <div className="sm:justify-self-end">
             <Select
-              label="Rows per page"
-              selectionMode="single"
-              selectedKeys={new Set([String(rowsPerPage)])}
-              onSelectionChange={onRowsPerPageChange}
-              labelPlacement="outside-left"
-              size="sm"
+              selectedKey={String(rowsPerPage)}
+              onSelectionChange={(key: Key | null) => onRowsPerPageChange(new Set(key == null ? [] : [key]))}
               className="min-w-[170px]"
             >
-              <SelectItem key="10">10</SelectItem>
-              <SelectItem key="25">25</SelectItem>
-              <SelectItem key="50">50</SelectItem>
-              <SelectItem key="100">100</SelectItem>
+              <Label>Rows per page</Label>
+              <Select.Trigger>
+                <Select.Value />
+                <Select.Indicator />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {['10', '25', '50', '100'].map((size) => (
+                    <ListBox.Item key={size} id={size} textValue={size}>
+                      {size}<ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
             </Select>
           </div>
         </div>
@@ -517,52 +583,50 @@ export const InwardTable = memo<InwardTableViewProps>(
     return (
       <div className="p-2">
         <div className="industrial-table-wrapper">
-          <Table
-            aria-label="Inward entries table"
-            isHeaderSticky
-            bottomContent={bottomContent}
-            bottomContentPlacement="outside"
-            classNames={{
-              wrapper: 'max-h-[calc(100vh-320px)] p-0',
-              base: 'min-w-full',
-              td: 'py-2',
-              th: 'py-2',
-            }}
-            selectedKeys={selectedKeys}
-            selectionMode="multiple"
-            sortDescriptor={sortDescriptor}
-            topContent={topContent}
-            topContentPlacement="outside"
-            onSelectionChange={onSelectionChange}
-            onSortChange={onSortChange}
-          >
-            <TableHeader columns={headerColumns}>
-              {(column) => (
-                <TableColumn
-                  key={column.uid}
-                  align={column.uid === 'actions' || column.uid === 'sr_no' ? 'center' : 'start'}
-                  allowsSorting={column.sortable}
-                  width={column.uid === 'sr_no' ? 60 : undefined}
-                >
-                  {column.name}
-                </TableColumn>
-              )}
-            </TableHeader>
-            <TableBody
-              emptyContent={emptyContent}
-              items={sortedItems}
-              isLoading={loading}
-              loadingContent={loadingContent}
-            >
-              {sortedItems.map((item, index) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => (
-                    <TableCell>{renderCell(item, columnKey as TableColumnKey, index)}</TableCell>
+          <div className="mb-4">{topContent}</div>
+          <Table aria-label="Inward entries table" className="min-w-full">
+            <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
+              <Table.Content
+                selectedKeys={selectedKeys}
+                selectionMode="multiple"
+                sortDescriptor={sortDescriptor}
+                onSelectionChange={onSelectionChange}
+                onSortChange={onSortChange}
+              >
+                <Table.Header columns={headerColumns}>
+                  {(column) => (
+                    <Table.Column
+                      id={column.uid}
+                      allowsSorting={column.sortable}
+                      isRowHeader={column.uid === 'client_org_name'}
+                    >
+                      {column.name}
+                    </Table.Column>
                   )}
-                </TableRow>
-              ))}
-            </TableBody>
+                </Table.Header>
+                <Table.Body
+                  items={sortedItems}
+                  renderEmptyState={() => (
+                    <div className="py-8 text-center text-sm text-default-500">
+                      {loading ? loadingContent : emptyContent}
+                    </div>
+                  )}
+                >
+                  {(item) => {
+                    const index = sortedItems.indexOf(item);
+                    return (
+                      <Table.Row id={item.id} columns={headerColumns}>
+                        {(columnKey) => (
+                          <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}</Table.Cell>
+                        )}
+                      </Table.Row>
+                    );
+                  }}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
           </Table>
+          {bottomContent}
         </div>
       </div>
     );

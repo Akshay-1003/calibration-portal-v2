@@ -6,18 +6,15 @@
 import { useMemo, memo, useCallback } from 'react';
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Input,
   Button,
+  Calendar,
+  DateField,
   Pagination,
-  Select,
-  SelectItem,
   DatePicker,
-} from '@heroui-v2/react';
+} from '@heroui/react';
+import type { DateValue } from '@internationalized/date';
+import { getTableColumnKey } from './tableColumnKey';
 import {
   MagnifyingGlassIcon,
   TrashIcon,
@@ -28,6 +25,41 @@ import type { ClientData } from '../../hooks/useInwardTableController';
 import type { InwardTableState, InwardTableHandlers } from '../../hooks/useInwardTableController';
 import { VirtualizedTable, shouldUseVirtualization } from '../../shared/components/VirtualizedTable';
 import '../../styles/industrial-table.css';
+
+function OptimizedDatePicker({
+  value,
+  onChange,
+}: {
+  value: DateValue | null;
+  onChange: (value: DateValue | null) => void;
+}) {
+  return (
+    <DatePicker value={value} onChange={onChange} aria-label="Filter by Date" granularity="day" className="w-48">
+      <DateField.Group fullWidth>
+        <DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+        <DateField.Suffix>
+          <DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger>
+        </DateField.Suffix>
+      </DateField.Group>
+      <DatePicker.Popover>
+        <Calendar aria-label="Filter by Date">
+          <Calendar.Header>
+            <Calendar.YearPickerTrigger><Calendar.YearPickerTriggerHeading /><Calendar.YearPickerTriggerIndicator /></Calendar.YearPickerTrigger>
+            <Calendar.NavButton slot="previous" />
+            <Calendar.NavButton slot="next" />
+          </Calendar.Header>
+          <Calendar.Grid>
+            <Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader>
+            <Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
+          </Calendar.Grid>
+          <Calendar.YearPickerGrid>
+            <Calendar.YearPickerGridBody>{({ year }) => <Calendar.YearPickerCell year={year} />}</Calendar.YearPickerGridBody>
+          </Calendar.YearPickerGrid>
+        </Calendar>
+      </DatePicker.Popover>
+    </DatePicker>
+  );
+}
 
 type TableColumnKey =
   | 'sr_no'
@@ -49,8 +81,6 @@ const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
   { name: 'INWARD DATE', uid: 'inward_date', sortable: true },
   { name: 'RECEIVED DATE', uid: 'received_date', sortable: true },
 ];
-void INITIAL_VISIBLE_COLUMNS;
-
 const INITIAL_VISIBLE_COLUMNS: TableColumnKey[] = [
   'sr_no',
   'client_org_name',
@@ -59,6 +89,7 @@ const INITIAL_VISIBLE_COLUMNS: TableColumnKey[] = [
   'received_date',
   'actions',
 ];
+void INITIAL_VISIBLE_COLUMNS;
 
 // Memoized Actions Cell to prevent re-renders
 const ActionsCell = memo(
@@ -153,18 +184,19 @@ const SearchInput = memo(
     }, [onChange]);
 
     return (
-      <Input
-        isClearable
-        placeholder="Search by client name, DC no..."
-        startContent={<MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />}
-        value={value}
-        onClear={onClear}
-        onChange={handleChange}
-        classNames={{
-          base: "w-full sm:max-w-[40%]",
-          inputWrapper: "border-gray-300",
-        }}
-      />
+      <div className="flex items-center gap-2 w-full sm:max-w-[40%]">
+        <Input
+          placeholder="Search by client name, DC no..."
+          value={value}
+          onChange={handleChange}
+          className="w-full"
+        />
+        {value ? (
+          <Button type="button" variant="ghost" aria-label="Clear inward search" onPress={onClear}>
+            <MagnifyingGlassIcon className="w-4 h-4 text-gray-400" />
+          </Button>
+        ) : null}
+      </div>
     );
   }
 );
@@ -180,36 +212,11 @@ const FilterControls = memo(
     state: InwardTableState;
     handlers: InwardTableHandlers;
   }) => {
-    const handleStatusChange = useCallback((keys: any) => {
-      handlers.onStatusChange(Array.from(keys).join(','));
-    }, [handlers]);
-
-    const handleDateFilterChange = useCallback((dates: any) => {
-      handlers.onDateFilterChange(dates);
-    }, [handlers]);
-
     return (
       <div className="flex gap-4 items-center">
-        <Select
-          placeholder="Select Status"
-          selectedKeys={state.statusFilter ? [state.statusFilter] : []}
-          onSelectionChange={handleStatusChange}
-          className="w-48"
-          classNames={{
-            trigger: "border-gray-300",
-          }}
-        >
-          <SelectItem key="all" value="all">All Status</SelectItem>
-          <SelectItem key="pending" value="pending">Pending</SelectItem>
-          <SelectItem key="in_progress" value="in_progress">In Progress</SelectItem>
-          <SelectItem key="completed" value="completed">Completed</SelectItem>
-        </Select>
-
-        <DatePicker
-          label="Filter by Date"
-          value={state.dateFilter}
-          onChange={handleDateFilterChange}
-          className="w-48"
+        <OptimizedDatePicker
+          value={state.startDate}
+          onChange={handlers.onStartDateChange}
         />
       </div>
     );
@@ -239,20 +246,16 @@ const OptimizedInwardTable = memo(({
     if (!state.data) return [];
     
     return state.data.filter((item: ClientData) => {
-      const matchesSearch = !state.searchFilter || 
-        item.client_org_name?.toLowerCase().includes(state.searchFilter.toLowerCase()) ||
-        item.client_dc_no?.toLowerCase().includes(state.searchFilter.toLowerCase());
-      
-      const matchesStatus = !state.statusFilter || 
-        item.status === state.statusFilter;
-      
-      return matchesSearch && matchesStatus;
+      const matchesSearch = !state.searchValue ||
+        item.client_org_name?.toLowerCase().includes(state.searchValue.toLowerCase()) ||
+        item.client_dc_no?.toLowerCase().includes(state.searchValue.toLowerCase());
+      return matchesSearch;
     });
-  }, [state.data, state.searchFilter, state.statusFilter]);
+  }, [state.data, state.searchValue]);
 
   // Memoize columns for virtualized table
-  const virtualizedColumns = useMemo(() => [
-    { key: 'sr_no', label: 'SR NO', width: 80 },
+  const virtualizedColumns = useMemo<Array<{ key: keyof ClientData; label: string; width: number; minWidth?: number; render?: (value: unknown, item: ClientData) => React.ReactNode }>>(() => [
+    { key: 'id', label: 'SR NO', width: 80 },
     { key: 'client_org_name', label: 'CLIENT ORGANIZATION', width: 200, minWidth: 150 },
     { key: 'client_dc_no', label: 'CLIENT DC NO', width: 120 },
     { key: 'client_dc_date', label: 'CLIENT DC DATE', width: 120 },
@@ -260,10 +263,10 @@ const OptimizedInwardTable = memo(({
     { key: 'inward_date', label: 'INWARD DATE', width: 120 },
     { key: 'received_date', label: 'RECEIVED DATE', width: 120 },
     { 
-      key: 'actions', 
+      key: 'id',
       label: 'ACTIONS', 
       width: 300,
-      render: (_value: any, item: ClientData) => (
+      render: (_value: unknown, item: ClientData) => (
         <ActionsCell
           item={item}
           onRegisterGauge={handlers.onRegisterGauge}
@@ -277,10 +280,10 @@ const OptimizedInwardTable = memo(({
 
   // Memoize pagination data
   const paginatedData = useMemo(() => {
-    const startIndex = (state.pagination.currentPage - 1) * state.pagination.pageSize;
-    const endIndex = startIndex + state.pagination.pageSize;
+    const startIndex = (state.page - 1) * state.rowsPerPage;
+    const endIndex = startIndex + state.rowsPerPage;
     return filteredData.slice(startIndex, endIndex);
-  }, [filteredData, state.pagination.currentPage, state.pagination.pageSize]);
+  }, [filteredData, state.page, state.rowsPerPage]);
 
   // Determine if virtualization should be used
   const useVirtualization = shouldUseVirtualization(filteredData.length, 100);
@@ -289,50 +292,45 @@ const OptimizedInwardTable = memo(({
   const tableContent = useMemo(() => {
     if (useVirtualization) {
       return (
-        <VirtualizedTable
+        <VirtualizedTable<ClientData>
           data={filteredData}
           columns={virtualizedColumns}
           height={400}
           className="min-w-[800px]"
-          onRowClick={(item: ClientData) => handlers.onEdit?.(item)}
+          onRowClick={(item) => handlers.onEdit(item)}
         />
       );
     }
 
     // Traditional table for smaller datasets
     return (
-      <Table
-        aria-label="Inward Entries Table"
-        removeWrapper
-        classNames={{
-          wrapper: "min-h-[400px]",
-        }}
-      >
-        <TableHeader columns={columns}>
+      <Table aria-label="Inward Entries Table" className="min-w-full">
+        <Table.ScrollContainer className="min-h-[400px]">
+        <Table.Content>
+        <Table.Header columns={columns}>
           {(column) => (
-            <TableColumn
-              key={column.uid}
+            <Table.Column
+              id={column.uid}
               allowsSorting={column.sortable}
-              className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider"
+              isRowHeader={column.uid === columns[0]?.uid}
             >
               {column.name}
-            </TableColumn>
+            </Table.Column>
           )}
-        </TableHeader>
-        <TableBody
+        </Table.Header>
+        <Table.Body
           items={paginatedData}
-          isLoading={state.isLoading}
-          loadingContent={<div className="animate-pulse">Loading...</div>}
-          emptyContent="No inward entries found"
+          renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{state.loading ? 'Loading...' : 'No inward entries found'}</div>}
         >
           {(item: ClientData) => (
-            <TableRow key={item.id}>
+            <Table.Row id={item.id} columns={columns}>
               {(columnKey) => {
-                const column = columns.find(col => col.uid === columnKey);
+                const columnName = getTableColumnKey(columnKey) as TableColumnKey;
+                const column = columns.find(col => col.uid === columnName);
                 void column;
-                if (columnKey === 'actions') {
+                if (columnName === 'actions') {
                   return (
-                    <TableCell>
+                    <Table.Cell>
                       <ActionsCell
                         item={item}
                         onRegisterGauge={handlers.onRegisterGauge}
@@ -340,20 +338,22 @@ const OptimizedInwardTable = memo(({
                         onPrintChalan={handlers.onPrintChalan}
                         onEdit={handlers.onEdit}
                       />
-                    </TableCell>
+                    </Table.Cell>
                   );
                 }
                 
-                const value = item[columnKey as keyof ClientData];
+                const value = item[columnName as keyof ClientData];
                 return (
-                  <TableCell className="text-sm">
+                  <Table.Cell>
                     {value || '-'}
-                  </TableCell>
+                  </Table.Cell>
                 );
               }}
-            </TableRow>
+            </Table.Row>
           )}
-        </TableBody>
+        </Table.Body>
+        </Table.Content>
+        </Table.ScrollContainer>
       </Table>
     );
   }, [
@@ -361,18 +361,18 @@ const OptimizedInwardTable = memo(({
     filteredData,
     virtualizedColumns,
     paginatedData,
-    state.isLoading,
+    state.loading,
     handlers
   ]);
 
   return (
-    <div className="space-y-4">
+    <div className="industrial-table-wrapper space-y-4">
       {/* Search and Filters */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <SearchInput
-          value={state.searchFilter || ''}
+          value={state.searchValue}
           onChange={handlers.onSearchChange}
-          onClear={handlers.onClearSearch}
+          onClear={handlers.onSearchClear}
         />
         
         <FilterControls
@@ -392,14 +392,15 @@ const OptimizedInwardTable = memo(({
           <span className="text-sm text-gray-700">
             Showing {paginatedData.length} of {filteredData.length} entries
           </span>
-          <Pagination
-            total={Math.ceil(filteredData.length / state.pagination.pageSize)}
-            page={state.pagination.currentPage}
-            onChange={handlers.onPageChange}
-            showControls
-            showShadow
-            size="sm"
-          />
+          <Pagination>
+            <Pagination.Content>
+              <Pagination.Previous isDisabled={state.page <= 1} onPress={() => handlers.onPageChange(Math.max(1, state.page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+              {Array.from({ length: Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage)) }, (_, index) => index + 1).map((pageNumber) => (
+                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === state.page} onPress={() => handlers.onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
+              ))}
+              <Pagination.Next isDisabled={state.page >= Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage))} onPress={() => handlers.onPageChange(Math.min(Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage)), state.page + 1))}><Pagination.NextIcon /></Pagination.Next>
+            </Pagination.Content>
+          </Pagination>
         </div>
       )}
 

@@ -18,24 +18,26 @@ interface VirtualizedTableProps<T> {
   emptyMessage?: string;
 }
 
-interface ColumnConfig<T> {
+export interface ColumnConfig<T> {
   key: keyof T;
   label: string;
   width?: number;
   minWidth?: number;
   maxWidth?: number;
   sortable?: boolean;
-  render?: (value: any, item: T, index: number) => React.ReactNode;
+  render?: (value: T[keyof T], item: T, index: number) => React.ReactNode;
 }
 
 // Memoized row component to prevent re-renders
-const VirtualizedRow = memo<{
+interface VirtualizedRowProps<T> {
   index: number;
   style: React.CSSProperties;
-  data: any[];
-  columns: ColumnConfig<any>[];
-  onRowClick?: (item: any, index: number) => void;
-}>(({ index, style, data, columns, onRowClick }) => {
+  data: T[];
+  columns: ColumnConfig<T>[];
+  onRowClick?: (item: T, index: number) => void;
+}
+
+function VirtualizedRow<T>({ index, style, data, columns, onRowClick }: VirtualizedRowProps<T>) {
   const item = data[index];
   
   const handleRowClick = useCallback(() => {
@@ -66,11 +68,11 @@ const VirtualizedRow = memo<{
       ))}
     </div>
   );
-});
+}
 
-VirtualizedRow.displayName = 'VirtualizedRow';
+const MemoizedVirtualizedRow = memo(VirtualizedRow) as typeof VirtualizedRow;
 
-export const VirtualizedTable = memo(<T,>({
+export const VirtualizedTable = <T,>({
   data,
   columns,
   rowHeight = 50,
@@ -122,14 +124,14 @@ export const VirtualizedTable = memo(<T,>({
   }
 
   return (
-    <div className={`border border-gray-200 rounded-lg overflow-hidden ${className}`}>
+    <div className={`industrial-table-wrapper border border-gray-200 rounded-md overflow-hidden ${className}`}>
       {/* Fixed Header */}
-      <div className="bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
+      <div className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
         <div className="flex" style={{ width: totalWidth }}>
           {memoizedColumns.map((column) => (
             <div
               key={String(column.key)}
-              className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+              className="px-4 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
               style={{ 
                 width: column.width || 'auto',
                 minWidth: column.minWidth || 100,
@@ -156,7 +158,7 @@ export const VirtualizedTable = memo(<T,>({
           }}
         >
           {rowVirtualizer.getVirtualItems().map((virtualItem) => (
-            <VirtualizedRow
+            <MemoizedVirtualizedRow
               key={virtualItem.index}
               index={virtualItem.index}
               style={{
@@ -176,14 +178,14 @@ export const VirtualizedTable = memo(<T,>({
       </div>
 
       {/* Footer with row count */}
-      <div className="bg-gray-50 px-4 py-2 border-t border-gray-200">
-        <div className="text-sm text-gray-700">
+      <div className="bg-slate-50 px-4 py-2 border-t border-slate-200">
+        <div className="text-sm text-slate-700">
           Showing {memoizedData.length} {memoizedData.length === 1 ? 'row' : 'rows'}
         </div>
       </div>
     </div>
   );
-});
+};
 
 VirtualizedTable.displayName = 'VirtualizedTable';
 
@@ -193,15 +195,15 @@ export const shouldUseVirtualization = (dataLength: number, threshold = 100) => 
 };
 
 // HOC to automatically apply virtualization based on data size
-export const withVirtualization = <P extends { data?: any[]; columns: any[] }>(
+export const withVirtualization = <T, P extends { data?: T[]; columns: ColumnConfig<T>[] }>(
   TableComponent: React.ComponentType<P>,
   threshold = 100
 ) => {
   return memo((props: P) => {
-    const { data, columns, ...rest } = props;
+    const { data, columns } = props;
     
     if (shouldUseVirtualization(data?.length || 0, threshold)) {
-      return <VirtualizedTable data={data || []} columns={columns} {...(rest as Omit<P, 'data' | 'columns'>)} />;
+      return <VirtualizedTable<T> data={data || []} columns={columns} />;
     }
     
     return <TableComponent {...props} />;

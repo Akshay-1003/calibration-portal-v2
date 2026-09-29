@@ -5,12 +5,12 @@ import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { FormField } from "../ui/form-field"
-import { DatePicker, Select, SelectItem } from "@heroui-v2/react"
+import { Calendar, DateField, DatePicker, ListBox, Select } from "@heroui/react"
+import { parseDate } from "@internationalized/date"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { useState } from "react"
 import { useOrganizations } from "../../hooks/useOrganizations"
 import { format } from "date-fns"
-import { parseDate } from "@internationalized/date"
 import { outwardFormSchema, type OutwardFormData } from "../../lib/validations"
 import { useCreateOutwardEntryMutation } from "../../hooks/queries/outwards"
 import { FormDateProvider } from "./FormDateProvider"
@@ -99,27 +99,20 @@ const OutwardForm = () => {
                 error={!isSubmitSuccessful ? errors.clientOrgId?.message : undefined}
               >
                 <Select
-                  label=""
                   aria-label="Client Organization"
                   placeholder={orgLoading ? "Loading organizations..." : "Select Client Organization"}
                   isDisabled={orgLoading}
-                  selectedKeys={watch('clientOrgId') ? [watch('clientOrgId')] : []}
-                  onSelectionChange={(keys) => {
-                    const value = Array.from(keys)[0] as string
+                  selectedKey={watch('clientOrgId') || null}
+                  onSelectionChange={(key) => {
+                    const value = String(key ?? '')
                     setValue("clientOrgId", value, { shouldValidate: true })
                   }}
-                  isInvalid={!isSubmitSuccessful && !!errors.clientOrgId}
                   className="w-full"
-                  classNames={{
-                    base: "w-full",
-                    trigger: (!isSubmitSuccessful && errors.clientOrgId)
-                      ? "border-destructive border-2" 
-                      : "border border-input bg-background hover:bg-accent"
-                  }}
                 >
-                  {organizations.map(org => (
-                    <SelectItem key={org.id} textValue={org.name}>{org.name}</SelectItem>
-                  ))}
+                  <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                  <Select.Popover><ListBox>{organizations.map(org => (
+                    <ListBox.Item key={org.id} id={org.id} textValue={org.name}>{org.name}<ListBox.ItemIndicator /></ListBox.Item>
+                  ))}</ListBox></Select.Popover>
                 </Select>
               </FormField>
 
@@ -132,20 +125,23 @@ const OutwardForm = () => {
                 <Controller
                   name="outwardDate"
                   control={control}
-                  render={({ field: { onChange, value }, fieldState }) => (
+                  render={({ field: { onChange, value } }) => (
                     <DatePicker
-                      label=""
-                      className="w-full"
-                      isInvalid={fieldState.invalid}
-                      classNames={{
-                        base: "w-full",
-                        inputWrapper: (!isSubmitSuccessful && fieldState.invalid)
-                          ? "border-destructive border-2" 
-                          : "border border-input bg-background hover:bg-accent"
-                      }}
                       value={value ? parseDate(format(value as Date, "yyyy-MM-dd")) : null}
-                      onChange={(date) => onChange(date ? new Date(date.toString()) : undefined)}
-                    />
+                      onChange={(date) => onChange(date ? new Date(String(date)) : undefined)}
+                      aria-label="Outward Date"
+                      granularity="day"
+                      className="w-full"
+                    >
+                      <DateField.Group fullWidth>
+                        <DateField.Input>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
+                        <DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix>
+                      </DateField.Group>
+                      <DatePicker.Popover><Calendar aria-label="Outward Date">
+                        <Calendar.Header><Calendar.NavButton slot="previous" /><Calendar.NavButton slot="next" /></Calendar.Header>
+                        <Calendar.Grid><Calendar.GridHeader>{(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}</Calendar.GridHeader><Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody></Calendar.Grid>
+                      </Calendar></DatePicker.Popover>
+                    </DatePicker>
                   )}
                 />
               </FormField>

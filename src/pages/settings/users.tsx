@@ -1,29 +1,17 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Table,
-  TableHeader,
-  TableColumn,
-  TableBody,
-  TableRow,
-  TableCell,
   Button,
   Input,
   Select,
-  SelectItem,
   Card,
-  CardBody,
   Chip,
   Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  useDisclosure,
+  ListBox,
   Avatar,
   Pagination,
   Tabs,
-  Tab,
-} from '@heroui-v2/react';
+} from '@heroui/react';
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -32,9 +20,11 @@ import {
   ArchiveBoxIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
+import { getTableColumnKey } from '../../components/Tables/tableColumnKey';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { userQueryKeys, useDeleteUserMutation, useToggleUserArchiveMutation, useUsersQuery } from '../../hooks/queries/users';
+import '../../styles/industrial-table.css';
 import type { User, UserPermissionScope } from '../../features/auth/types/auth.types';
 import { usePermissionAccess } from '../../features/auth';
 import { UnauthorizedPage } from '../../features/auth/components/UnauthorizedPage';
@@ -178,24 +168,18 @@ export const SettingsUsers = () => {
   const [isSavingUser, setIsSavingUser] = useState(false);
   const [isResettingUserPassword, setIsResettingUserPassword] = useState(false);
 
-  const {
-    isOpen: isCreateOpen,
-    onOpen: onCreateOpen,
-    onClose: onCreateClose,
-    onOpenChange: onCreateOpenChange,
-  } = useDisclosure();
-  const {
-    isOpen: isEditOpen,
-    onOpen: onEditOpen,
-    onClose: onEditClose,
-    onOpenChange: onEditOpenChange,
-  } = useDisclosure();
-  const {
-    isOpen: isDeleteOpen,
-    onOpen: onDeleteOpen,
-    onClose: onDeleteClose,
-    onOpenChange: onDeleteOpenChange,
-  } = useDisclosure();
+  const [isCreateOpen, setCreateOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [isDeleteOpen, setDeleteOpen] = useState(false);
+  const onCreateOpen = () => setCreateOpen(true);
+  const onCreateClose = () => setCreateOpen(false);
+  const onCreateOpenChange = (open: boolean) => setCreateOpen(open);
+  const onEditOpen = () => setEditOpen(true);
+  const onEditClose = () => setEditOpen(false);
+  const onEditOpenChange = (open: boolean) => setEditOpen(open);
+  const onDeleteOpen = () => setDeleteOpen(true);
+  const onDeleteClose = () => setDeleteOpen(false);
+  const onDeleteOpenChange = (open: boolean) => setDeleteOpen(open);
 
   const isPlatformReady = !isSuperAdmin || (!isLaboratoryContext && !isRestoringPlatformAccess);
   const organizationsQuery = useOrganizationsQuery({
@@ -247,12 +231,12 @@ export const SettingsUsers = () => {
   if (platformAccessError) {
     return (
       <Card>
-        <CardBody className="py-12 text-center">
+        <Card.Content className="py-12 text-center">
           <p className="text-danger">{platformAccessError}</p>
-          <Button className="mt-4" color="primary" onPress={() => void restorePlatformAccess()}>
+          <Button className="mt-4" variant="primary" onPress={() => void restorePlatformAccess()}>
             Try again
           </Button>
-        </CardBody>
+        </Card.Content>
       </Card>
     );
   }
@@ -468,12 +452,10 @@ export const SettingsUsers = () => {
     switch (columnKey) {
       case 'avatar':
         return (
-          <Avatar
-            src={user.avatar ?? undefined}
-            icon={<UserCircleIcon className="h-6 w-6 text-slate-400" />}
-            className="h-10 w-10"
-            classNames={{ base: 'bg-slate-100' }}
-          />
+          <Avatar className="h-10 w-10 bg-slate-100">
+            {user.avatar ? <Avatar.Image src={user.avatar} /> : null}
+            <Avatar.Fallback><UserCircleIcon className="h-6 w-6 text-slate-400" /></Avatar.Fallback>
+          </Avatar>
         );
       case 'name':
         return (
@@ -489,7 +471,7 @@ export const SettingsUsers = () => {
         return <p className="text-sm text-slate-600">{user.email}</p>;
       case 'role':
         return (
-          <Chip size="sm" variant="flat">
+          <Chip size="sm" variant="soft">
             {getRoleLabel(user.role)}
           </Chip>
         );
@@ -497,23 +479,22 @@ export const SettingsUsers = () => {
         return <p className="text-sm text-slate-700">{user.department || '-'}</p>;
       case 'status':
         return (
-          <Chip size="sm" color={getStatusColor(user)} variant="flat">
+          <Chip size="sm" color={getStatusColor(user)} variant="soft">
             {getStatusText(user)}
           </Chip>
         );
       case 'actions':
         return (
           <div className="flex gap-2">
-            <Button size="sm" variant="light" isIconOnly onPress={() => handleEditUser(user)}>
+            <Button size="sm" variant="ghost" isIconOnly onPress={() => handleEditUser(user)}>
               <PencilIcon className="h-4 w-4" />
             </Button>
-            <Button size="sm" variant="light" isIconOnly onPress={() => handleToggleArchive(user)}>
+            <Button size="sm" variant="ghost" isIconOnly onPress={() => handleToggleArchive(user)}>
               <ArchiveBoxIcon className="h-4 w-4" />
             </Button>
             <Button
               size="sm"
-              variant="light"
-              color="danger"
+              variant="danger-soft"
               isIconOnly
               onPress={() => handleDeleteUser(user)}
             >
@@ -536,88 +517,110 @@ export const SettingsUsers = () => {
           </p>
         </div>
 
-        <Button color="primary" startContent={<PlusIcon className="h-4 w-4" />} onPress={handleOpenCreateUser}>
-          Add User
+        <Button variant="primary" onPress={handleOpenCreateUser}>
+          <PlusIcon className="h-4 w-4" />
+          <span>Add User</span>
         </Button>
       </div>
 
       {isSuperAdmin ? (
         <Tabs
-          aria-label="User directories"
           selectedKey={directory}
           onSelectionChange={handleDirectoryChange}
-          color="primary"
-          variant="underlined"
+          variant="primary"
         >
-          <Tab key="laboratory" title="Laboratory users" />
-          <Tab key="customer" title="Organization users" />
+          <Tabs.ListContainer>
+            <Tabs.List aria-label="User directories">
+              <Tabs.Tab id="laboratory">Laboratory users</Tabs.Tab>
+              <Tabs.Tab id="customer">Organization users</Tabs.Tab>
+            </Tabs.List>
+          </Tabs.ListContainer>
         </Tabs>
       ) : null}
 
       <Card>
-        <CardBody>
+        <Card.Content>
           <div className="flex flex-col gap-4 md:flex-row md:items-end">
-            <Input
-              placeholder="Search users..."
-              startContent={<MagnifyingGlassIcon className="h-4 w-4 text-slate-400" />}
-              value={filters.search}
-              onValueChange={handleSearch}
-              className="max-w-md"
-            />
+            <div className="relative max-w-md w-full">
+              <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                placeholder="Search users..."
+                value={filters.search}
+                onChange={(event) => handleSearch(event.target.value)}
+                className="pl-9"
+              />
+            </div>
             <Select
               placeholder="Filter by role"
-              selectedKeys={filters.role ? [filters.role] : []}
-              onSelectionChange={(keys) => handleRoleFilter((Array.from(keys)[0] as string) ?? '')}
+              selectedKey={filters.role || null}
+              onSelectionChange={(key) => handleRoleFilter(key == null ? 'all' : String(key))}
               className="max-w-sm"
             >
-              {(directory === 'customer' ? customerRoleOptions : userRoleOptions).map((role) => (
-                <SelectItem key={role.key} textValue={role.label}>
-                  {role.label}
-                </SelectItem>
-              ))}
+              <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+              <Select.Popover><ListBox>
+                <ListBox.Item id="all" textValue="All roles">All roles</ListBox.Item>
+                {(directory === 'customer' ? customerRoleOptions : userRoleOptions).map((role) => (
+                  <ListBox.Item key={role.key} id={role.key} textValue={role.label}>
+                    {role.label}<ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox></Select.Popover>
             </Select>
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       <Card>
-        <CardBody className="p-0">
+        <Card.Content className="p-0">
+          <div className="industrial-table-wrapper">
           <Table aria-label="Users table">
-            <TableHeader columns={columns}>
-              {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
-            </TableHeader>
-            <TableBody
-              items={usersData?.users ?? []}
-              isLoading={isLoading || !isPlatformReady}
-              emptyContent={
-                isError
-                  ? extractErrorMessage(error, 'Unable to load users')
-                  : 'No users found'
-              }
-            >
-              {(item: User) => (
-                <TableRow key={item.id}>
-                  {(columnKey) => <TableCell>{renderCell(item, columnKey as string)}</TableCell>}
-                </TableRow>
-              )}
-            </TableBody>
+            <Table.ScrollContainer>
+              <Table.Content>
+                <Table.Header columns={columns}>
+                  {(column) => <Table.Column id={column.key} isRowHeader={column.key === columns[0]?.key}>{column.label}</Table.Column>}
+                </Table.Header>
+                <Table.Body
+                  items={usersData?.users ?? []}
+                  renderEmptyState={() => (
+                    <div className="py-10 text-center text-sm text-slate-500">
+                      {isLoading || !isPlatformReady
+                        ? 'Loading users...'
+                        : isError
+                          ? extractErrorMessage(error, 'Unable to load users')
+                          : 'No users found'}
+                    </div>
+                  )}
+                >
+                  {(item) => (
+                    <Table.Row id={item.id} columns={columns}>
+                      {(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey))}</Table.Cell>}
+                    </Table.Row>
+                  )}
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
           </Table>
+          </div>
 
           {usersData && usersData.total > filters.limit && (
             <div className="flex justify-center p-4">
-              <Pagination
-                total={Math.ceil(usersData.total / filters.limit)}
-                page={filters.page}
-                onChange={handlePageChange}
-              />
+              <Pagination aria-label="Users pagination">
+                <Pagination.Content>
+                  <Pagination.Previous isDisabled={filters.page <= 1} onPress={() => handlePageChange(Math.max(1, filters.page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
+                  {Array.from({ length: Math.ceil(usersData.total / filters.limit) }, (_, index) => index + 1).map((pageNumber) => (
+                    <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === filters.page} onPress={() => handlePageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
+                  ))}
+                  <Pagination.Next isDisabled={filters.page >= Math.ceil(usersData.total / filters.limit)} onPress={() => handlePageChange(Math.min(Math.ceil(usersData.total / filters.limit), filters.page + 1))}><Pagination.NextIcon /></Pagination.Next>
+                </Pagination.Content>
+              </Pagination>
             </div>
           )}
-        </CardBody>
+        </Card.Content>
       </Card>
 
       <UserCreateModal
         isOpen={isCreateOpen}
-        onOpenChange={onCreateOpenChange}
+        onOpenChange={() => onCreateOpenChange(!isCreateOpen)}
         onClose={onCreateClose}
         onSubmit={handleCreateUser}
         isLoading={isSavingUser}
@@ -628,7 +631,7 @@ export const SettingsUsers = () => {
       <UserEditModal
         user={selectedUser}
         isOpen={isEditOpen}
-        onOpenChange={onEditOpenChange}
+        onOpenChange={() => onEditOpenChange(!isEditOpen)}
         onClose={() => {
           onEditClose();
           setSelectedUser(null);
@@ -640,39 +643,39 @@ export const SettingsUsers = () => {
         userType={directory}
       />
 
-      <Modal isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange} size="sm">
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader>Delete User</ModalHeader>
-              <ModalBody>
+      <Modal.Root isOpen={isDeleteOpen} onOpenChange={onDeleteOpenChange}>
+        <Modal.Backdrop>
+          <Modal.Container size="sm">
+            <Modal.Dialog>
+              <Modal.Header><Modal.Heading>Delete User</Modal.Heading></Modal.Header>
+              <Modal.Body>
                 <p>
                   Are you sure you want to delete user "{selectedUser?.first_name} {selectedUser?.last_name}"?
                   This action cannot be undone.
                 </p>
-              </ModalBody>
-              <ModalFooter>
+              </Modal.Body>
+              <Modal.Footer>
                 <Button
-                  variant="light"
+                  variant="ghost"
                   onPress={() => {
-                    onClose();
+                    onDeleteClose();
                     deleteCloseCleanup();
                   }}
                 >
                   Cancel
                 </Button>
                 <Button
-                  color="danger"
-                  isLoading={deleteUserMutation.isPending}
+                  variant="danger"
+                  isDisabled={deleteUserMutation.isPending}
                   onPress={handleConfirmDelete}
                 >
-                  Delete
+                  {deleteUserMutation.isPending ? 'Deleting...' : 'Delete'}
                 </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal.Root>
     </div>
   );
 };

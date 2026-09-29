@@ -22,12 +22,10 @@ import {
   Input,
   Button,
   Card,
-  CardHeader,
-  CardBody,
   Checkbox,
   Autocomplete,
-  AutocompleteItem,
-} from "@heroui-v2/react";
+  ListBox,
+} from "@heroui/react";
 import { Plus, Trash, GripVertical } from "lucide-react";
 import { toast } from "sonner";
 import { useGaugeStore } from "../../store/gaugeStore";
@@ -120,7 +118,7 @@ function SortableRow({
           <button
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing touch-none p-1 hover:bg-gray-200 rounded transition-colors"
+            className="h-8 w-8 cursor-grab active:cursor-grabbing touch-none rounded-md p-1 transition-colors hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             aria-label="Drag to reorder"
             type="button"
           >
@@ -131,20 +129,17 @@ function SortableRow({
       </td>
       <td className="p-2">
         <Input
-          size="sm"
+          className="w-full"
           value={item.value}
           placeholder="0.0000"
           onChange={(e) => handleChange(e.target.value)}
           onBlur={handleBlur}
-          isDisabled={isDisabled}
-          description="Enter a number with up to 4 decimals (e.g., 0.1234, 75.5678, -12.3456)"
+          disabled={isDisabled}
         />
       </td>
       <td className="p-2">
         <Button
-          size="sm"
-          color="danger"
-          isIconOnly
+          variant="danger"
           onPress={() => onDelete(item.id)}
           isDisabled={isDisabled}
         >
@@ -364,6 +359,7 @@ export default function ReadingMasterForm({
         // If order changed, readings changed, or is_static changed, update via PUT
         if (orderChanged || newReadings.length > 0 || removedReadings.length > 0 || isStaticChanged) {
           const result = await readingMasterActions.update(currentReadingMaster.id, {
+            master_gauge_id: currentReadingMaster.master_gauge_id,
             readings: cleanedReadings,
             is_static: isStatic,
           });
@@ -410,35 +406,47 @@ export default function ReadingMasterForm({
   const readingIds = useMemo(() => readings.map((r) => r.id), [readings]);
 
   return (
-    <Card className="shadow-md border bg-card rounded-xl overflow-hidden">
-      <CardHeader className="bg-blue-600 text-white px-6 py-4 rounded-t-xl">
+    <Card className="shadow-sm border bg-card rounded-md overflow-hidden">
+      <Card.Header className="bg-blue-600 text-white px-6 py-4 rounded-t-md">
         <h3 className="text-xl font-semibold text-white tracking-tight">
           {mode === "edit" ? "Edit Reading Master" : "Reading Master"}
         </h3>
-      </CardHeader>
+      </Card.Header>
 
-      <CardBody className="space-y-6">
+      <Card.Content className="space-y-6">
         {/* Gauge Selection */}
         <div className="mt-2">
-          <Autocomplete
+          <Autocomplete className="w-full"
             key={masterGaugeId}
-            selectedKey={masterGaugeId || null}
-            isLoading={gaugeLoading}
+            selectedKey={masterGaugeId || undefined}
             isDisabled={mode === "edit" || isLoading}
-            label="Select Master Gauge"
-            labelPlacement="outside"
-            placeholder="Select Master Gauge"
             aria-label="Select Master Gauge"
             onSelectionChange={(key) => {
               setMasterGaugeId((key as string) || "");
             }}
-            // size="sm"
           >
-            {gaugeOptions.map((o) => (
-              <AutocompleteItem key={o.value}>
-                {o.label}
-              </AutocompleteItem>
-            ))}
+            <Autocomplete.Trigger>
+              <Autocomplete.Filter>
+                <Input placeholder="Select Master Gauge" />
+              </Autocomplete.Filter>
+              <Autocomplete.Indicator />
+            </Autocomplete.Trigger>
+            <Autocomplete.Popover>
+              <ListBox>
+                {gaugeLoading ? (
+                  <ListBox.Item id="loading" isDisabled>Loading master gauges...</ListBox.Item>
+                ) : gaugeOptions.length === 0 ? (
+                  <ListBox.Item id="empty" isDisabled>No master gauges found</ListBox.Item>
+                ) : (
+                  gaugeOptions.map((o) => (
+                    <ListBox.Item key={o.value} id={o.value} textValue={o.label}>
+                      {o.label}
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                  ))
+                )}
+              </ListBox>
+            </Autocomplete.Popover>
           </Autocomplete>
         </div>
 
@@ -447,13 +455,13 @@ export default function ReadingMasterForm({
           <div className="flex items-center gap-4">
             <Checkbox
               isSelected={isStatic}
-              onValueChange={() => setIsStatic(true)}
+              onChange={() => setIsStatic(true)}
             >
               Fix
             </Checkbox>
             <Checkbox
               isSelected={!isStatic}
-              onValueChange={() => setIsStatic(false)}
+              onChange={() => setIsStatic(false)}
             >
               Dynamic
             </Checkbox>
@@ -461,15 +469,14 @@ export default function ReadingMasterForm({
         </div>
 
         {/* Readings Table */}
-        <div className="border rounded-lg p-4">
+        <div className="border rounded-md p-4">
           <div className="flex justify-between mb-2">
             <h4 className="font-medium">Readings ({readings.length})</h4>
             <Button
-              size="sm"
-              startContent={<Plus />}
               onPress={addRow}
               isDisabled={!masterGaugeId || isLoading}
             >
+              <Plus />
               Add Row
             </Button>
           </div>
@@ -518,16 +525,14 @@ export default function ReadingMasterForm({
 
         {/* Submit Button */}
         <Button
-          color="primary"
-          fullWidth
-          size="lg"
+          variant="primary"
+          className="w-full"
           onPress={handleSubmit}
-          isLoading={isLoading}
           isDisabled={!masterGaugeId || readings.length === 0 || isLoading}
         >
-          {mode === "edit" ? "Update Readings" : "Create Record"}
+          {isLoading ? "Saving..." : mode === "edit" ? "Update Readings" : "Create Record"}
         </Button>
-      </CardBody>
+      </Card.Content>
     </Card>
   );
 }

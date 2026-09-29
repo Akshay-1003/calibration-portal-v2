@@ -171,7 +171,7 @@ function runIdleTask(task: () => void, timeout = 2000): void {
     return;
   }
 
-  window.setTimeout(task, 200);
+  globalThis.setTimeout(task, 200);
 }
 
 async function runPostLoginPreload(userId?: string | null): Promise<void> {

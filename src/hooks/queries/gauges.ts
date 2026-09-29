@@ -81,7 +81,7 @@ export function useGaugeByInwardAndGaugeQuery(
       const response = await apiService.get<unknown>(
         API_ENDPOINTS.GAUGES.BY_INWARD_GAUGE_ID(inwardId, gaugeId)
       );
-      return response?.data || response;
+      return response;
     },
     enabled: (options?.enabled ?? true) && !!inwardId && !!gaugeId,
   });
@@ -104,7 +104,7 @@ export function useLinkGaugeToInwardMutation() {
       process?: string;
     }): Promise<LinkedGauge> => {
       const response = await apiService.linkGaugeToInward(data);
-      return response?.data || response;
+      return response.data;
     },
     onSuccess: (newLinkedGauge, variables) => {
       void newLinkedGauge;
@@ -131,7 +131,7 @@ export function useCreateGaugeMutation() {
   return useMutation({
     mutationFn: async (data: Partial<unknown>): Promise<unknown> => {
       const response = await apiService.createGauge(data);
-      return response?.data || response;
+      return response;
     },
     onSuccess: () => {
       // Invalidate all gauge lists
@@ -164,7 +164,7 @@ export function useUpdateGaugeCertificateMutation() {
         API_ENDPOINTS.GAUGES.BY_INWARD_GAUGE_ID(inwardId, gaugeId),
         data
       );
-      return response?.data || response;
+      return response;
     },
     onSuccess: (updatedGauge, variables) => {
       // Update the specific gauge in cache
@@ -186,7 +186,3 @@ export function useUpdateGaugeCertificateMutation() {
     },
   });
 }
-
-
-
-

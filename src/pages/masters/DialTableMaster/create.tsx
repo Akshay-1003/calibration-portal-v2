@@ -7,12 +7,13 @@ import { apiClient } from "../../../services/api";
 import { FormField } from "../../../components/ui/form-field";
 import {
   Input,
+  Label,
+  ListBox,
   Select,
-  SelectItem,
   Button,
   Checkbox,
   Spinner,
-} from "@heroui-v2/react";
+} from "@heroui/react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useDialTable } from "../../../hooks/useDialTableMaster";
 import { useQueryClient } from "@tanstack/react-query";
@@ -92,7 +93,7 @@ export default function DialTableMasterForm() {
 
     if (data.reading_table?.length) {
       setTableData(
-        data.reading_table.map((r: StoredReadingRow) => ({
+        (data.reading_table as StoredReadingRow[]).map((r) => ({
           ...r,
           selected: true,
         }))
@@ -217,7 +218,7 @@ export default function DialTableMasterForm() {
               name="range"
               control={control}
               render={({ field }) => (
-                <Input type="number" step="0.001" {...field} />
+                <Input {...field} value={String(field.value ?? "")} type="number" step="0.001" />
               )}
             />
           </FormField>
@@ -227,12 +228,12 @@ export default function DialTableMasterForm() {
               name="travel"
               control={control}
               render={({ field }) => (
-                <Input type="number" step="0.001" {...field} />
+                <Input {...field} value={String(field.value ?? "")} type="number" step="0.001" />
               )}
             />
           </FormField>
 
-          <Button type="submit" color="primary" isDisabled={isGenerating}>
+          <Button type="submit" variant="primary" isDisabled={isGenerating}>
             {isGenerating ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" /> Generating…
@@ -260,14 +261,13 @@ export default function DialTableMasterForm() {
                 name="dial_type"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    selectedKeys={[field.value]}
-                    onSelectionChange={(keys) =>
-                      setValue("dial_type", Array.from(keys)[0] as FormValues["dial_type"])
-                    }
-                  >
-                    <SelectItem key="plunger">Plunger</SelectItem>
-                    <SelectItem key="lever">Lever</SelectItem>
+                  <Select selectedKey={field.value} onSelectionChange={(key) => setValue("dial_type", key as FormValues["dial_type"])}>
+                    <Label>Dial Type</Label>
+                    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+                    <Select.Popover><ListBox>
+                      <ListBox.Item id="plunger" textValue="Plunger">Plunger<ListBox.ItemIndicator /></ListBox.Item>
+                      <ListBox.Item id="lever" textValue="Lever">Lever<ListBox.ItemIndicator /></ListBox.Item>
+                    </ListBox></Select.Popover>
                   </Select>
                 )}
               />
@@ -281,7 +281,7 @@ export default function DialTableMasterForm() {
               />
             </FormField>
 
-            <Button type="submit" color="primary">
+            <Button type="submit" variant="primary">
               {isEditMode ? "Update Table" : "Save Table"}
             </Button>
           </form>
@@ -310,7 +310,7 @@ export default function DialTableMasterForm() {
                     <td className="p-2 border text-center">
                       <Checkbox
                         isSelected={row.selected}
-                        onValueChange={() => toggleRow(index)}
+                        onChange={() => toggleRow(index)}
                       />
                     </td>
                   </tr>

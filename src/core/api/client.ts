@@ -27,13 +27,20 @@ export interface PaginatedResponse<T = any> extends ApiResponse<T[]> {
 }
 
 export class ApiError extends Error {
+  status: number;
+  code?: string;
+  details?: any;
+
   constructor(
-    public status: number,
+    status: number,
     message: string,
-    public code?: string,
-    public details?: any
+    code?: string,
+    details?: any
   ) {
     super(message);
+    this.status = status;
+    this.code = code;
+    this.details = details;
     this.name = 'ApiError';
   }
 }

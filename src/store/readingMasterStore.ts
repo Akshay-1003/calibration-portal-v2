@@ -111,14 +111,14 @@ export const useReadingMasterStore = createBaseStore<ReadingMasterStoreState>(
           data.master_gauge_id ??
             data.masterGaugeId ??
             data.gauge_id ??
-            data.master_gauge?.id ??
+            (isRecord(data.master_gauge) ? data.master_gauge.id : undefined) ??
             ''
         ),
-        master_gauge_name: data.master_gauge_name ?? undefined,
+        master_gauge_name: typeof data.master_gauge_name === 'string' ? data.master_gauge_name : undefined,
         readings: readings
           .map((value: unknown) => Number(value))
           .filter((n: number) => !Number.isNaN(n)),
-        range: data.range ?? undefined,
+        range: typeof data.range === 'string' ? data.range : undefined,
         is_static: typeof data.is_static === 'boolean' ? data.is_static : undefined,
         created_at: String(data.created_at ?? ''),
         updated_at: String(data.updated_at ?? ''),
@@ -182,12 +182,12 @@ export const useReadingMasterStore = createBaseStore<ReadingMasterStoreState>(
                       readingMaster?.master_gauge_id ??
                       readingMaster?.masterGaugeId ??
                       readingMaster?.gauge_id ??
-                      readingMaster?.master_gauge?.id ??
+                      (isRecord(readingMaster?.master_gauge) ? readingMaster.master_gauge.id : undefined) ??
                       '',
                     ),
                     master_gauge_name: String(
                       readingMaster?.master_gauge_name ??
-                      readingMaster?.master_gauge?.name ??
+                      (isRecord(readingMaster?.master_gauge) ? readingMaster.master_gauge.name : undefined) ??
                       '',
                     ),
                     range: String(readingMaster?.range ?? ''),
