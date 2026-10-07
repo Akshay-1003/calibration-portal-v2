@@ -123,6 +123,7 @@ export const billingAccessRoles = [
 
 export const adminOnlySettingsTabs = new Set([
   'laboratories',
+  'upload-records',
 ]);
 
 export const settingsAdministrationTabs = new Set([

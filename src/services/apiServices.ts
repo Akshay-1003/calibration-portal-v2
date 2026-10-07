@@ -227,6 +227,24 @@ interface RateCardUpdateOptions {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const normalizeRateCardEntry = (value: unknown): RateCardEntry => {
+  const entry = isRecord(value) ? value : {};
+  const range = isRecord(entry.range) ? entry.range : {};
+
+  return {
+    ...(entry as Partial<RateCardEntry>),
+    range: {
+      min: toFiniteNumber(range.min),
+      max: toFiniteNumber(range.max),
+    },
+  } as RateCardEntry;
+};
+
 const extractResponseData = (value: unknown): unknown => {
   if (isRecord(value) && "data" in value && isRecord(value.data)) {
     return value.data;
@@ -249,7 +267,7 @@ export const getRateCardEntriesMap = (
 
   Object.entries(sourceEntries).forEach(([key, entryList]) => {
     if (Array.isArray(entryList)) {
-      entries[key] = entryList as RateCardEntry[];
+      entries[key] = entryList.map(normalizeRateCardEntry);
     }
   });
 
@@ -450,4 +468,35 @@ export const importRateCardExcel = async (
   }
 
   return response.json();
+};
+
+export const uploadMigrationRecords = async (
+  organizationId: string,
+  file: File,
+): Promise<{ message?: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch(
+    `${apiClientFromApi.getBaseURL()}/migrate?organization_id=${encodeURIComponent(organizationId)}`,
+    {
+      method: 'POST',
+      headers: getAuthOnlyHeaders(),
+      body: formData,
+      mode: 'cors',
+      credentials: 'omit',
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(await extractFetchErrorMessage(response));
+  }
+
+  const result: unknown = await response.json();
+  if (typeof result === 'object' && result !== null && 'message' in result) {
+    const message = result.message;
+    return { message: typeof message === 'string' ? message : undefined };
+  }
+
+  return {};
 };

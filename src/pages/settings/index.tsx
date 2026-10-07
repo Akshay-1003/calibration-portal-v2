@@ -7,6 +7,7 @@ import {
   UsersIcon,
   ShieldCheckIcon,
   BuildingLibraryIcon,
+  ArrowUpTrayIcon,
 } from '@heroicons/react/24/outline';
 import { SettingsProfile } from './profile';
 import { SettingsChangePassword } from './change-password';
@@ -15,6 +16,7 @@ import { SettingsUsers } from './users';
 import { SettingsRolesPermissions } from './roles-permissions';
 import { SettingsAccounts } from './accounts';
 import { SettingsLaboratories } from './laboratories';
+import { SettingsUploadRecords } from './upload-records';
 import { useAuth } from '../../features/auth';
 import {
   adminOnlySettingsTabs,
@@ -38,6 +40,7 @@ const SettingsPage = () => {
     if (location.pathname.includes('/roles-permissions')) return 'roles-permissions';
     if (location.pathname.includes('/accounts')) return 'accounts';
     if (location.pathname.includes('/laboratories')) return 'laboratories';
+    if (location.pathname.includes('/upload-records')) return 'upload-records';
     return 'profile';
   };
 
@@ -112,6 +115,14 @@ const SettingsPage = () => {
                         </div>
                       </Tabs.Tab>
                     )}
+                    {(hasRole('super_admin') || hasRole('superadmin')) && (
+                      <Tabs.Tab id="upload-records" className="h-10">
+                        <div className="flex items-center gap-2">
+                          <ArrowUpTrayIcon className="h-5 w-5" />
+                          <span>Upload Records</span>
+                        </div>
+                      </Tabs.Tab>
+                    )}
                     <Tabs.Tab id="roles-permissions" className="h-10">
                       <div className="flex items-center gap-2">
                         <ShieldCheckIcon className="h-5 w-5" />
@@ -132,6 +143,9 @@ const SettingsPage = () => {
                 <Tabs.Panel id="accounts" className="p-2"><SettingsAccounts /></Tabs.Panel>
                 {(hasRole('super_admin') || hasRole('superadmin')) && (
                   <Tabs.Panel id="laboratories" className="p-2"><SettingsLaboratories /></Tabs.Panel>
+                )}
+                {(hasRole('super_admin') || hasRole('superadmin')) && (
+                  <Tabs.Panel id="upload-records" className="p-2"><SettingsUploadRecords /></Tabs.Panel>
                 )}
                 <Tabs.Panel id="roles-permissions" className="p-2"><SettingsRolesPermissions /></Tabs.Panel>
               </>

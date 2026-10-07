@@ -83,11 +83,12 @@ const unflattenRateCard = (entries: RateCardEntryWithId[]): RateCardApiResponse 
         const { id, gauge_id, gauge_name, ...apiEntry } = entry;
         
         // Ensure numeric fields are numbers
+        const range = apiEntry.range || { min: 0, max: 0 };
         const normalizedEntry: RateCardEntry = {
             ...apiEntry,
             range: {
-                min: typeof apiEntry.range.min === 'number' ? apiEntry.range.min : parseFloat(String(apiEntry.range.min)) || 0,
-                max: typeof apiEntry.range.max === 'number' ? apiEntry.range.max : parseFloat(String(apiEntry.range.max)) || 0,
+                min: typeof range.min === 'number' ? range.min : parseFloat(String(range.min)) || 0,
+                max: typeof range.max === 'number' ? range.max : parseFloat(String(range.max)) || 0,
             },
             rate: typeof apiEntry.rate === 'number' ? apiEntry.rate : parseFloat(String(apiEntry.rate)) || 0,
             discount: typeof apiEntry.discount === 'number' ? apiEntry.discount : parseFloat(String(apiEntry.discount)) || 0,
