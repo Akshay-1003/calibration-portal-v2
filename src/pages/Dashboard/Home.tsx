@@ -58,7 +58,8 @@ ChartJS.register(
 
 export default function Home() {
   const { user } = useAuth();
-  const hasLaboratoryContext = Boolean(user?.organization_id);
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "superadmin";
+  const hasLaboratoryAccess = Boolean(user?.organization_id) || isSuperAdmin;
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedCompany, setSelectedCompany] = useState<string>("all");
   type StatusFilter = 'all' | 'pending' | 'in_progress' | 'completed' | 'on_hold';
@@ -79,7 +80,7 @@ export default function Home() {
   } = useInwardEntries();
 
   // Gauges are heavy: fetch only after user interaction (refresh / filter change)
-  const gaugesQuery = useInwardGaugesQuery({ enabled: shouldFetchGauges && hasLaboratoryContext });
+  const gaugesQuery = useInwardGaugesQuery({ enabled: shouldFetchGauges && hasLaboratoryAccess });
   const linkedGauges = gaugesQuery.data ?? [];
   
   // Dashboard store for real-time reporting
@@ -98,10 +99,10 @@ export default function Home() {
   }, [organizations.length, orgLoading, fetchOrganizations]);
 
   useEffect(() => {
-    if (hasLaboratoryContext && !inwardEntries.length && !inwardLoading) {
+    if (hasLaboratoryAccess && !inwardEntries.length && !inwardLoading) {
       void fetchInwardEntries();
     }
-  }, [hasLaboratoryContext, inwardEntries.length, inwardLoading, fetchInwardEntries]);
+  }, [hasLaboratoryAccess, inwardEntries.length, inwardLoading, fetchInwardEntries]);
 
   const getPeriodStart = (period: string) => {
     const now = new Date();

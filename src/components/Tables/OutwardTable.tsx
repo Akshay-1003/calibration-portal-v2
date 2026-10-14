@@ -8,7 +8,6 @@ import {
   Button,
   Label,
   ListBox,
-  Pagination,
   Select,
   Popover,
   Table,
@@ -22,6 +21,8 @@ import {
   PrinterIcon
 } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "sr_no"
@@ -59,6 +60,13 @@ export function OutwardTable({
   onOpen,
   onPrint,
   onDelete,
+  page: controlledPage,
+  rowsPerPage: controlledRowsPerPage,
+  totalItems,
+  totalPages,
+  isServerPagination = false,
+  onPageChange,
+  onRowsPerPageChange: controlledOnRowsPerPageChange,
 }: {
   loading?: boolean;
   error?: string | null;
@@ -67,6 +75,13 @@ export function OutwardTable({
   onOpen?: (id: string) => void;
   onPrint?: (id: string) => void;
   onDelete?: (id: string) => void;
+  page?: number;
+  rowsPerPage?: number;
+  totalItems?: number;
+  totalPages?: number;
+  isServerPagination?: boolean;
+  onPageChange?: (page: number) => void;
+  onRowsPerPageChange?: (rowsPerPage: number) => void;
 } = {}) {
   const {
     state: tableUrlState,
@@ -78,12 +93,13 @@ export function OutwardTable({
   const filterValue = tableUrlState.query;
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(new Set());
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(new Set(INITIAL_VISIBLE_COLUMNS));
-  const rowsPerPage = tableUrlState.rowsPerPage;
+  const rowsPerPage = controlledRowsPerPage ?? tableUrlState.rowsPerPage;
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "outward_date" as Key,
     direction: "descending",
   });
-  const page = tableUrlState.page;
+  const page = controlledPage ?? tableUrlState.page;
+  const setActivePage = onPageChange ?? setPage;
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -114,20 +130,29 @@ export function OutwardTable({
     return filtered;
   }, [data, filterValue, hasSearchFilter]);
 
-  const pages = Math.max(Math.ceil(filteredItems.length / rowsPerPage), 1);
+  const totalRecords = isServerPagination && !hasSearchFilter
+    ? (totalItems ?? filteredItems.length)
+    : filteredItems.length;
+  const pages = isServerPagination && !hasSearchFilter
+    ? Math.max(totalPages ?? Math.ceil(totalRecords / Math.max(rowsPerPage, 1)), 1)
+    : Math.max(Math.ceil(filteredItems.length / rowsPerPage), 1);
 
   // Clamp page when filtered results change (e.g., delete) so we don't show an empty page.
   useEffect(() => {
     if (page > pages) {
-      setPage(pages);
+      setActivePage(pages);
     }
-  }, [page, pages, setPage]);
+  }, [page, pages, setActivePage]);
 
   const items = React.useMemo(() => {
+    if (isServerPagination) {
+      return filteredItems;
+    }
+
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
     return filteredItems.slice(start, end);
-  }, [page, filteredItems, rowsPerPage]);
+  }, [filteredItems, isServerPagination, page, rowsPerPage]);
 
   const getComparableValue = React.useCallback((item: OutwardEntry, columnKey: TableColumnKey) => {
     switch (columnKey) {
@@ -246,23 +271,30 @@ export function OutwardTable({
 
   const onRowsPerPageChange = React.useCallback((key: Key | null) => {
     const value = String(key ?? rowsPerPage);
-    setRowsPerPage(Number(value));
+    const nextRowsPerPage = Number(value);
+
+    if (controlledOnRowsPerPageChange) {
+      controlledOnRowsPerPageChange(nextRowsPerPage);
+      return;
+    }
+
+    setRowsPerPage(nextRowsPerPage);
     setPage(1);
-  }, [setPage, setRowsPerPage]);
+  }, [controlledOnRowsPerPageChange, rowsPerPage, setPage, setRowsPerPage]);
 
   const onSearchChange = React.useCallback((value?: string) => {
     if (value) {
       setQuery(value);
-      setPage(1);
+      setActivePage(1);
     } else {
       setQuery("");
     }
-  }, [setPage, setQuery]);
+  }, [setActivePage, setQuery]);
 
   const onClear = React.useCallback(() => {
     setQuery("");
-    setPage(1);
-  }, [setPage, setQuery]);
+    setActivePage(1);
+  }, [setActivePage, setQuery]);
 
   const topContent = React.useMemo(() => {
     return (
@@ -316,20 +348,12 @@ export function OutwardTable({
       <div className="w-full flex flex-col sm:grid sm:grid-cols-3 sm:items-center px-4 py-3 gap-3 border-t border-gray-200 bg-gray-50 text-sm">
         <span className="text-gray-600 whitespace-nowrap font-medium sm:justify-self-start">
           {selectedKeys === "all"
-            ? `All ${filteredItems.length} items selected`
-            : `${selectedKeys.size} of ${filteredItems.length} selected`}
+            ? `All ${totalRecords} items selected`
+            : `${selectedKeys.size} of ${totalRecords} selected`}
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination size="sm" className="scale-90">
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage(Math.min(pages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={pages} onPageChange={setActivePage} />
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
@@ -349,7 +373,7 @@ export function OutwardTable({
         </div>
       </div>
     );
-  }, [filteredItems.length, page, pages, selectedKeys, rowsPerPage, onRowsPerPageChange, setPage]);
+  }, [page, pages, selectedKeys, rowsPerPage, onRowsPerPageChange, setActivePage, totalRecords]);
 
   const emptyContent = error 
     ? `Error: ${error}` 
@@ -359,7 +383,7 @@ export function OutwardTable({
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Outward entries table" className="min-w-full">
+        <Table aria-label="Outward entries table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
             <Table.Content
               selectedKeys={selectedKeys}
@@ -386,7 +410,7 @@ export function OutwardTable({
             {(item) => {
               const index = sortedItems.findIndex((entry) => entry.id === item.id);
               return (
-                <Table.Row id={item.id} columns={columns}>
+                <Table.Row id={item.id} columns={headerColumns}>
                   {(columnKey) => (
                     <Table.Cell>
                       {renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}

@@ -9,7 +9,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
   Chip,
 } from "@heroui/react";
@@ -28,6 +27,8 @@ import {
   type SurfacePlateReferenceStandardColumnKey,
 } from "./surfacePlateReferenceStandardsColumns";
 import type { SurfacePlateReferenceStandardRecord } from "../../types/surfacePlateReferenceStandards";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 interface SurfacePlateReferenceStandardsListTableProps {
   data: SurfacePlateReferenceStandardRecord[];
@@ -271,15 +272,7 @@ export default function SurfacePlateReferenceStandardsListTable({
         </div>
 
         <div className="flex-1 flex justify-center">
-          <Pagination>
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={page >= totalPages} onPress={() => onPageChange(Math.min(totalPages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={totalPages} onPageChange={onPageChange} />
         </div>
 
         <div className="flex-1 flex justify-end">
@@ -307,7 +300,7 @@ export default function SurfacePlateReferenceStandardsListTable({
   return (
     <div className="p-2 industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Surface plate reference standards table" className="min-w-full">
+      <Table aria-label="Surface plate reference standards table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-340px)]">
           <Table.Content
             sortDescriptor={sortDescriptor}

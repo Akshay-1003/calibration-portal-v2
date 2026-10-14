@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { z } from 'zod';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +13,7 @@ import {
   DateField,
   DatePicker,
   Input,
+  Label,
   ListBox,
   Select,
 } from '@heroui/react';
@@ -50,12 +50,15 @@ const V3Select = ({ value, onChange, options, ariaLabel }: { value: string; onCh
 );
 
 const V3Autocomplete = ({ value, onChange, options, placeholder, ariaLabel, disabled = false }: { value: string | null; onChange: (value: string | null) => void; options: Option[]; placeholder: string; ariaLabel: string; disabled?: boolean }) => (
-  <Autocomplete selectedKey={value} onSelectionChange={(key) => onChange(key ? String(key) : null)} isDisabled={disabled}>
+  <Autocomplete aria-label={ariaLabel} placeholder={placeholder} selectedKey={value} onSelectionChange={(key) => onChange(key ? String(key) : null)} isDisabled={disabled}>
     <Autocomplete.Trigger>
-      <Autocomplete.Filter><Input aria-label={ariaLabel} placeholder={placeholder} /></Autocomplete.Filter>
+      <Autocomplete.Value />
       <Autocomplete.Indicator />
     </Autocomplete.Trigger>
-    <Autocomplete.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Popover>
+    <Autocomplete.Popover>
+      <Autocomplete.Filter><Input aria-label={`Search ${ariaLabel}`} placeholder="Search..." /></Autocomplete.Filter>
+      <ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox>
+    </Autocomplete.Popover>
   </Autocomplete>
 );
 
@@ -75,7 +78,6 @@ const V3DatePicker = ({ value, onChange, ariaLabel }: { value?: string; onChange
 export default function CreateInvoicePage() {
   const navigate = useNavigate();
   const createInvoiceMutation = useCreateInvoiceMutation();
-  const [outwardSearchValue, setOutwardSearchValue] = useState('');
 
   const organizationsQuery = useOrganizationsQuery({ directory: 'customers' });
   const organizations = organizationsQuery.data?.organizations ?? EMPTY_ORGANIZATIONS;
@@ -230,7 +232,6 @@ export default function CreateInvoicePage() {
                           field.onChange(selected);
                           setValue('outward_ids', [], { shouldDirty: true, shouldValidate: true });
                           setValue('outward_nos', [], { shouldDirty: true, shouldValidate: true });
-                          setOutwardSearchValue('');
                         }}
                         disabled={organizationsLoading}
                         options={organizations.map((organization) => ({ value: organization.id, label: organization.name }))}
@@ -262,7 +263,7 @@ export default function CreateInvoicePage() {
                     name="outward_ids"
                     render={({ field }) => (
                       <div className="space-y-2">
-                        <Autocomplete aria-label="Outward Numbers" selectedKey={null} isDisabled={!selectedPartyId || outwardEntriesQuery.isLoading || outwardEntriesQuery.isFetching} onSelectionChange={(key) => {
+                        <Autocomplete aria-label="Outward Numbers" placeholder={!selectedPartyId ? 'Select customer first' : 'Select outward number'} selectedKey={null} isDisabled={!selectedPartyId || outwardEntriesQuery.isLoading || outwardEntriesQuery.isFetching} onSelectionChange={(key) => {
                             if (!key) return;
 
                             const outwardId = String(key);
@@ -274,23 +275,25 @@ export default function CreateInvoicePage() {
                               shouldDirty: true,
                               shouldValidate: true,
                             });
-                            setOutwardSearchValue('');
                           }}
                         >
                           <Autocomplete.Trigger>
-                            <Autocomplete.Filter><Input aria-label="Outward Numbers" placeholder={!selectedPartyId ? 'Select customer first' : 'Search outward numbers'} value={outwardSearchValue} onChange={(event) => setOutwardSearchValue(event.target.value)} /></Autocomplete.Filter>
+                            <Autocomplete.Value />
                             <Autocomplete.Indicator />
                           </Autocomplete.Trigger>
-                          <Autocomplete.Popover><ListBox>
-                          {outwardEntries
-                            .filter((outward) => !(field.value ?? []).includes(outward.id))
-                            .map((outward) => (
-                              <ListBox.Item key={outward.id} id={outward.id} textValue={`Outward ${String(outward.outward_no ?? outward.id)}`}>
-                                {String(outward.outward_no ?? outward.id)}
-                                <ListBox.ItemIndicator />
-                              </ListBox.Item>
-                            ))}
-                          </ListBox></Autocomplete.Popover>
+                          <Autocomplete.Popover>
+                            <Autocomplete.Filter><Input aria-label="Search outward numbers" placeholder="Search..." /></Autocomplete.Filter>
+                            <ListBox>
+                            {outwardEntries
+                              .filter((outward) => !(field.value ?? []).includes(outward.id))
+                              .map((outward) => (
+                                <ListBox.Item key={outward.id} id={outward.id} textValue={`Outward ${String(outward.outward_no ?? outward.id)}`}>
+                                  {String(outward.outward_no ?? outward.id)}
+                                  <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                              ))}
+                            </ListBox>
+                          </Autocomplete.Popover>
                         </Autocomplete>
 
                         {(field.value ?? []).length > 0 && (
@@ -393,7 +396,7 @@ export default function CreateInvoicePage() {
                   {INVOICE_PDF_OPTIONAL_COLUMN_OPTIONS.map((option) => (
                     <Checkbox
                       key={option.key}
-                      isSelected={pdfColumns[option.key]}
+                      isSelected={Boolean(pdfColumns[option.key])}
                       onChange={(isSelected) => {
                         setValue(
                           'pdf_columns',
@@ -405,7 +408,12 @@ export default function CreateInvoicePage() {
                         );
                       }}
                     >
-                      {option.label}
+                      <Checkbox.Content>
+                        <Checkbox.Control>
+                          <Checkbox.Indicator />
+                        </Checkbox.Control>
+                        <Label>{option.label}</Label>
+                      </Checkbox.Content>
                     </Checkbox>
                   ))}
                 </div>

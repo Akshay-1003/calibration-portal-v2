@@ -555,9 +555,52 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
           queryParams.append('search', filters.search.trim());
         }
 
-        const resp = await apiClient.get<LinkedGauge[]>(
-          `${API_ENDPOINTS.GAUGES.GET_INWARD_LIST}?${queryParams.toString()}`
-        );
+        let resp: unknown;
+        try {
+          resp = await apiClient.get<LinkedGauge[]>(
+            `${API_ENDPOINTS.GAUGES.GET_INWARD_LIST}?${queryParams.toString()}`
+          );
+        } catch (error) {
+          // A single legacy record containing NaN makes Starlette reject the
+          // entire JSON page. Probe this page one record at a time so valid
+          // gauges remain usable while the bad record is corrected server-side.
+          if (!(error instanceof ApiError) || error.status < 500) throw error;
+
+          const pageStart = apiPage * requestedLimit;
+          const recovered: LinkedGauge[] = [];
+          let recoveredTotal = 0;
+
+          for (let offset = 0; offset < requestedLimit; offset += 1) {
+            const singleParams = new URLSearchParams(queryParams);
+            singleParams.set('page', String(pageStart + offset));
+            singleParams.set('limit', '1');
+
+            try {
+              const singleResponse = await apiClient.get<LinkedGauge[]>(
+                `${API_ENDPOINTS.GAUGES.GET_INWARD_LIST}?${singleParams.toString()}`
+              );
+              const singlePage = extractPaginatedList<LinkedGauge>(singleResponse, {
+                arrayKeys: ['data', 'items'],
+                fallbackPage: pageStart + offset,
+                fallbackLimit: 1,
+              });
+              recovered.push(...singlePage.items);
+              recoveredTotal = Math.max(recoveredTotal, singlePage.total);
+            } catch (singleError) {
+              if (!(singleError instanceof ApiError) || singleError.status < 500) {
+                throw singleError;
+              }
+            }
+          }
+
+          if (recovered.length === 0) throw error;
+          resp = {
+            data: recovered,
+            total: recoveredTotal || recovered.length,
+            page: apiPage,
+            limit: requestedLimit,
+          };
+        }
         logger.debug('Fetched inward gauges for inward:', inwardId, 'with filters:', filters);
         const normalized = extractPaginatedList<LinkedGauge>(resp, {
           arrayKeys: ["data", "items"],

@@ -8,7 +8,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
@@ -17,6 +16,8 @@ import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outlin
 import { SpecificationChips } from "../gaugeTypes/SpecificationChips";
 import { getTableColumnKey } from './tableColumnKey';
 import "../../styles/industrial-table.css";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "master_gauge"
@@ -381,19 +382,17 @@ console.log('data', data)
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination>
-            <Pagination.Content>
-            <Pagination.Previous isDisabled={page <= 1} onPress={() => {
+          <TablePagination
+            page={page}
+            totalPages={pages}
+            onPageChange={(nextPage) => {
               if (controlledOnPageChange) {
-                controlledOnPageChange(Math.max(1, page - 1));
+                controlledOnPageChange(nextPage);
               } else {
-                setLocalPage(Math.max(1, page - 1));
+                setLocalPage(nextPage);
               }
-            }}><Pagination.PreviousIcon /></Pagination.Previous>
-            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-            <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+            }}
+          />
         </div>
 
         {/* RIGHT - Rows per page */}
@@ -409,8 +408,7 @@ console.log('data', data)
     );
   }, [
     filteredItems.length,
-    isServerPagination,
-    totalItems,
+    isServerPagination, totalItems,
     page,
     pages,
     selectedKeys,
@@ -422,7 +420,7 @@ console.log('data', data)
   return (
     <div className="industrial-table-wrapper">
     <div className="mb-4">{topContent}</div>
-    <Table aria-label="Existing gauges table" className="min-w-full">
+    <Table aria-label="Existing gauges table" className={dataTableClassName("min-w-full")}>
       <Table.ScrollContainer className="max-h-[calc(100vh-320px)]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
       <Table.Header columns={headerColumns}>
             {(column) => (

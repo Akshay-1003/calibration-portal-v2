@@ -6,13 +6,10 @@ import { useAuth } from '../../../features/auth';
 
 const PartyMasterPage = () => {
   const navigate = useNavigate();
-  const { hasRole, user } = useAuth();
+  const { hasRole } = useAuth();
   const isLaboratoryAdmin = hasRole('lab_admin') || hasRole('org_admin');
-  const isPlatformLaboratoryContext =
-    Boolean(user?.organization_id) && (hasRole('super_admin') || hasRole('superadmin'));
-  const isUnscopedPlatformSession =
-    !user?.organization_id && (hasRole('super_admin') || hasRole('superadmin'));
-  const canManageClients = isLaboratoryAdmin || isPlatformLaboratoryContext;
+  const isSuperAdmin = hasRole('super_admin') || hasRole('superadmin');
+  const canManageClients = isLaboratoryAdmin || isSuperAdmin;
 
   return (
     <TablePageWrapper
@@ -28,13 +25,7 @@ const PartyMasterPage = () => {
       ) : undefined}
     >
       <div className="w-full p-2">
-        {isUnscopedPlatformSession ? (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-8 text-center text-sm text-blue-900">
-            Select a laboratory from the sidebar before viewing or managing clients.
-          </div>
-        ) : (
-          <CustomerTable canManage={canManageClients} />
-        )}
+        <CustomerTable canManage={canManageClients} />
       </div>
     </TablePageWrapper>
   );

@@ -7,7 +7,6 @@ import {
   Select,
   ListBox,
   Label,
-  Pagination,
   Chip,
   Table,
 } from "@heroui/react";
@@ -18,6 +17,8 @@ import type { Key } from "@react-types/shared";
 import "../../styles/industrial-table.css";
 import { getTableColumnKey } from './tableColumnKey';
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type ScopeMasterData = Pick<
   StoreScopeMasterData,
@@ -247,15 +248,17 @@ export default function ScopeMasterListTable({
         </div>
 
         <div className="flex-1 flex justify-center">
-          <Pagination size="sm">
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => (controlledOnPageChange ? controlledOnPageChange(page - 1) : setLocalPage(page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => (controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber))}>{pageNumber}</Pagination.Link></Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={page >= pages} onPress={() => (controlledOnPageChange ? controlledOnPageChange(page + 1) : setLocalPage(page + 1))}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination
+            page={page}
+            totalPages={pages}
+            onPageChange={(nextPage) => {
+              if (controlledOnPageChange) {
+                controlledOnPageChange(nextPage);
+              } else {
+                setLocalPage(nextPage);
+              }
+            }}
+          />
         </div>
 
         <div className="flex-1 flex justify-end">
@@ -358,7 +361,7 @@ export default function ScopeMasterListTable({
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Scope master list table" className="min-w-full">
+        <Table aria-label="Scope master list table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
             <Table.Content>
           <Table.Header columns={columns}>

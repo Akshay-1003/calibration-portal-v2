@@ -44,12 +44,10 @@ const SIGNATURE_SECTION_HEIGHT = 44;
 // Page numbers are absolutely positioned inside the page padding. Keep a small
 // band only to avoid visual overlap, not a second full footer reservation.
 const PAGE_NUMBER_RESERVED_HEIGHT = 12;
-const PAGINATION_SAFETY_BUFFER = 16;
-const MIN_ROW_HEIGHT = 18;
+const PAGINATION_SAFETY_BUFFER = 10;
+const MIN_ROW_HEIGHT = 17;
 const WRAPPED_LINE_HEIGHT = 6.5;
 const MIN_FINAL_PAGE_ROWS_ON_SPLIT = 4;
-const FIRST_PAGE_TARGET_ROW_COUNT = 27;
-const CONTINUATION_PAGE_TARGET_ROW_COUNT = 35;
 
 interface InvoicePdfPage {
   items: InvoiceItem[];
@@ -142,32 +140,6 @@ const takeRowsForHeight = (
   return Math.max(nextIndex, Math.min(items.length, startIndex + minimumRows));
 };
 
-const canUsePreferredRowCount = (
-  items: InvoiceItem[],
-  startIndex: number,
-  endIndex: number,
-  availableHeight: number,
-) => {
-  const estimatedHeight = estimateRowsHeight(items, startIndex, endIndex);
-
-  return estimatedHeight <= availableHeight;
-};
-
-const takeRowsForRegularPage = (
-  items: InvoiceItem[],
-  startIndex: number,
-  availableHeight: number,
-  preferredRows: number,
-) => {
-  const preferredEndIndex = Math.min(items.length, startIndex + preferredRows);
-
-  if (canUsePreferredRowCount(items, startIndex, preferredEndIndex, availableHeight)) {
-    return preferredEndIndex;
-  }
-
-  return takeRowsForHeight(items, startIndex, availableHeight);
-};
-
 export const paginateInvoiceItems = (
   items: InvoiceItem[],
   options: InvoicePaginationOptions = {},
@@ -212,15 +184,7 @@ export const paginateInvoiceItems = (
       break;
     }
 
-    const preferredRows = isFirstPage
-      ? FIRST_PAGE_TARGET_ROW_COUNT
-      : CONTINUATION_PAGE_TARGET_ROW_COUNT;
-    let nextIndex = takeRowsForRegularPage(
-      items,
-      startIndex,
-      regularPageCapacity,
-      preferredRows,
-    );
+    let nextIndex = takeRowsForHeight(items, startIndex, regularPageCapacity);
 
     if (nextIndex >= items.length) {
       nextIndex = Math.max(startIndex + 1, items.length - 1);
@@ -395,6 +359,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 3,
     borderRight: TABLE_BORDER,
     lineHeight: 1.15,
+    minWidth: 0,
+    flexShrink: 1,
   },
   tdGauge: {
     fontSize: 7.6,
@@ -408,6 +374,16 @@ const styles = StyleSheet.create({
   tdCompact: {
     fontSize: 7.6,
     lineHeight: 1.1,
+  },
+  tdIdentification: {
+    fontSize: 7.1,
+    lineHeight: 1.05,
+    paddingHorizontal: 2,
+  },
+  tdRepair: {
+    fontSize: 7.2,
+    lineHeight: 1.05,
+    paddingHorizontal: 2,
   },
   tdRight: {
     textAlign: 'right',
@@ -568,6 +544,12 @@ const formatDate = (date?: string) => formatDateStringForDisplay(date, '-');
 
 const formatCurrency = (value: number) => Number(value || 0).toFixed(2);
 
+// Add break opportunities for compact identifiers such as VC/ESC/DC/IDM-02-01.
+const wrapPdfCellText = (value: string) =>
+  value
+    .replace(/([\\/_-])/g, '$1\u200b')
+    .replace(/([A-Za-z0-9]{12})(?=[A-Za-z0-9])/g, '$1\u200b');
+
 const numberToWords = (num: number): string => {
   const ones = [
     '', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT', 'NINE',
@@ -649,8 +631,10 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
     column.key === 'identification_number' || column.key === 'dc_no' || column.key === 'hsn'
       ? styles.tdCompact
       : undefined,
+    column.key === 'identification_number' ? styles.tdIdentification : undefined,
     column.key === 'hsn' ? { whiteSpace: 'nowrap' } : undefined,
     column.key === 'specification' ? styles.tdSpec : undefined,
+    column.key === 'repair_new' ? styles.tdRepair : undefined,
     column.key === 'repair_new' ||
     column.key === 'calibration_charge' ||
     column.key === 'qty' ||
@@ -751,7 +735,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : undefined,
                     ]}
                   >
-                    {getItemCellValue(item, column, startIndex + index + 1)}
+                    {wrapPdfCellText(getItemCellValue(item, column, startIndex + index + 1))}
                   </Text>
                 ))}
               </View>

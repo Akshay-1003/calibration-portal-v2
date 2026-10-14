@@ -103,6 +103,7 @@ export interface InwardGaugeFormProps {
   isSubmitting?: boolean;
   isSubtypeForm?: boolean; // If true, this form is nested inside accordion (no process selection)
   onIdentificationNumberChange?: (identificationNumber: string) => void; // Callback for identification number changes
+  legacySpecification?: string | null;
 }
 
 export interface InwardGaugeFormRef {
@@ -128,6 +129,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
   isSubmitting = false,
   isSubtypeForm = false,
   onIdentificationNumberChange,
+  legacySpecification,
 }, ref) => {
   const [specificationDataformat, setSpecificationDataformat] = React.useState<string | null>(null);
   const isProgrammatic = useRef(false);
@@ -822,6 +824,22 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               />
             </Suspense>
           )}
+          {legacySpecification ? (
+            <div className="mt-3 rounded-md border border-warning-200 bg-warning-50 p-3">
+              <label className="mb-1 block text-sm font-medium text-warning-800">
+                Old Specification
+              </label>
+              <Input
+                value={legacySpecification}
+                readOnly
+                aria-label="Old Specification"
+                className="w-full"
+              />
+              <p className="mt-2 text-sm text-warning-700">
+                Please enter the specification again in the correct format.
+              </p>
+            </div>
+          ) : null}
           {/* Subtype Accordion Section */}
           {hasSubtype && (
             <div className="pt-2 border-t">

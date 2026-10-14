@@ -10,7 +10,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
   Chip,
 } from "@heroui/react";
@@ -23,6 +22,8 @@ import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outlin
 import { PrinterIcon } from "@heroicons/react/24/outline";
 import { toast } from "sonner";
 import "../../styles/industrial-table.css";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "sr_no"
@@ -136,6 +137,10 @@ export function InwardLinkedGaugesTable({
   const rowsPerPage = controlledRowsPerPage ?? localRowsPerPage;
   const page = controlledPage ?? localPage;
   const filterValue = controlledSearchValue ?? localFilterValue;
+  const headerColumns = React.useMemo(() => {
+    if (visibleColumns === "all") return columns;
+    return columns.filter((col) => Array.from(visibleColumns).includes(col.uid));
+  }, [visibleColumns]);
 
   const getRowKey = React.useCallback((item: LinkedGauge): string => {
     if (item.id) return item.id;
@@ -408,26 +413,6 @@ export function InwardLinkedGaugesTable({
     }
   }, [controlledOnPageChange, controlledOnSearchChange]);
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page + 1);
-      } else {
-        setLocalPage(page + 1);
-      }
-    }
-  }, [controlledOnPageChange, page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page - 1);
-      } else {
-        setLocalPage(page - 1);
-      }
-    }
-  }, [controlledOnPageChange, page]);
-
   const emptyContent = hideCompleted ? "No pending gauges found" : "No gauges available";
 
   const handlePrintSticker = React.useCallback(() => {
@@ -499,17 +484,17 @@ export function InwardLinkedGaugesTable({
         </span>
 
         {/* Pagination */}
-        <Pagination className="scale-90"><Pagination.Content>
-          <Pagination.Previous isDisabled={page <= 1} onPress={() => {
-            if (controlledOnPageChange) {
-              controlledOnPageChange(Math.max(1, page - 1));
-            } else {
-              setLocalPage(Math.max(1, page - 1));
-            }
-          }}><Pagination.PreviousIcon /></Pagination.Previous>
-          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-          <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
-        </Pagination.Content></Pagination>
+        <TablePagination
+          page={page}
+          totalPages={pages}
+          onPageChange={(nextPage) => {
+              if (controlledOnPageChange) {
+                controlledOnPageChange(nextPage);
+              } else {
+                setLocalPage(nextPage);
+              }
+            }}
+        />
 
         {/* Right Controls */}
         <div className="flex items-center gap-2">
@@ -519,37 +504,17 @@ export function InwardLinkedGaugesTable({
             <Select.Popover><ListBox>{['10','20','50','100'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
           </Select>
 
-          {/* Small Buttons */}
-          <Button
-            isDisabled={page === 1}
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onPress={onPreviousPage}
-          >
-            Prev
-          </Button>
-
-          <Button
-            isDisabled={page === pages}
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onPress={onNextPage}
-          >
-            Next
-          </Button>
         </div>
       </div>
     );
-  }, [filteredData.length, isServerPagination, totalItems, page, pages, selectedKeys, onNextPage, onPreviousPage, rowsPerPage, onRowsPerPageChange, controlledOnPageChange]);
+  }, [filteredData.length, isServerPagination, totalItems, page, pages, selectedKeys, rowsPerPage, onRowsPerPageChange, controlledOnPageChange]);
 
   return (
     <div className="p-2 industrial-table-wrapper">
     <div className="mb-4">{topContent}</div>
-    <Table aria-label="Linked gauges table" className="min-w-full">
+    <Table aria-label="Linked gauges table" className={dataTableClassName("min-w-full")}>
       <Table.ScrollContainer className="max-h-[calc(100vh-320px)]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
-      <Table.Header columns={columns.filter((col) => visibleColumns === "all" || Array.from(visibleColumns).includes(col.uid))}>
+      <Table.Header columns={headerColumns}>
         {(column) => (
           <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
             {column.name}
@@ -563,7 +528,7 @@ export function InwardLinkedGaugesTable({
         {(item) => {
           const index = displayedItems.indexOf(item);
           return (
-            <Table.Row id={getRowKey(item)} columns={columns}>{(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey), index)}</Table.Cell>}</Table.Row>
+            <Table.Row id={getRowKey(item)} columns={headerColumns}>{(columnKey) => <Table.Cell>{renderCell(item, getTableColumnKey(columnKey), index)}</Table.Cell>}</Table.Row>
           )
         }}
       </Table.Body></Table.Content></Table.ScrollContainer>

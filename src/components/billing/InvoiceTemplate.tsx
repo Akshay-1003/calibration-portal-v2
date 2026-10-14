@@ -290,14 +290,20 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
                         borderColor,
                         padding: '4px',
                         paddingLeft: '4px',
-                        fontSize: '12px',
+                        fontSize:
+                          column.key === 'identification_number' || column.key === 'repair_new'
+                            ? '11px'
+                            : '12px',
                         fontWeight: 400,
                         background: '#ffffff',
-                        lineHeight: column.key === 'specification' ? 1.35 : undefined,
+                        lineHeight:
+                          column.key === 'identification_number' || column.key === 'repair_new'
+                            ? 1.2
+                            : column.key === 'specification' ? 1.35 : undefined,
                         textAlign: getCellTextAlign(column),
                         verticalAlign: 'middle',
                         whiteSpace: column.key === 'hsn' ? 'nowrap' : undefined,
-                        overflowWrap: 'break-word',
+                        overflowWrap: 'anywhere',
                         wordBreak: 'break-word',
                         width: column.width,
                       }}

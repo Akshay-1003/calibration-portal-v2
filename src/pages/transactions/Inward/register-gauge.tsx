@@ -17,6 +17,10 @@ import type { StickerPrintData } from "../../../utils/stickerPrint";
 import { apiClient } from "../../../services/api";
 import { StickerSettingsSimpleModal, type SimpleStickerSettings } from "../../../components/sticker/StickerSettingsSimpleModal";
 import { convertFormSpecifications } from "../../../utils/specificationConverter";
+import {
+  getLegacySpecificationText,
+  normalizeGaugeSpecifications,
+} from "../../../utils/legacyGaugeSpecifications";
 import { useGaugeMastersWithQuery } from "../../../hooks/useGaugeMastersWithQuery";
 import { useCertificateTypesWithQuery } from "../../../hooks/useCertificateTypesWithQuery";
 import { useDebounce } from "../../../hooks/useDebounce";
@@ -82,6 +86,7 @@ export default function RegisterGaugePage() {
     addInwardGaugeToState,
     mapGaugeToInwardState,
     loading,
+    error,
     updateInwardGaugeInState,
     deleteInwardGaugeFromState,
     deleteInwardDataSaveFromState,
@@ -152,6 +157,7 @@ export default function RegisterGaugePage() {
   const [formSubmitted, setFormSubmitted] = useState(false);
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
   const [editingFormData, setEditingFormData] = useState<Partial<GaugeRegistrationFormData> | undefined>(undefined);
+  const [legacySpecification, setLegacySpecification] = useState<string | null>(null);
   const [savedFormData, setSavedFormData] = useState<Partial<GaugeRegistrationFormData> | undefined>(undefined);
   const [prefilledGaugeSource, setPrefilledGaugeSource] = useState<{
     gaugeId: string;
@@ -176,6 +182,22 @@ export default function RegisterGaugePage() {
     loading.loadingCurrentGauge;
   const isDataSaveLoading =
     loading.loadingDataSaveList || loading.loadingCurrentGauge;
+
+  const retryLinkedGauges = useCallback(() => {
+    if (!inwardId) return;
+    fetchAllCurrentPendingInwardedGauges(
+      inwardId,
+      true,
+      debouncedLinkedGaugeSearch ? { search: debouncedLinkedGaugeSearch } : undefined,
+      { page: linkedGaugePage, limit: linkedGaugeRowsPerPage },
+    );
+  }, [
+    debouncedLinkedGaugeSearch,
+    fetchAllCurrentPendingInwardedGauges,
+    inwardId,
+    linkedGaugePage,
+    linkedGaugeRowsPerPage,
+  ]);
   
   // Sticker printing state
   const {
@@ -250,6 +272,7 @@ export default function RegisterGaugePage() {
   const resetFormState = useCallback(() => {
     // Clear all form state
     setEditingFormData(undefined);
+    setLegacySpecification(null);
     setSavedFormData(undefined);
     setEditingGaugeId(null);
     setIsEditing(false);
@@ -443,8 +466,9 @@ export default function RegisterGaugePage() {
           // calibration_location: gauge.calibration_location || "",
           calibration_done_under: gauge.calibration_done_under === "non_nabl" ? "non_nabl" : "nabl",
           gauge_condition: gauge.gauge_condition || "",
-          specifications: Object.fromEntries(Object.entries(gauge.specifications ?? {})),
+          specifications: normalizeGaugeSpecifications(gauge.specifications),
         };
+        setLegacySpecification(getLegacySpecificationText(gauge.specifications));
         setEditingFormData(formData);
         // setActiveTab("new");
 
@@ -588,7 +612,7 @@ export default function RegisterGaugePage() {
         calibration_location_type: (existingGauge.calibration_location_type || "permanent_facility") as "permanent_facility" | "mobile_facility" | "customer_site",
         calibration_done_under: (existingGauge.calibration_done_under || "nabl") as "nabl" | "non_nabl",
         gauge_condition: existingGauge.gauge_condition || "",
-        specifications: Object.fromEntries(Object.entries(existingGauge.specifications || {})),
+        specifications: normalizeGaugeSpecifications(existingGauge.specifications),
       };
 
       setIsEditing(false);
@@ -600,6 +624,7 @@ export default function RegisterGaugePage() {
       });
       setSavedFormData(undefined);
       setEditingFormData(formData);
+      setLegacySpecification(getLegacySpecificationText(existingGauge.specifications));
       setSelectedKey("addNewGauge");
       setFormRenderKey((prev) => prev + 1);
 
@@ -857,6 +882,7 @@ export default function RegisterGaugePage() {
                     gaugeMasterLoading={gaugeMasterLoading}
                     certificateTypeLoading={certificateTypeLoading}
                     isSubmitting={isSubmitting}
+                    legacySpecification={legacySpecification}
                     onIdentificationNumberChange={(identificationNumber) => {
                       const trimmedId = identificationNumber?.trim() || "";
                       const previousId = previousIdentificationNumberRef.current;
@@ -944,6 +970,14 @@ export default function RegisterGaugePage() {
           </Tabs>
           {inwardId && (
             <div className="w-full">
+              {error && !isInwardLinkedGaugesLoading ? (
+                <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-700">
+                  <span>{error}</span>
+                  <Button size="sm" variant="danger-soft" onPress={retryLinkedGauges}>
+                    Retry
+                  </Button>
+                </div>
+              ) : null}
               <Suspense fallback={<TableSectionFallback />}>
                 <InwardLinkedGaugesTable
                   data={currentInwardPendingById[inwardId] || []}

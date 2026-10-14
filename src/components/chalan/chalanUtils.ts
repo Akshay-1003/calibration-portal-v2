@@ -35,8 +35,17 @@ const hasPrintableValue = (value: unknown): boolean => {
   if (value === null || value === undefined) return false;
   if (typeof value === "string") return value.trim().length > 0;
   if (Array.isArray(value)) return value.length > 0;
+  if (value instanceof Date) return !Number.isNaN(value.getTime());
   if (typeof value === "object") return Object.keys(value).length > 0;
   return true;
+};
+
+const firstPrintableValue = (values: unknown[]): unknown => {
+  for (const value of values) {
+    if (hasPrintableValue(value)) return value;
+  }
+
+  return undefined;
 };
 
 const firstPrintableString = (values: unknown[], fallback: string = "-"): string => {
@@ -47,6 +56,13 @@ const firstPrintableString = (values: unknown[], fallback: string = "-"): string
   }
 
   return fallback;
+};
+
+const normalizeDateKey = (value: unknown): string => {
+  if (!hasPrintableValue(value)) return "";
+  const rawDate = String(value).trim();
+  const date = new Date(rawDate);
+  return Number.isNaN(date.getTime()) ? rawDate : date.toISOString().split("T")[0];
 };
 
 const extractStandardSpecification = (source: unknown): unknown => {
@@ -92,6 +108,7 @@ export const transformOutwardToChalanData = (
   companyInfo?: Partial<typeof DEFAULT_COMPANY_INFO>
 ): ChalanData => {
   const company = { ...DEFAULT_COMPANY_INFO, ...companyInfo };
+  const outwardDateKey = normalizeDateKey(outwardEntry.outward_date || outwardEntry.created_at);
 
   // Format dates helper
   const formatDate = (dateString: unknown) => {
@@ -124,18 +141,36 @@ export const transformOutwardToChalanData = (
   // Transform items from outward_gauges
   const chalanItems: ChalanItem[] = outwardItems.map((item, index) => {
     const itemRecord = item as Record<string, unknown>;
+    const inwardRecord = isRecord(itemRecord.inward) ? itemRecord.inward : {};
     const specification = resolveSpecificationForPrint(item);
     
     // Get unit from item if available
     const unit = firstPrintableString([itemRecord.unit], "mm");
 
-    // Get DC No and DC Date from gauge item (from API: client_dc_no, client_dc_date)
-    const dcNo = firstPrintableString([itemRecord.client_dc_no, itemRecord.dc_no]);
-    const dcDate = hasPrintableValue(itemRecord.client_dc_date)
-      ? formatDate(itemRecord.client_dc_date)
-      : hasPrintableValue(itemRecord.dc_date)
-        ? formatDate(itemRecord.dc_date)
-        : undefined;
+    // Get DC No and DC Date from the inward/client DC fields. Some legacy
+    // payloads expose a generic dc_date that can actually be the outward date.
+    const dcNo = firstPrintableString([
+      itemRecord.client_dc_no,
+      itemRecord.clientDcNo,
+      itemRecord.inward_client_dc_no,
+      inwardRecord.client_dc_no,
+      inwardRecord.clientDcNo,
+      itemRecord.dc_no,
+    ]);
+    const dcDateSource = firstPrintableValue([
+      itemRecord.client_dc_date,
+      itemRecord.clientDcDate,
+      itemRecord.inward_client_dc_date,
+      inwardRecord.client_dc_date,
+      inwardRecord.clientDcDate,
+    ]);
+    const legacyDcDateSource = firstPrintableValue([itemRecord.dc_date, itemRecord.dcDate]);
+    const legacyDcDateKey = normalizeDateKey(legacyDcDateSource);
+    const resolvedDcDateSource =
+      dcDateSource || (legacyDcDateKey && legacyDcDateKey !== outwardDateKey ? legacyDcDateSource : undefined);
+    const dcDate = hasPrintableValue(resolvedDcDateSource)
+      ? formatDate(resolvedDcDateSource)
+      : undefined;
 
     // Get gauge name - try multiple possible fields
     const gaugeName = firstPrintableString([
@@ -211,4 +246,3 @@ export const transformOutwardToChalanData = (
     receiver_signatory: "",
   };
 };
-

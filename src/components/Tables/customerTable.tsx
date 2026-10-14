@@ -8,7 +8,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Input,
   Table,
   Select,
@@ -25,6 +24,8 @@ import { useTableUrlState } from "../../hooks/useTableUrlState";
 import { DEFAULT_BULK_FETCH_LIMIT } from "../../utils/paginatedResponse";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 export type OrganizationTableData = {
   id: string;
@@ -441,11 +442,7 @@ export const CustomerTable = memo(({
         </span>
       </div>
       <div className="flex-1 flex justify-center">
-        <Pagination><Pagination.Content>
-          <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-          <Pagination.Next isDisabled={page >= pages} onPress={() => setPage(Math.min(pages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
-        </Pagination.Content></Pagination>
+        <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
       </div>
       <div className="flex-1 flex justify-end">
         <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="w-[170px]">
@@ -461,7 +458,7 @@ export const CustomerTable = memo(({
       <div className="p-2">
         <div className="industrial-table-wrapper">
           <div className="mb-4">{topContent}</div>
-          <Table aria-label={`${entityLabel} table`} className="min-w-full">
+          <Table aria-label={`${entityLabel} table`} className={dataTableClassName("min-w-full")}>
             <Table.ScrollContainer className="max-h-[600px]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
             <Table.Header columns={headerColumns}>
               {(column) => (
@@ -477,7 +474,7 @@ export const CustomerTable = memo(({
               {(item) => {
                 const index = sortedItems.findIndex((row) => row.id === item.id);
                 return (
-                  <Table.Row id={item.id} columns={columns}>
+                  <Table.Row id={item.id} columns={headerColumns}>
                     {(columnKey) => (
                       <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}</Table.Cell>
                     )}

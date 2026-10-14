@@ -82,4 +82,64 @@ describe('specifications utils', () => {
 
     expect(formatSpecificationForPrint(transformed.items[0].specification)).toBe('M10 X 1.5 - 6H');
   });
+
+  it('maps outward chalan DC date from client DC date instead of outward date', () => {
+    const transformed = transformOutwardToChalanData(
+      {
+        outward_no: '15641',
+        outward_date: '2026-10-03',
+        client_org: 'Test Client',
+      },
+      [
+        {
+          inward_id: 'inward-1',
+          gauge_inward_id: 'gauge-inward-1',
+          gauge_id: 'gauge-1',
+          inward_gauge_lab_id: '26100317',
+          master_gauge_name: 'Plain Plug Gauge',
+          identification_number: 'VC/PG/01',
+          manf_serial_number: '',
+          inward_date: '2026-10-01',
+          process: 'calibration',
+          status: 'calibration_completed',
+          client_dc_no: '214',
+          client_dc_date: '2026-10-01',
+          dc_date: '2026-10-03',
+          specifications: {},
+        },
+      ],
+    );
+
+    expect(transformed.items[0].dc_no).toBe('214');
+    expect(transformed.items[0].dc_date).toBe('2026-10-01');
+  });
+
+  it('does not fall back to outward date as the DC date', () => {
+    const transformed = transformOutwardToChalanData(
+      {
+        outward_no: '15641',
+        outward_date: '2026-10-03',
+        client_org: 'Test Client',
+      },
+      [
+        {
+          inward_id: 'inward-1',
+          gauge_inward_id: 'gauge-inward-1',
+          gauge_id: 'gauge-1',
+          inward_gauge_lab_id: '26100317',
+          master_gauge_name: 'Plain Plug Gauge',
+          identification_number: 'VC/PG/01',
+          manf_serial_number: '',
+          inward_date: '2026-10-01',
+          process: 'calibration',
+          status: 'calibration_completed',
+          client_dc_no: '214',
+          dc_date: '2026-10-03',
+          specifications: {},
+        },
+      ],
+    );
+
+    expect(transformed.items[0].dc_date).toBeUndefined();
+  });
 });

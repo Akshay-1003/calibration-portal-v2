@@ -136,7 +136,10 @@ class ApiClient {
       
       if (!response.ok) {
         const errorText = await response.text();
-        let errorMessage = errorText || `HTTP error! status: ${response.status}`;
+        const isInwardGaugeList = endpoint.includes('/gauge/list/inward_gauges');
+        let errorMessage = isInwardGaugeList && response.status >= 500
+          ? 'The inward gauge list could not be loaded because one record contains invalid numeric data. Please correct that gauge record and try again.'
+          : errorText || `HTTP error! status: ${response.status}`;
         
         // Parse error response if it's JSON
         try {

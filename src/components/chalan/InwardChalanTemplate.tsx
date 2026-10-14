@@ -191,15 +191,15 @@ export const InwardChalanTemplate: React.FC<InwardChalanTemplateProps> = ({ data
         >
           <thead>
             <tr>
-              {[
+                   {[
                 { key: "sr", label: "S/R", width: "4%" },
-                { key: "name", label: "Gauge Name", width: "16%" },
-                { key: "id", label: "Identification", width: "16%" },
-                { key: "serial", label: "Serial No.", width: "10%" },
-                { key: "freq", label: "Cal.Freq.", width: "8%" },
-                { key: "spec", label: "Specification", width: "25%" },
-                { key: "done", label: "Calibration under", width: "8%" },
-                { key: "lab", label: "Lab ID", width: "14%" },
+                { key: "name", label: "Gauge Name", width: "18%" },
+                { key: "id", label: "Identification", width: "20%" },
+                { key: "serial", label: "Serial No.", width: "11%" },
+                { key: "freq", label: "Cal. Freq.", width: "8%" },
+                { key: "spec", label: "Specification", width: "20%" },
+                { key: "done", label: "Cal. Under", width: "8%" },
+                { key: "lab", label: "Lab ID", width: "13%" },
               ].map((head) => (
                 <th
                   key={head.key}

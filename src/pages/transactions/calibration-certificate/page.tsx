@@ -64,6 +64,8 @@ export default function LinkedGaugesPage() {
   const navigate = useNavigate();
   const { startLoading } = useNavigation();
   const { user } = useAuth();
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "superadmin";
+  const hasLaboratoryAccess = Boolean(user?.organization_id) || isSuperAdmin;
 
   // 🎯 Zustand Store - Single Source of Truth for Filters
   const {
@@ -213,7 +215,7 @@ export default function LinkedGaugesPage() {
 
   const organizationsQuery = useOrganizationsQuery({
     directory: 'customers',
-    enabled: Boolean(user?.organization_id),
+    enabled: hasLaboratoryAccess,
   });
   const organizations = organizationsQuery.data?.organizations ?? [];
   const organizationsLoading = organizationsQuery.isPending;
@@ -241,14 +243,14 @@ export default function LinkedGaugesPage() {
   // Fetch data separately for each tab with status filter
   // Pending gauges - with status filter "inward_received"
   const pendingQuery = useLinkedGaugesWithFiltersQuery(pendingQueryFilters, {
-    enabled: activeTab === "new-certificate" && Boolean(user?.organization_id),
+    enabled: activeTab === "new-certificate" && hasLaboratoryAccess,
     page: Math.max(pendingPage - 1, 0),
     limit: pendingRowsPerPage,
   });
 
   // Completed gauges - with status filter "calibration_completed"
   const completedQuery = useLinkedGaugesWithFiltersQuery(completedQueryFilters, {
-    enabled: activeTab === "view-certificate" && Boolean(user?.organization_id),
+    enabled: activeTab === "view-certificate" && hasLaboratoryAccess,
     page: Math.max(completedPage - 1, 0),
     limit: completedRowsPerPage,
   });
@@ -503,8 +505,6 @@ export default function LinkedGaugesPage() {
     return () => clearError();
   }, [clearError]);
 
-  const hasLaboratoryContext = Boolean(user?.organization_id);
-
   const handlePendingTableSearchChange = useCallback((value: string) => {
     setPendingSearchTerm(value);
   }, [setPendingSearchTerm]);
@@ -517,7 +517,7 @@ export default function LinkedGaugesPage() {
   return (
     <I18nProvider locale="en-GB">
       <div className="mt-4">
-        {hasLaboratoryContext ? <>
+        {hasLaboratoryAccess ? <>
           <Tabs aria-label="Certificate Management" selectedKey={activeTab} onSelectionChange={(key) => setActiveTab(key as "new-certificate" | "view-certificate")} variant="secondary">
             <Tabs.ListContainer className="rounded-none bg-transparent w-80">
               <Tabs.List aria-label="Certificate Management" className={listClassName}>

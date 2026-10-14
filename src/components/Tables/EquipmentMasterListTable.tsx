@@ -11,7 +11,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
@@ -20,6 +19,8 @@ import type { EquipmentData } from "../../types/equipment";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 interface EquipmentMasterListTableProps {
   data: EquipmentData[];
@@ -292,25 +293,6 @@ export default function EquipmentMasterListTable({
     }
   }, [controlledOnPageChange]);
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page + 1);
-      } else {
-        setLocalPage(page + 1);
-      }
-    }
-  }, [controlledOnPageChange, page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page - 1);
-      } else {
-        setLocalPage(page - 1);
-      }
-    }
-  }, [controlledOnPageChange, page]);
 
   const emptyContent = React.useMemo(() => {
     if (error) {
@@ -372,22 +354,17 @@ export default function EquipmentMasterListTable({
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination key={`equipment-pagination-${page}-${pages}`}>
-            <Pagination.Content>
-            <Pagination.Previous isDisabled={page <= 1} onPress={() => {
+          <TablePagination
+            page={page}
+            totalPages={pages}
+            onPageChange={(nextPage) => {
               if (controlledOnPageChange) {
-                controlledOnPageChange(Math.max(1, page - 1));
+                controlledOnPageChange(nextPage);
               } else {
-                setLocalPage(Math.max(1, page - 1));
+                setLocalPage(nextPage);
               }
-            }}><Pagination.PreviousIcon /></Pagination.Previous>
-            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-            <Pagination.Next isDisabled={page >= pages} onPress={() => {
-              const nextPage = Math.min(pages, page + 1);
-              if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage);
-            }}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+            }}
+          />
         </div>
 
         {/* RIGHT - Rows per page */}
@@ -404,13 +381,10 @@ export default function EquipmentMasterListTable({
     );
   }, [
     filteredItems.length,
-    isServerPagination,
-    totalItems,
+    isServerPagination, totalItems,
     page,
     pages,
     selectedKeys,
-    onNextPage,
-    onPreviousPage,
     rowsPerPage,
     onRowsPerPageChange,
     controlledOnPageChange,
@@ -418,7 +392,7 @@ export default function EquipmentMasterListTable({
   return (
     <div className="industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Equipment master list table" className="min-w-full">
+      <Table aria-label="Equipment master list table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
         <Table.Header columns={headerColumns}>

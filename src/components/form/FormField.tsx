@@ -26,7 +26,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         {label}
         {required && <span className="form-label-required">*</span>}
       </label>
-      <div className="relative w-full min-w-0 [&>[data-slot=input]]:w-full [&>[data-slot=input]]:h-10 [&>[data-slot=input]]:rounded-md [&>[data-slot=select]]:w-full [&>[data-slot=select]>[data-slot=select-trigger]]:w-full [&>[data-slot=select]>[data-slot=select-trigger]]:h-10 [&>[data-slot=select]>[data-slot=select-trigger]]:rounded-md [&>[data-slot=date-picker]]:w-full [&>[data-slot=date-picker]>[data-slot=date-input-group]]:w-full [&>[data-slot=autocomplete]]:w-full [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:w-full [&>[data-slot=autocomplete]_[data-slot=input]]:w-full [&>[data-slot=autocomplete]_[data-slot=input]]:h-10 [&>[data-slot=autocomplete]_[data-slot=input]]:rounded-md [&>[data-slot=textarea]]:w-full [&>[data-slot=textarea]]:rounded-md [&>[data-slot=textarea]]:min-h-20 [&>textarea]:w-full">
+      <div className="relative w-full min-w-0 [&>[data-slot=input]]:w-full [&>[data-slot=select]]:w-full [&>[data-slot=select]>[data-slot=select-trigger]]:w-full [&>[data-slot=date-picker]]:w-full [&>[data-slot=date-picker]>[data-slot=date-input-group]]:w-full [&>[data-slot=autocomplete]]:w-full [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:w-full [&>[data-slot=autocomplete]_[data-slot=input]]:w-full [&>[data-slot=textarea]]:w-full [&>[data-slot=textarea]]:min-h-20 [&>textarea]:w-full">
         {children}
       </div>
       {error && (

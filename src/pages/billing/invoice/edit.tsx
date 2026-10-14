@@ -12,6 +12,7 @@ import {
   DatePicker,
   DateField,
   Input,
+  Label,
   ListBox,
   Select,
 } from '@heroui/react';
@@ -1545,7 +1546,7 @@ export default function EditInvoicePage() {
                     {INVOICE_PDF_OPTIONAL_COLUMN_OPTIONS.map((option) => (
                       <Checkbox
                         key={option.key}
-                        isSelected={pdfColumns[option.key]}
+                        isSelected={Boolean(pdfColumns[option.key])}
                         isDisabled={!canEditSummaryTotals}
                         onChange={(isSelected) => {
                           setValue(
@@ -1559,7 +1560,12 @@ export default function EditInvoicePage() {
                           setValue('pdf_columns_user_configured', true, { shouldDirty: true });
                         }}
                       >
-                        {option.label}
+                        <Checkbox.Content>
+                          <Checkbox.Control>
+                            <Checkbox.Indicator />
+                          </Checkbox.Control>
+                          <Label>{option.label}</Label>
+                        </Checkbox.Content>
                       </Checkbox>
                     ))}
                   </div>

@@ -7,7 +7,6 @@ import {
     Input,
     Label,
     ListBox,
-    Pagination,
     Select,
     Table,
 } from '@heroui/react';
@@ -20,6 +19,8 @@ import {
 import { getTableColumnKey } from './tableColumnKey';
 import type { RepairEntry, RepairTableState, RepairTableHandlers } from '../../types/repair';
 import '../../styles/industrial-table.css';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
     | 'sr_no'
@@ -466,23 +467,7 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
                 <span className="text-small text-default-400">
                     Total {filteredItems.length} repairs
                 </span>
-                <Pagination size="sm">
-                    <Pagination.Content>
-                        <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(page - 1)}>
-                            <Pagination.PreviousIcon />
-                        </Pagination.Previous>
-                        {Array.from({ length: Math.max(Math.ceil(filteredItems.length / rowsPerPage), 1) }, (_, index) => index + 1).map((pageNumber) => (
-                            <Pagination.Item key={pageNumber}>
-                                <Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>
-                                    {pageNumber}
-                                </Pagination.Link>
-                            </Pagination.Item>
-                        ))}
-                        <Pagination.Next isDisabled={page >= Math.ceil(filteredItems.length / rowsPerPage)} onPress={() => onPageChange(page + 1)}>
-                            <Pagination.NextIcon />
-                        </Pagination.Next>
-                    </Pagination.Content>
-                </Pagination>
+                <TablePagination page={page} totalPages={Math.max(1, Math.ceil(filteredItems.length / rowsPerPage))} onPageChange={onPageChange} />
                 <div className="flex items-center gap-2">
                     <label className="text-small text-default-400">Rows per page:</label>
                     <Select
@@ -519,7 +504,7 @@ export const RepairMasterTable = memo<RepairTableViewProps>(
             <div className="p-2">
                 <div className="industrial-table-wrapper">
                     <div className="mb-4">{topContent}</div>
-                    <Table aria-label="Repair entries table" className="min-w-full">
+                    <Table aria-label="Repair entries table" className={dataTableClassName("min-w-full")}>
                         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
                             <Table.Content
                                 className="min-w-full"

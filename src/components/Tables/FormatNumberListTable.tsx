@@ -6,7 +6,6 @@ import {
   Input,
   Button,
   ListBox,
-  Pagination,
   Popover,
   Table,
 } from "@heroui/react";
@@ -16,6 +15,8 @@ import type { FormatNumber } from "../../types/formatNumber";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
 import { getTableColumnKey } from './tableColumnKey';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 interface FormatNumberListTableProps {
   data: FormatNumber[];
@@ -266,7 +267,7 @@ export default function FormatNumberListTable({
         </div>
       </div>
 
-      <Table aria-label="Format Number Table" className="min-h-[200px]">
+      <Table aria-label="Format Number Table" className={dataTableClassName("min-h-[200px]")}>
         <Table.ScrollContainer>
           <Table.Content sortDescriptor={sortDescriptor} onSortChange={setSortDescriptor}>
         <Table.Header columns={headerColumns}>
@@ -294,17 +295,7 @@ export default function FormatNumberListTable({
         <span className="text-sm text-default-500">
           {filteredItems.length} total entries
         </span>
-        <Pagination size="sm">
-          <Pagination.Content>
-            <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-              <Pagination.Item key={pageNumber}>
-                <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
-              </Pagination.Item>
-            ))}
-            <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}><Pagination.NextIcon /></Pagination.Next>
-          </Pagination.Content>
-        </Pagination>
+        <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
       </div>
 
       <DeleteConfirmModal

@@ -15,13 +15,14 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
 import { ReadingMasterListItem } from "../../store/readingMasterStore";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 interface ReadingMasterListTableProps {
   data: ReadingMasterListItem[];
@@ -363,13 +364,7 @@ export default function ReadingMasterListTable({
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination>
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage(Math.min(pages, page + 1))}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
         </div>
 
         {/* RIGHT - Rows per page */}
@@ -389,7 +384,7 @@ export default function ReadingMasterListTable({
   return (
     <div className="p-2 industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Reading master list table" className="min-w-full">
+      <Table aria-label="Reading master list table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
         <Table.Header columns={headerColumns}>

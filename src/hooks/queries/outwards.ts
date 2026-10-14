@@ -10,7 +10,7 @@ import { API_ENDPOINTS } from '../../config/api';
 import { queryKeys } from './queryKeys';
 import type { OutwardEntry } from '../../types/api';
 import { toast } from 'sonner';
-import { extractPaginatedList } from '../../utils/paginatedResponse';
+import { extractPaginatedList, type PaginatedListResult } from '../../utils/paginatedResponse';
 
 const updateOutwardListCaches = (
   queryClient: ReturnType<typeof useQueryClient>,
@@ -33,10 +33,26 @@ const updateOutwardListCaches = (
         };
       }
 
+      const paginatedRecord = existing as { items?: OutwardEntry[] };
+      if (Array.isArray(paginatedRecord?.items)) {
+        return {
+          ...paginatedRecord,
+          items: updater(paginatedRecord.items),
+        };
+      }
+
       return existing;
     }
   );
 };
+
+interface UseOutwardEntriesQueryOptions {
+  enabled?: boolean;
+  staleTime?: number;
+  organizationId?: string;
+  page?: number;
+  limit?: number;
+}
 
 // ============================================================================
 // QUERY HOOKS
@@ -45,19 +61,15 @@ const updateOutwardListCaches = (
 /**
  * Query hook for fetching all outward entries
  */
-export function useOutwardEntriesQuery(options?: {
-  enabled?: boolean;
-  staleTime?: number;
-  organizationId?: string;
-  limit?: number;
-}) {
+export function usePaginatedOutwardEntriesQuery(options?: UseOutwardEntriesQueryOptions) {
   const organizationId = options?.organizationId?.trim();
+  const page = Math.max(0, Math.floor(options?.page ?? 0));
   const limit = options?.limit ?? 10;
 
   return useQuery({
-    queryKey: queryKeys.outwards.list({ organizationId, limit }),
-    queryFn: async (): Promise<OutwardEntry[]> => {
-      const params = new URLSearchParams({ page: '0', limit: String(limit) });
+    queryKey: queryKeys.outwards.list({ organizationId, page, limit }),
+    queryFn: async (): Promise<PaginatedListResult<OutwardEntry>> => {
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (organizationId) {
         params.set('org_id', organizationId);
       }
@@ -66,8 +78,9 @@ export function useOutwardEntriesQuery(options?: {
       );
       return extractPaginatedList<OutwardEntry>(response, {
         arrayKeys: ['data', 'outwards', 'items'],
+        fallbackPage: page,
         fallbackLimit: limit,
-      }).items;
+      });
     },
     staleTime: options?.staleTime ?? 5 * 60 * 1000, // 5 minutes default
     gcTime: 30 * 60 * 1000,
@@ -77,6 +90,15 @@ export function useOutwardEntriesQuery(options?: {
     refetchOnReconnect: false,
     placeholderData: (previousData) => previousData,
   });
+}
+
+export function useOutwardEntriesQuery(options?: UseOutwardEntriesQueryOptions) {
+  const query = usePaginatedOutwardEntriesQuery(options);
+
+  return {
+    ...query,
+    data: query.data?.items,
+  };
 }
 
 /**

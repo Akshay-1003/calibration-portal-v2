@@ -8,13 +8,14 @@ import {
   Select,
   ListBox,
   Label,
-  Pagination,
   Table,
 } from "@heroui/react";
 import type { Key } from "@react-types/shared";
 import { getTableColumnKey } from './tableColumnKey';
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 export type DialTableMasterData = {
   id: string;
   table_name: string;
@@ -118,21 +119,7 @@ export default function DialTableMasterListTable({ data, loading = false, error 
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination size="sm" className="scale-90">
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}>
-                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
-                </Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}>
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
@@ -221,7 +208,7 @@ export default function DialTableMasterListTable({ data, loading = false, error 
   return (
     <div className="p-2 industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Dial table master list" className="min-w-full">
+      <Table aria-label="Dial table master list" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content>
         <Table.Header columns={columns}>

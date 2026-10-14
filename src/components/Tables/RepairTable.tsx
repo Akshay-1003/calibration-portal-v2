@@ -7,7 +7,6 @@ import {
   Button,
   Label,
   ListBox,
-  Pagination,
   Select,
   Chip,
 } from '@heroui/react';
@@ -20,6 +19,8 @@ import {
 import { getTableColumnKey } from './tableColumnKey';
 import type { RepairEntry, RepairTableState, RepairTableHandlers } from '../../types/repair';
 import '../../styles/industrial-table.css';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | 'sr_no'
@@ -434,11 +435,7 @@ export const RepairTable = memo<RepairTableViewProps>(
       <span className="text-small text-default-400">
         Total {filteredItems.length} repairs
       </span>
-      <Pagination><Pagination.Content>
-        <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-        {Array.from({ length: Math.max(1, Math.ceil(filteredItems.length / rowsPerPage)) }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-        <Pagination.Next isDisabled={page >= Math.max(1, Math.ceil(filteredItems.length / rowsPerPage))} onPress={() => onPageChange(Math.min(Math.max(1, Math.ceil(filteredItems.length / rowsPerPage)), page + 1))}><Pagination.NextIcon /></Pagination.Next>
-      </Pagination.Content></Pagination>
+      <TablePagination page={page} totalPages={Math.max(1, Math.ceil(filteredItems.length / rowsPerPage))} onPageChange={onPageChange} />
       <div className="flex items-center gap-2">
         <label className="text-small text-default-400">Rows per page:</label>
         <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(Number(key))} className="max-w-[70px]">
@@ -463,7 +460,7 @@ export const RepairTable = memo<RepairTableViewProps>(
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Repair entries table" className="min-w-full">
+        <Table aria-label="Repair entries table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={(keys) => onSelectionChange(keys as Set<string>)} onSortChange={onSortChange}>
           <Table.Header columns={headerColumns}>
             {(column) => (
@@ -477,7 +474,7 @@ export const RepairTable = memo<RepairTableViewProps>(
             renderEmptyState={() => <div className="py-8 text-center text-sm text-default-500">{loading ? loadingContent : emptyContent}</div>}
           >
             {paginatedItems.map((item, index) => (
-              <Table.Row id={item.id} columns={columns}>
+              <Table.Row id={item.id} columns={headerColumns}>
                 {(columnKey) => (
                   <Table.Cell>{renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}</Table.Cell>
                 )}

@@ -1,10 +1,12 @@
 "use client"
 import React, { useEffect } from "react"
-import { Table, Input, Button, Select, ListBox, Label, Chip, Pagination } from "@heroui/react"
+import { Table, Input, Button, Select, ListBox, Label, Chip } from "@heroui/react"
 import type { Key } from "@react-types/shared"
 import { InwardEntry } from "../../types"
 import "../../styles/industrial-table.css"
 import { getTableColumnKey } from './tableColumnKey'
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 // ----------------------
 // Calibration Inward Table Component
@@ -155,21 +157,7 @@ export function CalibrationInwardTable({
         </span>
 
         <div className="sm:justify-self-center">
-          <Pagination size="sm" className="scale-90">
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={() => setPage((current) => Math.max(1, current - 1))}>
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}>
-                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link>
-                </Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={page >= pages} onPress={() => setPage((current) => Math.min(pages, current + 1))}>
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
         </div>
 
         <div className="sm:justify-self-end flex items-center gap-2">
@@ -197,7 +185,7 @@ export function CalibrationInwardTable({
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Calibration Inward" className="min-w-full">
+        <Table aria-label="Calibration Inward" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content>
           <Table.Header>

@@ -89,16 +89,16 @@ const COLUMN_LABELS: Record<InvoicePdfColumnKey, string> = {
 const BASE_COLUMN_WEIGHTS: Record<InvoicePdfColumnKey, number> = {
   sr_no: 4,
   gauge_name: 11,
-  identification_number: 13,
+  identification_number: 20,
   dc_no: 9,
-  specification: 22,
-  hsn: 12,
-  repair_new: 10,
-  calibration_charge: 10,
+  specification: 20,
+  hsn: 11,
+  repair_new: 7.5,
+  calibration_charge: 9,
   qty: 4,
   rate: 10,
   discount: 10,
-  amount: 10,
+  amount: 9,
 };
 
 const hasRepairCharge = (items?: Array<{ repair_new?: number | string | null }>) =>

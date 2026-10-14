@@ -7,7 +7,6 @@ import {
   Button,
   Label,
   ListBox,
-  Pagination,
   Select,
   DatePicker,
   DateField,
@@ -27,6 +26,8 @@ import type { ClientData } from '../../hooks/useInwardTableController';
 import type { InwardTableState, InwardTableHandlers } from '../../hooks/useInwardTableController';
 import '../../styles/industrial-table.css';
 import { SearchField } from '@heroui/react/search-field';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | 'sr_no'
@@ -185,8 +186,7 @@ export const InwardTable = memo<InwardTableViewProps>(
       data,
       totalItems,
       totalPages,
-      isServerPagination,
-      page,
+      isServerPagination, page,
       rowsPerPage,
       selectedKeys,
       sortDescriptor,
@@ -499,23 +499,7 @@ export const InwardTable = memo<InwardTableViewProps>(
               : `Total ${isServerPagination ? (totalItems ?? filteredItems.length) : filteredItems.length} items`}
           </span>
           <div className="sm:justify-self-center">
-            <Pagination>
-              <Pagination.Content>
-                <Pagination.Previous isDisabled={page <= 1} onPress={() => onPageChange(Math.max(1, page - 1))}>
-                  <Pagination.PreviousIcon />
-                </Pagination.Previous>
-                {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                  <Pagination.Item key={pageNumber}>
-                    <Pagination.Link isActive={pageNumber === page} onPress={() => onPageChange(pageNumber)}>
-                      {pageNumber}
-                    </Pagination.Link>
-                  </Pagination.Item>
-                ))}
-                <Pagination.Next isDisabled={page >= pages} onPress={() => onPageChange(Math.min(pages, page + 1))}>
-                  <Pagination.NextIcon />
-                </Pagination.Next>
-              </Pagination.Content>
-            </Pagination>
+            <TablePagination page={page} totalPages={pages} onPageChange={onPageChange} />
           </div>
           <div className="sm:justify-self-end">
             <Select
@@ -544,8 +528,7 @@ export const InwardTable = memo<InwardTableViewProps>(
       [
         selectedKeys,
         filteredItems.length,
-        isServerPagination,
-        totalItems,
+        isServerPagination, totalItems,
         page,
         pages,
         rowsPerPage,
@@ -584,7 +567,7 @@ export const InwardTable = memo<InwardTableViewProps>(
       <div className="p-2">
         <div className="industrial-table-wrapper">
           <div className="mb-4">{topContent}</div>
-          <Table aria-label="Inward entries table" className="min-w-full">
+          <Table aria-label="Inward entries table" className={dataTableClassName("min-w-full")}>
             <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
               <Table.Content
                 selectedKeys={selectedKeys}

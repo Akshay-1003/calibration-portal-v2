@@ -4,23 +4,41 @@ import { OutwardTable } from "../../../components/Tables/OutwardTable";
 import { TablePageWrapper } from "../../../components/layout/TablePageWrapper";
 import { Button } from "../../../components/ui/button";
 import { PlusIcon } from "@heroicons/react/24/solid";
-import { useOutwardEntries } from "../../../hooks/queries/outwards";
+import {
+  useDeleteOutwardEntryMutation,
+  usePaginatedOutwardEntriesQuery,
+} from "../../../hooks/queries/outwards";
 import { transformOutwardToChalanData } from "../../../components/chalan/chalanUtils";
 import { printOutwardChalan } from "../../../utils/outwardChalanPrint";
 import { useOutwardStore } from "../../../store/outwardStore";
 import { toast } from "sonner";
+import { useTableUrlState } from "../../../hooks/useTableUrlState";
+import { toApiPage } from "../../../utils/paginatedResponse";
 
 const OutwardPage = React.memo(() => {
   const navigate = useNavigate();
   const location = useLocation();
   const {
-    outwardEntries,
-    loading,
-    error,
-    fetchOutwardEntries,
-    deleteOutwardEntry,
-    isDeleting,
-  } = useOutwardEntries();
+    state: tableUrlState,
+    setPage,
+    setRowsPerPage,
+  } = useTableUrlState({ prefix: "outward", defaultRowsPerPage: 10 });
+  const page = tableUrlState.page;
+  const rowsPerPage = tableUrlState.rowsPerPage;
+  const {
+    data: outwardEntriesResult,
+    isLoading,
+    isFetching,
+    error: outwardEntriesError,
+    refetch: refetchOutwardEntries,
+  } = usePaginatedOutwardEntriesQuery({
+    page: toApiPage(page),
+    limit: rowsPerPage,
+  });
+  const deleteOutwardEntryMutation = useDeleteOutwardEntryMutation();
+  const outwardEntries = outwardEntriesResult?.items ?? [];
+  const totalItems = outwardEntriesResult?.total ?? outwardEntries.length;
+  const totalPages = outwardEntriesResult?.totalPages ?? Math.max(Math.ceil(totalItems / Math.max(rowsPerPage, 1)), 1);
   const showCreateToast = Boolean(location.state?.fromCreate);
   const showEditToast = Boolean(location.state?.fromEdit);
   const hasConsumedNavigationState = useRef(false);
@@ -30,8 +48,13 @@ const OutwardPage = React.memo(() => {
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
-    fetchOutwardEntries(true); // Force refresh
-  }, [fetchOutwardEntries]);
+    void refetchOutwardEntries();
+  }, [refetchOutwardEntries]);
+
+  const handleRowsPerPageChange = useCallback((nextRowsPerPage: number) => {
+    setRowsPerPage(nextRowsPerPage);
+    setPage(1);
+  }, [setPage, setRowsPerPage]);
 
   // Handle open
   const handleOpen = useCallback((id: string) => {
@@ -74,13 +97,13 @@ const OutwardPage = React.memo(() => {
   // Handle delete
   const handleDelete = useCallback(async (id: string) => {
     try {
-      await deleteOutwardEntry(id);
+      await deleteOutwardEntryMutation.mutateAsync(id);
       // Data will be automatically refreshed via TanStack Query invalidation
     } catch (error) {
       // Error is already handled by the mutation
       console.error("Failed to delete outward entry:", error);
     }
-  }, [deleteOutwardEntry]);
+  }, [deleteOutwardEntryMutation]);
 
   // Memoize navigation handler with returnTo
   const handleCreateClick = useCallback(() => {
@@ -91,7 +114,7 @@ const OutwardPage = React.memo(() => {
   useEffect(() => {
     if ((showCreateToast || showEditToast) && !hasConsumedNavigationState.current) {
       hasConsumedNavigationState.current = true;
-      void fetchOutwardEntries(true);
+      void refetchOutwardEntries();
       navigate(
         {
           pathname: location.pathname,
@@ -109,10 +132,10 @@ const OutwardPage = React.memo(() => {
       hasConsumedNavigationState.current = false;
     }
   }, [
-    fetchOutwardEntries,
     location.pathname,
     location.search,
     navigate,
+    refetchOutwardEntries,
     showCreateToast,
     showEditToast,
   ]);
@@ -134,9 +157,16 @@ const OutwardPage = React.memo(() => {
     >
       <div className="w-full">
         <OutwardTable 
-          loading={loading || isDeleting} 
-          error={error} 
+          loading={isLoading || isFetching || deleteOutwardEntryMutation.isPending} 
+          error={outwardEntriesError ? (outwardEntriesError as Error).message : null} 
           data={outwardEntries}
+          page={page}
+          rowsPerPage={rowsPerPage}
+          totalItems={totalItems}
+          totalPages={totalPages}
+          isServerPagination
+          onPageChange={setPage}
+          onRowsPerPageChange={handleRowsPerPageChange}
           onRefresh={handleRefresh}
           onOpen={handleOpen}
           onPrint={handlePrint}

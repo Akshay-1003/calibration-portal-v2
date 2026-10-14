@@ -10,7 +10,6 @@ import {
   Button,
   Calendar,
   DateField,
-  Pagination,
   DatePicker,
 } from '@heroui/react';
 import type { DateValue } from '@internationalized/date';
@@ -25,6 +24,8 @@ import type { ClientData } from '../../hooks/useInwardTableController';
 import type { InwardTableState, InwardTableHandlers } from '../../hooks/useInwardTableController';
 import { VirtualizedTable, shouldUseVirtualization } from '../../shared/components/VirtualizedTable';
 import '../../styles/industrial-table.css';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 function OptimizedDatePicker({
   value,
@@ -304,7 +305,7 @@ const OptimizedInwardTable = memo(({
 
     // Traditional table for smaller datasets
     return (
-      <Table aria-label="Inward Entries Table" className="min-w-full">
+      <Table aria-label="Inward Entries Table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="min-h-[400px]">
         <Table.Content>
         <Table.Header columns={columns}>
@@ -392,15 +393,7 @@ const OptimizedInwardTable = memo(({
           <span className="text-sm text-gray-700">
             Showing {paginatedData.length} of {filteredData.length} entries
           </span>
-          <Pagination>
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={state.page <= 1} onPress={() => handlers.onPageChange(Math.max(1, state.page - 1))}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage)) }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === state.page} onPress={() => handlers.onPageChange(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
-              ))}
-              <Pagination.Next isDisabled={state.page >= Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage))} onPress={() => handlers.onPageChange(Math.min(Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage)), state.page + 1))}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={state.page} totalPages={Math.max(1, Math.ceil(filteredData.length / state.rowsPerPage))} onPageChange={handlers.onPageChange} />
         </div>
       )}
 

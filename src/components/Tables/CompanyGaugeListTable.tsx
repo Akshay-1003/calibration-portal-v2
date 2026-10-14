@@ -9,7 +9,6 @@ import {
   Button,
   Label,
   ListBox,
-  Pagination,
   Popover,
   Select,
 } from "@heroui/react";
@@ -18,6 +17,8 @@ import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outlin
 import "../../styles/industrial-table.css";
 import { getTableColumnKey } from './tableColumnKey';
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 export interface CompanyGaugeData {
   id: string;
@@ -294,25 +295,6 @@ export default function CompanyGaugeListTable({
     }
   }, [controlledOnPageChange, controlledOnSearchChange]);
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page + 1);
-      } else {
-        setLocalPage(page + 1);
-      }
-    }
-  }, [controlledOnPageChange, page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      if (controlledOnPageChange) {
-        controlledOnPageChange(page - 1);
-      } else {
-        setLocalPage(page - 1);
-      }
-    }
-  }, [controlledOnPageChange, page]);
 
   const emptyContent = React.useMemo(() => {
     if (error) {
@@ -394,32 +376,17 @@ export default function CompanyGaugeListTable({
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination size="sm">
-            <Pagination.Content>
-              <Pagination.Previous
-                isDisabled={page <= 1}
-                onPress={() => (controlledOnPageChange ? controlledOnPageChange(page - 1) : setLocalPage(page - 1))}
-              >
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}>
-                  <Pagination.Link
-                    isActive={pageNumber === page}
-                    onPress={() => (controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber))}
-                  >
-                    {pageNumber}
-                  </Pagination.Link>
-                </Pagination.Item>
-              ))}
-              <Pagination.Next
-                isDisabled={page >= pages}
-                onPress={() => (controlledOnPageChange ? controlledOnPageChange(page + 1) : setLocalPage(page + 1))}
-              >
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination
+            page={page}
+            totalPages={pages}
+            onPageChange={(nextPage) => {
+              if (controlledOnPageChange) {
+                controlledOnPageChange(nextPage);
+              } else {
+                setLocalPage(nextPage);
+              }
+            }}
+          />
         </div>
 
         {/* RIGHT - Rows per page */}
@@ -448,13 +415,10 @@ export default function CompanyGaugeListTable({
     );
   }, [
     filteredItems.length,
-    isServerPagination,
-    totalItems,
+    isServerPagination, totalItems,
     page,
     pages,
     selectedKeys,
-    onNextPage,
-    onPreviousPage,
     rowsPerPage,
     onRowsPerPageChange,
     controlledOnPageChange,
@@ -463,7 +427,7 @@ export default function CompanyGaugeListTable({
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Company gauge list table" className="min-w-full">
+        <Table aria-label="Company gauge list table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
             <Table.Content
               className="min-w-full"

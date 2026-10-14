@@ -10,7 +10,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
@@ -20,6 +19,8 @@ import { getTableColumnKey } from './tableColumnKey';
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import "../../styles/industrial-table.css";
 import { DeleteConfirmModal } from "../common/DeleteConfirmModal";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 interface ThreadRingPlugListTableProps {
   data: ThreadRingPlugData[];
   total?: number;
@@ -355,19 +356,17 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
               : `${selectedKeys.size} of ${filteredItems.length} selected`}
         </span>
 
-        <Pagination className="scale-90">
-          <Pagination.Content>
-          <Pagination.Previous isDisabled={page <= 1} onPress={() => {
-            if (controlledOnPageChange) {
-              controlledOnPageChange(Math.max(1, page - 1));
-            } else {
-              setLocalPage(Math.max(1, page - 1));
-            }
-          }}><Pagination.PreviousIcon /></Pagination.Previous>
-          {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-          <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
-          </Pagination.Content>
-        </Pagination>
+        <TablePagination
+          page={page}
+          totalPages={pages}
+          onPageChange={(nextPage) => {
+              if (controlledOnPageChange) {
+                controlledOnPageChange(nextPage);
+              } else {
+                setLocalPage(nextPage);
+              }
+            }}
+        />
 
         <div className="flex flex-col sm:flex-row items-center sm:justify-end sm:w-1/6 gap-3">
           <Select selectedKey={String(rowsPerPage)} onSelectionChange={(key) => onRowsPerPageChange(new Set(key == null ? [] : [key]))} className="min-w-[140px]">
@@ -383,8 +382,7 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
     controlledOnPageChange,
     filteredItems.length,
     hasSearchFilter,
-    isServerPagination,
-    page,
+    isServerPagination, page,
     pages,
     rowsPerPage,
     selectedKeys,
@@ -396,7 +394,7 @@ const ThreadRingPlugListTable = React.memo(function ThreadRingPlugListTable({
   return (
     <div className=" p-2 industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Thread ring plug list table" className="min-w-full">
+      <Table aria-label="Thread ring plug list table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
         <Table.Header columns={headerColumns}>

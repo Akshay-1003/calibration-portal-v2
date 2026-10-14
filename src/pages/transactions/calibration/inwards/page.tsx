@@ -15,8 +15,9 @@ const CalibrationInwardPage = React.memo(() => {
   const { startLoading } = useNavigation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const hasLaboratoryContext = Boolean(user?.organization_id);
-  const inwardsQuery = useInwardEntriesListQuery(undefined, { enabled: hasLaboratoryContext });
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "superadmin";
+  const hasLaboratoryAccess = Boolean(user?.organization_id) || isSuperAdmin;
+  const inwardsQuery = useInwardEntriesListQuery(undefined, { enabled: hasLaboratoryAccess });
   const allInwardEntries = inwardsQuery.data?.items ?? [];
   const loading = inwardsQuery.isLoading || inwardsQuery.isFetching;
   const error = inwardsQuery.error ? (inwardsQuery.error as Error).message : null;
@@ -55,7 +56,7 @@ const CalibrationInwardPage = React.memo(() => {
         </Button>
       }
     >
-      {hasLaboratoryContext ? (
+      {hasLaboratoryAccess ? (
         <div className="w-full">
           <CalibrationInwardTable
             loading={loading}

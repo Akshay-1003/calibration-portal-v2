@@ -3,7 +3,6 @@ import {
   Button,
   InputGroup,
   ListBox,
-  Pagination,
   Select,
   Table,
 } from '@heroui/react';
@@ -12,6 +11,8 @@ import type { RateCardEntry } from '../../pages/masters/PartyMaster/rate-card';
 import { DeleteConfirmModal } from '../common/DeleteConfirmModal';
 import '../../styles/industrial-table.css';
 import { getTableColumnKey } from './tableColumnKey';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type RateCardTableEntry = RateCardEntry & {
   _internalId?: string;
@@ -314,7 +315,7 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
       </div>
 
       <div className="industrial-table-wrapper overflow-x-auto px-0 pb-0 pt-0">
-        <Table aria-label="Rate card entries table" className="min-w-full">
+        <Table aria-label="Rate card entries table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="min-w-[1150px]">
             <Table.Content className="w-full table-auto">
           <Table.Header columns={columns}>
@@ -360,31 +361,7 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
             Showing {showingFrom} to {showingTo} of {filteredItems.length} entries
           </span>
 
-          <Pagination aria-label="Rate card pagination" size="sm">
-            <Pagination.Content className="gap-1">
-              <Pagination.Previous
-                aria-label="Previous page"
-                isDisabled={page <= 1}
-                onPress={() => setPage((current) => Math.max(current - 1, 1))}
-              >
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-              {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
-                <Pagination.Item key={pageNumber}>
-                  <Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>
-                    {pageNumber}
-                  </Pagination.Link>
-                </Pagination.Item>
-              ))}
-              <Pagination.Next
-                aria-label="Next page"
-                isDisabled={page >= totalPages}
-                onPress={() => setPage((current) => Math.min(current + 1, totalPages))}
-              >
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </div>
       )}
 

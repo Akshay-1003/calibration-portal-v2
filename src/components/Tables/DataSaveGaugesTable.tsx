@@ -8,7 +8,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
@@ -17,6 +16,8 @@ import { MagnifyingGlassIcon, ChevronDownIcon, TrashIcon } from "@heroicons/reac
 import { SpecificationChips } from "../gaugeTypes/SpecificationChips";
 import "../../styles/industrial-table.css";
 import { getTableColumnKey } from './tableColumnKey';
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "master_gauge"
@@ -196,18 +197,6 @@ export function DataSaveGaugesTable({
     }
   }, [onAddGauge, onDeleteGauge]);
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
-
   const onRowsPerPageChange = React.useCallback((keys: Selection) => {
     const value = Array.from(keys)[0] as string;
     setRowsPerPage(Number(value));
@@ -281,15 +270,7 @@ export function DataSaveGaugesTable({
         </span>
 
         {/* Pagination */}
-        <Pagination className="scale-90">
-          <Pagination.Content>
-            <Pagination.Previous isDisabled={page <= 1} onPress={onPreviousPage}><Pagination.PreviousIcon /></Pagination.Previous>
-            {Array.from({ length: Math.max(pages, 1) }, (_, index) => index + 1).map((pageNumber) => (
-              <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>
-            ))}
-            <Pagination.Next isDisabled={page >= pages} onPress={onNextPage}><Pagination.NextIcon /></Pagination.Next>
-          </Pagination.Content>
-        </Pagination>
+        <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
 
         {/* Right Controls */}
         <div className="flex items-center gap-2">
@@ -308,35 +289,15 @@ export function DataSaveGaugesTable({
             </Select.Popover>
           </Select>
 
-          {/* Small Buttons */}
-          <Button
-            isDisabled={page === 1}
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onPress={onPreviousPage}
-          >
-            Prev
-          </Button>
-
-          <Button
-            isDisabled={page === pages}
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs"
-            onPress={onNextPage}
-          >
-            Next
-          </Button>
         </div>
       </div>
     );
-  }, [selectedKeys, page, pages, onPreviousPage, onNextPage, filteredItems.length, rowsPerPage, onRowsPerPageChange]);
+  }, [selectedKeys, page, pages, filteredItems.length, rowsPerPage, onRowsPerPageChange]);
 
   return (
     <div className="industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Data Save gauges table" className="min-w-full">
+      <Table aria-label="Data Save gauges table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content
             selectedKeys={selectedKeys}

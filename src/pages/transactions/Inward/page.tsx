@@ -22,13 +22,14 @@ import { useAuth } from "../../../features/auth";
 const InwardPage = React.memo(() => {
   const { canEdit } = usePermissionAccess();
   const { user } = useAuth();
-  const hasLaboratoryContext = Boolean(user?.organization_id);
+  const isSuperAdmin = user?.role === "super_admin" || user?.role === "superadmin";
+  const hasLaboratoryAccess = Boolean(user?.organization_id) || isSuperAdmin;
   const canManageInward = canEdit("inward");
   const navigate = useNavigate();
   const location = useLocation();
   const organizationsQuery = useOrganizationsQuery({
     directory: 'customers',
-    enabled: Boolean(user?.organization_id),
+    enabled: hasLaboratoryAccess,
   });
   const organizations = organizationsQuery.data?.organizations ?? [];
   const organizationsLoading = organizationsQuery.isPending;
@@ -146,7 +147,7 @@ const InwardPage = React.memo(() => {
     ...(apiFilters ?? {}),
     page: Math.max(state.page - 1, 0),
     limit: state.rowsPerPage,
-  }, { enabled: hasLaboratoryContext });
+  }, { enabled: hasLaboratoryAccess });
   const inwardEntries = inwardsQuery.data?.items || [];
   const loading = inwardsQuery.isLoading || inwardsQuery.isFetching;
   const error = inwardsQuery.error ? (inwardsQuery.error as Error).message : null;
@@ -190,7 +191,7 @@ const InwardPage = React.memo(() => {
         ) : undefined
       }
     >
-      {hasLaboratoryContext ? (
+      {hasLaboratoryAccess ? (
         <div className="w-full">
           {/* Pure presentational table component */}
           <InwardTable

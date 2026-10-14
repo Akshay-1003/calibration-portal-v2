@@ -9,7 +9,6 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
@@ -37,6 +36,8 @@ import {
 } from "../../utils/invoiceLifecycle";
 import { formatDateStringForDisplay } from "../../utils/dateAdapter";
 import "../../styles/industrial-table.css";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "sr_no"
@@ -703,17 +704,18 @@ export default function InvoiceListTable({
         </div>
 
         <div className="flex flex-1 justify-center">
-          <Pagination key={paginationKey}><Pagination.Content>
-            <Pagination.Previous isDisabled={page <= 1} onPress={() => {
+          <TablePagination
+            key={paginationKey}
+            page={page}
+            totalPages={pages}
+            onPageChange={(nextPage) => {
               if (controlledOnPageChange) {
-                controlledOnPageChange(Math.max(1, page - 1));
+                controlledOnPageChange(nextPage);
               } else {
-                setLocalPage(Math.max(1, page - 1));
+                setLocalPage(nextPage);
               }
-            }}><Pagination.PreviousIcon /></Pagination.Previous>
-            {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => controlledOnPageChange ? controlledOnPageChange(pageNumber) : setLocalPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-            <Pagination.Next isDisabled={page >= pages} onPress={() => { const nextPage = Math.min(pages, page + 1); if (controlledOnPageChange) controlledOnPageChange(nextPage); else setLocalPage(nextPage); }}><Pagination.NextIcon /></Pagination.Next>
-          </Pagination.Content></Pagination>
+            }}
+          />
         </div>
 
         <div className="flex flex-1 justify-end">
@@ -727,8 +729,7 @@ export default function InvoiceListTable({
   }, [
     controlledOnPageChange,
     filteredItems.length,
-    isServerPagination,
-    onRowsPerPageChange,
+    isServerPagination, onRowsPerPageChange,
     page,
     pages,
     paginationKey,
@@ -755,7 +756,7 @@ export default function InvoiceListTable({
     <div className="p-2">
       <div className="industrial-table-wrapper">
         <div className="mb-4">{topContent}</div>
-        <Table aria-label="Invoice list table" className="min-w-full">
+        <Table aria-label="Invoice list table" className={dataTableClassName("min-w-full")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)] overflow-x-auto"><Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
           <Table.Header columns={headerColumns}>
             {(column) => (
@@ -776,7 +777,7 @@ export default function InvoiceListTable({
               );
 
               return (
-                <Table.Row columns={columns} id={
+                <Table.Row columns={headerColumns} id={
                     item.invoice_id ||
                     item.id ||
                     `${item.company_id}-${item.outward_id ?? "no-outward"}`

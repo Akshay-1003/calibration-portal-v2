@@ -14,13 +14,14 @@ import {
   Label,
   ListBox,
   Popover,
-  Pagination,
   Select,
 } from "@heroui/react";
 import type { Selection, SortDescriptor } from "@react-types/shared";
 
 import { EquipmentHistoryData } from "../../store/equipmentHistoryStore";
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { TablePagination } from "./TablePagination";
+import { dataTableClassName } from "./tableStyles";
 
 interface EquipmentHistoryListTableProps {
   data: EquipmentHistoryData[];
@@ -243,17 +244,6 @@ export default function EquipmentHistoryListTable({
     setPage(1);
   }, []);
 
-  const onNextPage = React.useCallback(() => {
-    if (page < pages) {
-      setPage(page + 1);
-    }
-  }, [page, pages]);
-
-  const onPreviousPage = React.useCallback(() => {
-    if (page > 1) {
-      setPage(page - 1);
-    }
-  }, [page]);
 
   const emptyContent = React.useMemo(() => {
     if (error) {
@@ -325,13 +315,7 @@ export default function EquipmentHistoryListTable({
 
         {/* CENTER - Pagination */}
         <div className="flex-1 flex justify-center">
-          <Pagination>
-            <Pagination.Content>
-              <Pagination.Previous isDisabled={page <= 1} onPress={onPreviousPage}><Pagination.PreviousIcon /></Pagination.Previous>
-              {Array.from({ length: pages }, (_, index) => index + 1).map((pageNumber) => <Pagination.Item key={pageNumber}><Pagination.Link isActive={pageNumber === page} onPress={() => setPage(pageNumber)}>{pageNumber}</Pagination.Link></Pagination.Item>)}
-              <Pagination.Next isDisabled={page >= pages} onPress={onNextPage}><Pagination.NextIcon /></Pagination.Next>
-            </Pagination.Content>
-          </Pagination>
+          <TablePagination page={page} totalPages={pages} onPageChange={setPage} />
         </div>
 
         {/* RIGHT - Rows per page */}
@@ -351,15 +335,13 @@ export default function EquipmentHistoryListTable({
     page,
     pages,
     selectedKeys,
-    onNextPage,
-    onPreviousPage,
     rowsPerPage,
     onRowsPerPageChange,
   ]);
   return (
     <div className="p-2 industrial-table-wrapper">
       <div className="mb-4">{topContent}</div>
-      <Table aria-label="Equipment history table" className="min-w-full">
+      <Table aria-label="Equipment history table" className={dataTableClassName("min-w-full")}>
         <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
           <Table.Content selectedKeys={selectedKeys} selectionMode="multiple" sortDescriptor={sortDescriptor} onSelectionChange={setSelectedKeys} onSortChange={setSortDescriptor}>
         <Table.Header columns={headerColumns}>
