@@ -146,6 +146,7 @@ export interface Gauge {
   process: string;
   unit: string;
   calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
+  calibration_location?: string;
   calibration_done_under: string;
   gauge_condition: string;
   specifications?: GaugeSpecifications;
@@ -300,6 +301,7 @@ export interface CertificateGaugeData {
   calibration_frequency_unit: "days" | "months" | "years";
 
   calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
+  calibration_location?: string;
 
   process: string;
   unit: string;
@@ -341,6 +343,7 @@ export interface CombinedGaugeData {
   calibration_frequency: number;
   calibration_frequency_unit: "days" | "months" | "years";
   calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
+  calibration_location?: string;
   certificate_type: string;
   certificate_type_id: string;
   client_org_id: string;

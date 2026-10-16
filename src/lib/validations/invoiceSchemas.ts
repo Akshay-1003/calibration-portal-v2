@@ -43,6 +43,8 @@ export const createInvoiceHeaderFormSchema = z.object({
   outward_nos: z.array(z.string().min(1, 'Outward number is required')).default([]),
   order_number: z.string().optional(),
   order_date: z.string().optional(),
+  po_number: z.string().optional(),
+  po_date: z.string().optional(),
   from_date: z.string().optional(),
   to_date: z.string().optional(),
   credit_days: z.coerce.number().refine((value) => [0, 30, 45, 60].includes(value), {
@@ -143,6 +145,8 @@ export const editInvoiceFormSchema = invoiceFormSchema.extend({
   outward_nos: z.array(z.string().min(1, 'Outward number is required')).default([]),
   order_number: z.string().optional(),
   order_date: z.string().optional(),
+  po_number: z.string().optional(),
+  po_date: z.string().optional(),
   from_date: z.string().optional(),
   to_date: z.string().optional(),
   credit_days: z.coerce.number().refine((value) => [0, 30, 45, 60].includes(value), {

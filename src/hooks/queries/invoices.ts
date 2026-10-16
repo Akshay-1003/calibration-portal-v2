@@ -59,6 +59,8 @@ export interface CreateInvoicePayload {
   gauge_inward_ids: string[];
   order_number: string | null;
   order_date: string | null;
+  po_number?: string | null;
+  po_date?: string | null;
   from_date: string | null;
   to_date: string | null;
   status: 'draft';
@@ -247,6 +249,8 @@ const normalizeDraftResponseToInvoice = (
     date_of_issue: issueDate,
     order_number: payload?.order_number ?? null,
     order_date: payload?.order_date ?? null,
+    po_number: payload?.po_number ?? response.po_number ?? null,
+    po_date: payload?.po_date ?? response.po_date ?? null,
     from_date: payload?.from_date ?? null,
     to_date: payload?.to_date ?? null,
     invoice_from_date: payload?.from_date ?? null,
@@ -471,6 +475,8 @@ export function useCreateInvoiceMutation() {
         outward_no: payload.outward_no ?? '',
         order_number: payload.order_number ?? '',
         order_date: payload.order_date ?? '',
+        po_number: payload.po_number ?? '',
+        po_date: payload.po_date ?? '',
         from_date: payload.from_date ?? '',
         to_date: payload.to_date ?? '',
         pdf_columns: payload.pdf_columns,

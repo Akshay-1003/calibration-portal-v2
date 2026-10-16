@@ -6,9 +6,11 @@ import {
   ListBox,
   Select,
   TextArea,
+  Label,
 } from '@heroui/react';
 import { TablePageWrapper } from '../../../components/layout/TablePageWrapper';
-import { Button } from '../../../components/ui/button';
+// import { Button, Button } from '../../../components/ui/button';
+import { Button } from '@heroui/react';
 import type { CompanyWithOutward } from '../../../store/invoiceStore';
 import { ArrowPathIcon, PlusIcon } from '@heroicons/react/24/outline';
 import { InvoicePreviewModal } from '../../../components/billing/InvoicePreviewModal';
@@ -65,10 +67,10 @@ const toFiniteNumber = (value: unknown): number | undefined => {
 const getInvoiceAmount = (invoice?: CompanyWithOutward | null): number =>
   invoice
     ? toFiniteNumber(invoice.grand_total) ??
-      toFiniteNumber(invoice.total_amount) ??
-      toFiniteNumber(invoice.invoice_details?.grand_total) ??
-      toFiniteNumber(invoice.invoice_details?.sub_total) ??
-      0
+    toFiniteNumber(invoice.total_amount) ??
+    toFiniteNumber(invoice.invoice_details?.grand_total) ??
+    toFiniteNumber(invoice.invoice_details?.sub_total) ??
+    0
     : 0;
 
 const formatAmount = (amount: number) => amountFormatter.format(amount);
@@ -107,12 +109,12 @@ const calculateVisibleSummary = (invoices: CompanyWithOutward[]): InvoiceSummary
 const hasSummaryValue = (summary?: InvoiceSummary) =>
   Boolean(
     summary &&
-      (
-        summary.total_invoice_value ||
-        summary.collected_amount ||
-        summary.pending_amount ||
-        summary.overdue_amount
-      ),
+    (
+      summary.total_invoice_value ||
+      summary.collected_amount ||
+      summary.pending_amount ||
+      summary.overdue_amount
+    ),
   );
 
 function InvoiceSummaryCards({ summary }: { summary: InvoiceSummary }) {
@@ -207,34 +209,36 @@ function InvoiceManagementFilters({
   return (
     <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(220px,1fr)_180px_160px_auto] md:items-end">
-        <label className="text-sm font-medium text-slate-700">Company Name
-          <Input placeholder="Filter company..." value={companyName} onChange={(event) => onCompanyNameChange(event.target.value)} />
-        </label>
-        <label className="text-sm font-medium text-slate-700">Month
-          <Select selectedKey={billingMonth} onSelectionChange={(key) => onBillingMonthChange(key ? String(key) : 'all')}>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="input-type-email">Company Name</Label>
+          <Input placeholder="Filter company..." value={companyName} onChange={(event) => onCompanyNameChange(event.target.value)} className=" border shadow-none border-gray-400 outline-none focus:ring-1 focus:ring-blue-400 rounded-lg focus:bg-blue-100/20 " />
+        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="input-type-email">Month</Label>
+          <Select value={billingMonth} onChange={(key) => onBillingMonthChange(key ? String(key) : 'all')}>
             <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
             <Select.Popover><ListBox>
               {monthOptions.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}
             </ListBox></Select.Popover>
-          </Select>
-        </label>
-        <label className="text-sm font-medium text-slate-700">Year
-          <Select selectedKey={billingYear} onSelectionChange={(key) => onBillingYearChange(key ? String(key) : 'all')}>
+          </Select>        </div>
+        <div className="flex flex-col gap-1">
+          <Label htmlFor="input-type-email">Year</Label>
+          <Select value={billingYear} onChange={(key) => onBillingYearChange(key ? String(key) : 'all')}>
             <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
             <Select.Popover><ListBox>
               {yearOptions.map((option) => <ListBox.Item key={option.key} id={option.key} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}
             </ListBox></Select.Popover>
           </Select>
-        </label>
-        <HeroButton
+        </div>
+
+        <Button
           size="sm"
-          variant="outline"
           onPress={onClear}
           isDisabled={!hasActiveFilter}
           className="h-9 px-4 font-medium"
         >
           Clear
-        </HeroButton>
+        </Button>
       </div>
     </div>
   );
@@ -291,7 +295,7 @@ function PaymentRecordModal({
             <label className="text-sm font-medium text-slate-700">Amount<Input value={formatAmount(getInvoiceAmount(invoice))} readOnly /></label>
             <label className="text-sm font-medium text-slate-700">Payment Date<Input type="date" value={paymentDate} required disabled={isSubmitting} onChange={(event) => setPaymentDate(event.target.value)} /></label>
             <label className="text-sm font-medium text-slate-700">Payment Mode
-              <Select selectedKey={paymentMode} isDisabled={isSubmitting} onSelectionChange={(key) => { if (key) setPaymentMode(String(key) as MarkInvoicePaidPayload['payment_mode']); }}>
+              <Select value={paymentMode} isDisabled={isSubmitting} onChange={(key) => { if (key) setPaymentMode(String(key) as MarkInvoicePaidPayload['payment_mode']); }}>
                 <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
                 <Select.Popover><ListBox>{paymentModes.map((mode) => <ListBox.Item key={mode} id={mode} textValue={mode}>{mode}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
               </Select>
@@ -323,22 +327,22 @@ function PaymentDetailsModal({
   return (
     <Modal.Root isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
       <Modal.Backdrop><Modal.Container size="lg"><Modal.Dialog>
-            <Modal.Header><Modal.Heading>Payment Details</Modal.Heading></Modal.Header>
-            <Modal.Body className="grid gap-3 pb-2 sm:grid-cols-2">
-              <DetailField label="Invoice Number" value={invoice?.invoice_number || 'N/A'} />
-              <DetailField label="Customer" value={invoice?.client_org || invoice?.company_name || 'N/A'} />
-              <DetailField label="Amount" value={formatAmount(getInvoiceAmount(invoice))} />
-              <DetailField label="Status" value={invoiceDisplayStatusLabel[displayStatus]} />
-              <DetailField label="Payment Date" value={formatDate(invoice?.payment_date)} />
-              <DetailField label="Payment Mode" value={invoice?.payment_mode || 'N/A'} />
-              <DetailField label="Reference / UTR" value={invoice?.payment_reference_no || 'N/A'} />
-              <DetailField label="Remarks" value={invoice?.payment_remarks || 'N/A'} className="sm:col-span-2" />
-            </Modal.Body>
-            <Modal.Footer>
-              <HeroButton variant="primary" onPress={onClose}>
-                Close
-              </HeroButton>
-            </Modal.Footer>
+        <Modal.Header><Modal.Heading>Payment Details</Modal.Heading></Modal.Header>
+        <Modal.Body className="grid gap-3 pb-2 sm:grid-cols-2">
+          <DetailField label="Invoice Number" value={invoice?.invoice_number || 'N/A'} />
+          <DetailField label="Customer" value={invoice?.client_org || invoice?.company_name || 'N/A'} />
+          <DetailField label="Amount" value={formatAmount(getInvoiceAmount(invoice))} />
+          <DetailField label="Status" value={invoiceDisplayStatusLabel[displayStatus]} />
+          <DetailField label="Payment Date" value={formatDate(invoice?.payment_date)} />
+          <DetailField label="Payment Mode" value={invoice?.payment_mode || 'N/A'} />
+          <DetailField label="Reference / UTR" value={invoice?.payment_reference_no || 'N/A'} />
+          <DetailField label="Remarks" value={invoice?.payment_remarks || 'N/A'} className="sm:col-span-2" />
+        </Modal.Body>
+        <Modal.Footer>
+          <HeroButton variant="primary" onPress={onClose}>
+            Close
+          </HeroButton>
+        </Modal.Footer>
       </Modal.Dialog></Modal.Container></Modal.Backdrop>
     </Modal.Root>
   );
@@ -659,18 +663,18 @@ const InvoicePage = React.memo(() => {
         actions={
           <div className="flex gap-2">
             <Button
-              onClick={() => navigate('/billing/invoice/create')}
+              onPress={() => navigate('/billing/invoice/create')}
               className="bg-blue-600 text-white flex items-center gap-2"
-              disabled={!canManageInvoices}
+              isDisabled={!canManageInvoices}
             >
               <PlusIcon className="w-4 h-4" />
               Create Invoice
             </Button>
             <Button
-              onClick={handleRefresh}
+              onPress={handleRefresh}
               variant="outline"
               className="flex items-center gap-2"
-              disabled={loadingCompanies || isFetching}
+              isDisabled={loadingCompanies || isFetching}
             >
               <ArrowPathIcon className={`w-4 h-4 ${loadingCompanies || isFetching ? 'animate-spin' : ''}`} />
               Refresh

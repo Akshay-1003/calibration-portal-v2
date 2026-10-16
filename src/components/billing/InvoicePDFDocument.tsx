@@ -20,210 +20,12 @@ import { buildInvoiceSummaryRows } from '../../utils/invoiceSummaryRows';
 const TABLE_BORDER_COLOR = '#374151';
 const TABLE_BORDER_WIDTH = 0.8;
 const TABLE_BORDER = `${TABLE_BORDER_WIDTH}pt solid ${TABLE_BORDER_COLOR}`;
-const A4_PAGE_HEIGHT = 841.89;
 // Match QuotationPDFDocument's standard A4 handling. Keeping a real A4 media
 // size avoids Chrome/printer auto-rotating a custom-sized PDF blob.
 const PAGE_TOP_PADDING = 14;
 const PAGE_BOTTOM_PADDING = 18;
 const PAGE_LEFT_PADDING = 16;
 const PAGE_RIGHT_PADDING = 16;
-const PAGE_VERTICAL_PADDING = PAGE_TOP_PADDING + PAGE_BOTTOM_PADDING;
-const A4_PAGE_CONTENT_HEIGHT = A4_PAGE_HEIGHT - PAGE_VERTICAL_PADDING;
-const TABLE_HEADER_HEIGHT = 22;
-// The first page header contains variable-length company and customer details.
-// Reserve enough space for wrapped addresses before placing table rows.
-const FIRST_PAGE_HEADER_HEIGHT = 112;
-const TABLE_TOTAL_ROW_HEIGHT = 20;
-const TABLE_BOTTOM_MARGIN = 6;
-const AMOUNT_WORDS_HEIGHT = 14;
-const FOOTER_SECTION_TOP_MARGIN = 6;
-const FOOTER_INNER_TABLE_TOP_MARGIN = 6;
-const BANK_DETAILS_HEIGHT = 102;
-const TOTALS_ROW_HEIGHT = 18;
-const SIGNATURE_SECTION_HEIGHT = 44;
-// Page numbers are absolutely positioned inside the page padding. Keep a small
-// band only to avoid visual overlap, not a second full footer reservation.
-const PAGE_NUMBER_RESERVED_HEIGHT = 12;
-const PAGINATION_SAFETY_BUFFER = 10;
-const MIN_ROW_HEIGHT = 17;
-const WRAPPED_LINE_HEIGHT = 6.5;
-const MIN_FINAL_PAGE_ROWS_ON_SPLIT = 4;
-
-interface InvoicePdfPage {
-  items: InvoiceItem[];
-  startIndex: number;
-}
-
-interface InvoicePaginationOptions {
-  summaryRowCount?: number;
-  amountInWords?: string;
-}
-
-const getTextLineCount = (value: string, charactersPerLine: number) =>
-  Math.max(1, Math.ceil(value.trim().length / charactersPerLine));
-
-const estimateRowHeight = (item: InvoiceItem) => {
-  const gaugeLines = getTextLineCount(item.gauge_name || '-', 22);
-  const identificationLines = getTextLineCount(item.identification_number || '-', 16);
-  const specificationLines = getTextLineCount(item.specification || '-', 32);
-  const maxLines = Math.max(gaugeLines, identificationLines, specificationLines);
-
-  return MIN_ROW_HEIGHT + Math.max(0, maxLines - 1) * WRAPPED_LINE_HEIGHT;
-};
-
-const estimateRowsHeight = (items: InvoiceItem[], startIndex = 0, endIndex = items.length) =>
-  items
-    .slice(startIndex, endIndex)
-    .reduce((total, item) => total + estimateRowHeight(item), 0);
-
-const estimateLastPageSummaryHeight = ({
-  summaryRowCount = 6,
-  amountInWords = '',
-}: InvoicePaginationOptions = {}) => {
-  const amountWordsExtraLine =
-    amountInWords.trim().length > 82 ? WRAPPED_LINE_HEIGHT : 0;
-  const totalsHeight =
-    FOOTER_INNER_TABLE_TOP_MARGIN + Math.max(summaryRowCount, 1) * TOTALS_ROW_HEIGHT;
-  const bottomTablesHeight = Math.max(BANK_DETAILS_HEIGHT, totalsHeight);
-
-  return (
-    TABLE_TOTAL_ROW_HEIGHT +
-    TABLE_BOTTOM_MARGIN +
-    AMOUNT_WORDS_HEIGHT +
-    amountWordsExtraLine +
-    FOOTER_SECTION_TOP_MARGIN +
-    bottomTablesHeight +
-    SIGNATURE_SECTION_HEIGHT
-  );
-};
-
-const getAvailableRowHeight = ({
-  isFirstPage,
-  isLastPage,
-  showPageNumber,
-  summaryHeight,
-}: {
-  isFirstPage: boolean;
-  isLastPage: boolean;
-  showPageNumber: boolean;
-  summaryHeight: number;
-}) =>
-  A4_PAGE_CONTENT_HEIGHT -
-  TABLE_HEADER_HEIGHT -
-  (isFirstPage ? FIRST_PAGE_HEADER_HEIGHT : 0) -
-  (isLastPage ? summaryHeight : 0) -
-  (showPageNumber ? PAGE_NUMBER_RESERVED_HEIGHT : 0) -
-  PAGINATION_SAFETY_BUFFER;
-
-const takeRowsForHeight = (
-  items: InvoiceItem[],
-  startIndex: number,
-  availableHeight: number,
-  minimumRows = 1,
-) => {
-  let usedHeight = 0;
-  let nextIndex = startIndex;
-
-  while (nextIndex < items.length) {
-    const rowHeight = estimateRowHeight(items[nextIndex]);
-    if (nextIndex > startIndex && usedHeight + rowHeight > availableHeight) {
-      break;
-    }
-    if (nextIndex === startIndex && rowHeight > availableHeight && minimumRows <= 1) {
-      nextIndex += 1;
-      break;
-    }
-    usedHeight += rowHeight;
-    nextIndex += 1;
-  }
-
-  return Math.max(nextIndex, Math.min(items.length, startIndex + minimumRows));
-};
-
-export const paginateInvoiceItems = (
-  items: InvoiceItem[],
-  options: InvoicePaginationOptions = {},
-): InvoicePdfPage[] => {
-  if (items.length === 0) {
-    return [{ items: [], startIndex: 0 }];
-  }
-
-  const summaryHeight = estimateLastPageSummaryHeight(options);
-  const pages: InvoicePdfPage[] = [];
-  let startIndex = 0;
-
-  while (startIndex < items.length) {
-    const isFirstPage = pages.length === 0;
-    const remainingItems = items.slice(startIndex);
-    const lastPageCapacity = getAvailableRowHeight({
-      isFirstPage,
-      isLastPage: true,
-      showPageNumber: true,
-      summaryHeight,
-    });
-
-    const remainingHeight = estimateRowsHeight(remainingItems);
-
-    if (remainingHeight <= lastPageCapacity) {
-      pages.push({ items: remainingItems, startIndex });
-      break;
-    }
-
-    const regularPageCapacity = getAvailableRowHeight({
-      isFirstPage,
-      isLastPage: false,
-      showPageNumber: true,
-      summaryHeight,
-    });
-
-    if (remainingHeight <= regularPageCapacity) {
-      // Keep all remaining rows on this logical page. The final summary block is
-      // unbreakable, so React-PDF will place it in the remaining space when it
-      // truly fits, or move the complete block to the next physical page.
-      pages.push({ items: remainingItems, startIndex });
-      break;
-    }
-
-    let nextIndex = takeRowsForHeight(items, startIndex, regularPageCapacity);
-
-    if (nextIndex >= items.length) {
-      nextIndex = Math.max(startIndex + 1, items.length - 1);
-    }
-
-    const remainingAfterCandidate = items.length - nextIndex;
-    if (
-      remainingAfterCandidate > 0 &&
-      remainingAfterCandidate < MIN_FINAL_PAGE_ROWS_ON_SPLIT
-    ) {
-      const desiredFinalRows = Math.min(
-        MIN_FINAL_PAGE_ROWS_ON_SPLIT,
-        items.length - startIndex - 1,
-      );
-      const adjustedNextIndex = items.length - desiredFinalRows;
-
-      if (
-        adjustedNextIndex > startIndex &&
-        adjustedNextIndex < nextIndex &&
-        estimateRowsHeight(items, adjustedNextIndex) <= lastPageCapacity
-      ) {
-        nextIndex = adjustedNextIndex;
-      }
-    }
-
-    if (nextIndex <= startIndex) {
-      nextIndex = Math.min(startIndex + 1, items.length);
-    }
-
-    pages.push({
-      items: items.slice(startIndex, nextIndex),
-      startIndex,
-    });
-    startIndex = nextIndex;
-  }
-
-  return pages;
-};
-
 const styles = StyleSheet.create({
   page: {
     paddingTop: PAGE_TOP_PADDING,
@@ -296,6 +98,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 1.5,
   },
+  metaPairRow: { flexDirection: 'row', paddingVertical: 1.5 },
+  metaPair: { width: '50%', flexDirection: 'row' },
+  metaPairLabel: { width: '45%', fontSize: 7.2 },
+  metaPairValue: { width: '55%', fontSize: 7.2, fontWeight: 'bold' },
   metaLabel: {
     width: '40%',
     fontSize: 8,
@@ -309,18 +115,20 @@ const styles = StyleSheet.create({
   },
   table: {
     width: '100%',
-    borderTop: TABLE_BORDER,
-    borderLeft: TABLE_BORDER,
-    borderRight: TABLE_BORDER,
   },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#f3f3f3',
+    borderTop: TABLE_BORDER,
+    borderLeft: TABLE_BORDER,
+    borderRight: TABLE_BORDER,
     borderBottom: TABLE_BORDER,
     minHeight: 22,
   },
   tableRow: {
     flexDirection: 'row',
+    borderLeft: TABLE_BORDER,
+    borderRight: TABLE_BORDER,
     borderBottom: TABLE_BORDER,
     minHeight: 17,
   },
@@ -528,15 +336,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: PAGE_RIGHT_PADDING,
-    width: 62,
     fontSize: 7,
     color: '#1f2937',
-    border: '1px solid #6b7280',
-    backgroundColor: '#ffffff',
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 2,
-    textAlign: 'center',
+    textAlign: 'right',
   },
 });
 
@@ -580,11 +382,6 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
   });
   const serviceTotals = getInvoicePdfServiceTotals(displayRows);
   const totalsRows = buildInvoiceSummaryRows(data, displayRows);
-  const pages = paginateInvoiceItems(displayRows, {
-    summaryRowCount: totalsRows.length,
-    amountInWords,
-  });
-  const totalPages = pages.length;
   const totalRowCells = getInvoicePdfTotalRowCells(tableColumns, {
     calibration_charge: formatCurrency(serviceTotals.calibration),
     repair_new: formatCurrency(serviceTotals.repair),
@@ -632,7 +429,6 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
       ? styles.tdCompact
       : undefined,
     column.key === 'identification_number' ? styles.tdIdentification : undefined,
-    column.key === 'hsn' ? { whiteSpace: 'nowrap' } : undefined,
     column.key === 'specification' ? styles.tdSpec : undefined,
     column.key === 'repair_new' ? styles.tdRepair : undefined,
     column.key === 'repair_new' ||
@@ -653,18 +449,9 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
     isLastColumn ? styles.noBorderRight : undefined,
   ];
 
-  const renderPage = (page: InvoicePdfPage, pageIndex: number) => {
-    const { items: pageItems, startIndex } = page;
-    const isFirstPage = pageIndex === 0;
-    const isLastPage = pageIndex === totalPages - 1;
-
+  const renderPage = () => {
     return (
-      <Page
-        key={pageIndex}
-        size="A4"
-        style={styles.page}
-      >
-        {isFirstPage ? (
+      <Page size="A4" style={styles.page}>
           <>
             <View style={styles.header}>
               <View style={styles.headerLeft}>
@@ -687,9 +474,31 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
               </View>
 
               <View style={styles.metaTable}>
+                <View style={styles.metaPairRow}>
+                  <View style={styles.metaPair}>
+                    <Text style={styles.metaPairLabel}>INVOICE NO. :</Text>
+                    <Text style={styles.metaPairValue}>{data.invoice_number || '-'}</Text>
+                  </View>
+                  {data.po_number ? (
+                    <View style={styles.metaPair}>
+                      <Text style={styles.metaPairLabel}>PO NO. :</Text>
+                      <Text style={styles.metaPairValue}>{data.po_number}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                <View style={styles.metaPairRow}>
+                  <View style={styles.metaPair}>
+                    <Text style={styles.metaPairLabel}>DATE :</Text>
+                    <Text style={styles.metaPairValue}>{formatDate(data.billing_date)}</Text>
+                  </View>
+                  {data.po_date ? (
+                    <View style={styles.metaPair}>
+                      <Text style={styles.metaPairLabel}>PO DATE :</Text>
+                      <Text style={styles.metaPairValue}>{formatDate(data.po_date)}</Text>
+                    </View>
+                  ) : null}
+                </View>
                 {[
-                  ['INVOICE NO. :', data.invoice_number || '-'],
-                  ['DATE :', formatDate(data.billing_date)],
                   // ['OUTWARD NO(S). :', data.outward_no || '-'],
                   ['ORDER NO. :', data.order_number || '-'],
                   ['ORDER DATE :', formatDate(data.order_date)],
@@ -702,10 +511,8 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
               </View>
             </View>
           </>
-        ) : null}
-
         <View style={styles.table}>
-          <View style={styles.tableHeader} wrap={false}>
+          <View style={styles.tableHeader} fixed wrap={false}>
             {tableColumns.map((column, index) => (
               <Text
                 key={column.key}
@@ -720,7 +527,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
             ))}
           </View>
 
-          {pageItems.map((item: InvoiceItem, index: number) => {
+          {displayRows.map((item: InvoiceItem, index: number) => {
             return (
               <View
                 key={`${item.sr_no}-${index}`}
@@ -735,7 +542,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : undefined,
                     ]}
                   >
-                    {wrapPdfCellText(getItemCellValue(item, column, startIndex + index + 1))}
+                    {wrapPdfCellText(getItemCellValue(item, column, index + 1))}
                   </Text>
                 ))}
               </View>
@@ -743,8 +550,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
           })}
         </View>
 
-        {isLastPage ? (
-          <View style={styles.finalSummaryBlock} wrap={false}>
+        <View style={styles.finalSummaryBlock} wrap={false}>
             <View style={styles.finalTotalTable}>
               <View style={styles.tableTotalRow}>
                 {totalRowCells.map((cell, cellIndex) => (
@@ -843,18 +649,15 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                 </View>
               </View>
             </View>
-          </View>
-        ) : null}
+        </View>
 
-        {totalPages > 1 ? (
-          <Text
+        <Text
             style={styles.pageFooter}
             fixed
             render={({ pageNumber, totalPages: renderedTotalPages }) =>
-              `Page ${pageNumber} of ${renderedTotalPages}`
+              renderedTotalPages > 1 ? `Page ${pageNumber} of ${renderedTotalPages}` : ''
             }
           />
-        ) : null}
       </Page>
     );
   };
@@ -867,7 +670,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
       creator="MetrologyDesk"
       producer="MetrologyDesk"
     >
-      {pages.map((page, index) => renderPage(page, index))}
+      {renderPage()}
     </Document>
   );
 };

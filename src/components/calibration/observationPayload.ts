@@ -124,6 +124,83 @@ const normalizeGoNoGoTablesToPrint = (value: unknown): GoNoGoTableKey[] => {
   );
 };
 
+const REQUIRED_DIAL_NUMBER_KEYS = new Set([
+  "actual_reading",
+  "observed_error",
+  "upward_actual",
+  "upward_error",
+  "downward_actual",
+  "downward_error",
+  "stylus_up_actual_reading",
+  "stylus_up_observed_error",
+  "stylus_down_actual_reading",
+  "stylus_down_observed_error",
+  "measured_dimension",
+  "mean",
+  "turn",
+  "range",
+  "value",
+]);
+
+const REQUIRED_DIAL_NUMBER_ARRAY_KEYS = new Set([
+  "readings",
+  "repeatability",
+  "type_a_readings",
+]);
+
+const asRequiredNumber = (value: unknown): unknown => {
+  if (value == null || (typeof value === "string" && value.trim() === "")) {
+    return 0;
+  }
+
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : value;
+  }
+
+  return value;
+};
+
+const normalizeRequiredDialNumbers = (value: unknown): unknown => {
+  if (Array.isArray(value)) {
+    return value.map(normalizeRequiredDialNumbers);
+  }
+  if (!isRecord(value)) return value;
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nested]) => {
+      if (REQUIRED_DIAL_NUMBER_KEYS.has(key)) {
+        return [key, asRequiredNumber(nested)];
+      }
+      if (REQUIRED_DIAL_NUMBER_ARRAY_KEYS.has(key) && Array.isArray(nested)) {
+        return [
+          key,
+          nested.map((item) =>
+            item && typeof item === "object"
+              ? normalizeRequiredDialNumbers(item)
+              : asRequiredNumber(item),
+          ),
+        ];
+      }
+      return [key, normalizeRequiredDialNumbers(nested)];
+    }),
+  );
+};
+
+export const normalizeRequiredDialMeasurements = (
+  gaugeType: string | null | undefined,
+  observations: ObservationPayload,
+): ObservationPayload => {
+  const gaugeTypeKey = normalizeGaugeTypeKey(gaugeType);
+  const obsType = getObservationTypeForGauge(gaugeType);
+
+  if (obsType !== "dial" && obsType !== "lever_dial" && gaugeTypeKey !== "plunger dial") {
+    return observations;
+  }
+
+  return normalizeRequiredDialNumbers(observations) as ObservationPayload;
+};
+
 export const buildCalibrationObservationsPayload = (options: {
   gaugeType?: string | null;
   observations?: unknown;

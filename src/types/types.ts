@@ -81,6 +81,7 @@ export interface GaugeData {
     unit: "mm" | "inch" | "cm" | "m";
 
     calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
+    calibration_location?: string;
     calibration_done_under: "nabl" | "non_nabl";
     gauge_condition: string;
 
@@ -174,6 +175,8 @@ export interface Invoice {
   date_of_issue: string; // YYYY-MM-DD
   order_number?: string | null;
   order_date?: string | null;
+  po_number?: string | null;
+  po_date?: string | null;
   from_date?: string | null;
   to_date?: string | null;
   invoice_from_date?: string | null;

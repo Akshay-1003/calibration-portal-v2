@@ -1,13 +1,17 @@
-import { describe, expect, it } from 'vitest';
-import { paginateInvoiceItems } from '../components/billing/InvoicePDFDocument';
-import type { InvoiceItem } from '../components/billing/InvoiceTemplate';
+// @vitest-environment node
+
+import React from 'react';
+import { renderToBuffer } from '@react-pdf/renderer';
+import { describe, expect, it, vi } from 'vitest';
+import { InvoicePDFDocument } from '../components/billing/InvoicePDFDocument';
+import type { InvoiceData, InvoiceItem } from '../components/billing/InvoiceTemplate';
 
 const makeInvoiceItem = (srNo: number): InvoiceItem => ({
   sr_no: srNo,
-  gauge_name: srNo <= 2 ? 'Bore Gauge' : srNo <= 5 ? 'Caliper' : 'External Micrometer',
-  identification_number: `AI-${String(srNo).padStart(3, '0')}`,
-  dc_no: '-',
-  specification: '(0.00 - 200.00) mm; LC: 0.0100 mm',
+  gauge_name: 'External Micrometer',
+  identification_number: `MIC-${String(srNo).padStart(4, '0')}`,
+  dc_no: `DC-${String(srNo).padStart(4, '0')}`,
+  specification: '(0.00 - 25.00) mm; LC: 0.0010 mm',
   hsn: '998346',
   repair_new: 0,
   calibration_charge: 150,
@@ -17,32 +21,57 @@ const makeInvoiceItem = (srNo: number): InvoiceItem => ({
   row_kind: 'instrument',
 });
 
-const makeInvoiceItems = (count: number) =>
-  Array.from({ length: count }, (_, index) => makeInvoiceItem(index + 1));
+const makeInvoice = (itemCount: number): InvoiceData => ({
+  company_name: 'Metrology Services',
+  office_address: 'Industrial Estate, Main Road',
+  work_address: '',
+  company_email: 'billing@example.com',
+  invoice_number: 'INV-TEST',
+  billing_date: '2026-10-16',
+  outward_no: 'OUT-TEST',
+  client_name: 'Customer',
+  client_address: 'Customer address',
+  client_gst_no: '',
+  items: Array.from({ length: itemCount }, (_, index) => makeInvoiceItem(index + 1)),
+  total: itemCount * 150,
+  total_qty: itemCount,
+  packing_forwarding_charges: 0,
+  courier_transport_charges: 0,
+  discount_amount: 0,
+  discount_percentage: 0,
+  net_amount: itemCount * 150,
+  taxable_amount: itemCount * 150,
+  sgst_percentage: 0,
+  sgst_amount: 0,
+  cgst_percentage: 0,
+  cgst_amount: 0,
+  grand_total: itemCount * 150,
+  rounded_off_total: itemCount * 150,
+  bank_name: 'Bank',
+  account_number: '123456',
+  ifsc: 'BANK0001',
+  gstin: 'GSTIN',
+  pan_no: 'PAN',
+});
+
+const getPdfPageCount = async (itemCount: number) => {
+  vi.stubGlobal('fetch', () => Promise.reject(new Error('Use the embedded Yoga WASM')));
+  const pdf = await renderToBuffer(
+    React.createElement(InvoicePDFDocument, { data: makeInvoice(itemCount) }) as Parameters<
+      typeof renderToBuffer
+    >[0],
+  );
+  return [...pdf.toString('latin1').matchAll(/\/Type\s*\/Page\b/g)].length;
+};
 
 describe('invoice PDF pagination', () => {
-  it('keeps remaining rows on the final logical page so the summary can use available space', () => {
-    const pages = paginateInvoiceItems(makeInvoiceItems(53), {
-      summaryRowCount: 7,
-      amountInWords: 'NINE THOUSAND FIVE HUNDRED SEVENTY NINE RUPEES ONLY',
-    });
+  it('flows short, medium, and large invoices across content-driven pages', async () => {
+    const shortInvoicePages = await getPdfPageCount(8);
+    const mediumInvoicePages = await getPdfPageCount(38);
+    const largeInvoicePages = await getPdfPageCount(125);
 
-    expect(pages).toHaveLength(2);
-    expect(pages.flatMap((page) => page.items)).toHaveLength(53);
-    expect(pages.map((page) => page.items.length)).toEqual([26, 27]);
-  });
-
-  it('uses the maximum safe middle-page row count when 35 rows would overflow', () => {
-    const pages = paginateInvoiceItems(makeInvoiceItems(75), {
-      summaryRowCount: 7,
-      amountInWords: 'NINE THOUSAND FIVE HUNDRED SEVENTY NINE RUPEES ONLY',
-    });
-
-    expect(pages.flatMap((page) => page.items)).toHaveLength(75);
-    expect(pages.map((page) => page.items.length)).toEqual([26, 31, 18]);
-  });
-
-  it('keeps shorter invoices on a single page', () => {
-    expect(paginateInvoiceItems(makeInvoiceItems(10))).toHaveLength(1);
+    expect(shortInvoicePages).toBe(1);
+    expect(mediumInvoicePages).toBe(2);
+    expect(largeInvoicePages).toBe(5);
   });
 });

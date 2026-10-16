@@ -62,7 +62,7 @@ export interface InvoiceTableGaugeItem {
   gauge_specification?: string;
   specifications?: Record<string, unknown> | string | null;
   master_gauge_id?: string;
-  source_type?: "outward" | "manual";
+  source_type?: "outward" | "inward" | "manual";
   unit?: string;
   instrument_quantity?: number;
 }

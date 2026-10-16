@@ -655,7 +655,7 @@ export default function InvoiceListTable({
 
   const topContent = React.useMemo(() => {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4  sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-wrap gap-2">
           {invoiceStatusFilterOptions.map((option) => {
             const isActive = statusFilter === option.key;
@@ -673,9 +673,7 @@ export default function InvoiceListTable({
             );
           })}
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <Input className="w-full sm:max-w-[44%]" placeholder="Search invoice number or company..." value={filterValue} onChange={(event) => onSearchChange(event.target.value)} />
-          {filterValue ? <Button type="button" variant="ghost" aria-label="Clear invoice search" onPress={onClear}><MagnifyingGlassIcon className="w-4 h-4" /></Button> : null}
+        <div className="flex flex-col gap-3">
           <div className="flex gap-3">
             <Popover>
               <Popover.Trigger>

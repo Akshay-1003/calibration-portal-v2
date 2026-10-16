@@ -355,6 +355,8 @@ export const transformInvoiceToInvoiceData = (
     outward_no: getInvoiceOutwardNumbers(invoiceRecord),
     order_number: invoice.order_number ?? undefined,
     order_date: invoice.order_date ?? undefined,
+    po_number: invoice.po_number ?? undefined,
+    po_date: invoice.po_date ?? undefined,
 
     // Client Information
     client_name: invoice.client_details?.name || 'N/A',
@@ -561,6 +563,8 @@ export const transformInvoiceItemsToInvoiceData = (
     outward_no: getInvoiceOutwardNumbers(savedInvoiceRecord),
     order_number: firstText([savedInvoiceRecord.order_number]) || undefined,
     order_date: firstText([savedInvoiceRecord.order_date]) || undefined,
+    po_number: firstText([savedInvoiceRecord.po_number]) || undefined,
+    po_date: firstText([savedInvoiceRecord.po_date]) || undefined,
 
     // Client Information
     client_name: firstText([clientDetails.name], 'N/A'),
@@ -695,6 +699,8 @@ export const transformOutwardToInvoiceData = (
     outward_no: firstText([outwardRecord.outward_no, outwardRecord.id], 'N/A'),
     order_number: undefined,
     order_date: undefined,
+    po_number: undefined,
+    po_date: undefined,
 
     // Client Information
     client_name: firstText([outwardRecord.client_org], 'N/A'),

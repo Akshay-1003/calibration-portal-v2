@@ -374,11 +374,19 @@ class ApiService {
   async getInwards(
     filters?: InwardEntriesListQueryFilters & { page?: number; limit?: number }
   ): Promise<any> {
-    if (!hasActiveFilters(filters)) {
+    const normalizedFilters = filters
+      ? {
+          ...filters,
+          inward_date_from: filters.inward_date_from?.trim(),
+          inward_date_to: filters.inward_date_to?.trim(),
+        }
+      : undefined;
+
+    if (!hasActiveFilters(normalizedFilters)) {
       return this.get<any>(API_ENDPOINTS.INWARDS.LIST);
     }
 
-    const queryString = buildRequestQueryString(filters as Record<string, QueryPrimitive>);
+    const queryString = buildRequestQueryString(normalizedFilters as Record<string, QueryPrimitive>);
     const endpoint = `${API_ENDPOINTS.INWARDS.LIST}${queryString}`;
     
     return this.get<any>(endpoint);

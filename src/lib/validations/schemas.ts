@@ -313,6 +313,7 @@ const gaugeSubtypeSchema = z.object({
   calibration_location_type: z.enum(['permanent_facility', 'site_facility', 'mobile_facility'], {
     message: 'Please select a valid location type',
   }),
+  calibration_location: optionalStringSchema(),
   calibration_done_under: z.enum(['nabl', 'non_nabl'], {
     message: 'Please select a valid calibration type',
   }).optional(),
@@ -343,6 +344,7 @@ export const gaugeRegistrationSchema = z.object({
   calibration_location_type: z.enum(['permanent_facility', 'site_facility', 'mobile_facility'], {
     message: 'Please select a valid location type',
   }),
+  calibration_location: optionalStringSchema(),
   calibration_done_under: z.enum(['nabl', 'non_nabl'], {
     message: 'Please select a valid calibration type',
   }),

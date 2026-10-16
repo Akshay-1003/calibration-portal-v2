@@ -17,6 +17,8 @@ const baseInvoice: Invoice = {
   date_of_issue: '2026-08-11',
   order_number: 'PO-123',
   order_date: '2026-07-28',
+  po_number: 'CUSTOMER-PO-001',
+  po_date: '2026-07-30',
   from_date: null,
   to_date: null,
   status: 'draft',
@@ -83,6 +85,8 @@ describe('invoiceUtils', () => {
     expect(invoiceData.gstin).toBe('27TRADINGGST');
     expect(invoiceData.pan_no).toBe('TRADINGPAN');
     expect(invoiceData.order_date).toBe('2026-07-28');
+    expect(invoiceData.po_number).toBe('CUSTOMER-PO-001');
+    expect(invoiceData.po_date).toBe('2026-07-30');
   });
 
   it('does not fall back to hardcoded metrology firm details when account details are unavailable', () => {

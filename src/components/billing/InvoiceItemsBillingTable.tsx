@@ -5,7 +5,6 @@ import type { Key } from "@react-types/shared";
 import {
   Autocomplete,
   Button,
-  Label,
   ListBox,
   Input,
   Pagination,
@@ -13,10 +12,10 @@ import {
   Table,
 } from "@heroui/react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import "../../styles/industrial-table.css";
 import { formatSpecificationForPrint } from "../../utils/specificationPrintFormatter";
 import { useGaugeMastersWithQuery } from "../../hooks/useGaugeMastersWithQuery";
 import { getTableColumnKey } from '../Tables/tableColumnKey';
+import { dataTableClassName } from '../Tables/tableStyles';
 import {
   INVOICE_HSN_OPTIONS,
   getInvoiceHsnName,
@@ -49,6 +48,7 @@ interface InvoiceItemsBillingTableProps {
   onPageChange: (page: number) => void;
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onAddItem: () => void;
+  onAddExistingItem?: () => void;
   onAddHsn: (gaugeIndex: number) => void;
   onRemoveHsn: (gaugeIndex: number, hsnId: string) => void;
   onHsnChange: (gaugeIndex: number, hsnId: string, hsnCode: string, hsnName?: string) => void;
@@ -93,6 +93,19 @@ const columns: { name: string; uid: TableColumnKey }[] = [
   { name: "ACTION", uid: "actions" },
 ];
 
+const COLUMN_LAYOUT: Record<TableColumnKey, string> = {
+  sr_no: 'min-w-[72px] w-[72px]',
+  gauge_name: 'min-w-[220px]',
+  identification: 'min-w-[190px]',
+  specifications: 'min-w-[280px]',
+  hsn: 'min-w-[145px]',
+  rate: 'min-w-[145px]',
+  qty: 'min-w-[100px]',
+  discount: 'min-w-[180px]',
+  amount: 'min-w-[135px]',
+  actions: 'min-w-[105px] w-[105px]',
+};
+
 const CURRENT_GAUGE_FALLBACK_KEY_PREFIX = "__current_invoice_gauge__";
 
 function HsnCodeCombobox({
@@ -104,14 +117,13 @@ function HsnCodeCombobox({
   onChange: (value: string, label?: string) => void;
   isDisabled?: boolean;
 }) {
-  const selectedKey = getInvoiceHsnOption(entry.hsnCode)?.code ?? null;
+  const value = getInvoiceHsnOption(entry.hsnCode)?.code ?? null;
   const currentLabel = entry.hsnName || getInvoiceHsnName(entry.hsnCode);
 
   return (
     <div className="w-full min-w-0">
-      <Select selectedKey={selectedKey} onSelectionChange={(key) => key && onChange(String(key), getInvoiceHsnName(String(key)))} isDisabled={isDisabled} className="w-full">
-        <Label>HSN code</Label>
-        <Select.Trigger className="min-h-9 h-9 rounded-lg border border-slate-200 bg-white px-2 shadow-none"><Select.Value /><Select.Indicator /></Select.Trigger>
+      <Select value={value} onSelectionChange={(key) => key && onChange(String(key), getInvoiceHsnName(String(key)))} isDisabled={isDisabled} className="w-full">
+        <Select.Trigger className="h-9 min-h-9 w-full px-2"><Select.Value /><Select.Indicator /></Select.Trigger>
         <Select.Popover><ListBox>{INVOICE_HSN_OPTIONS.map((option) => <ListBox.Item key={option.code} id={option.code} textValue={`${option.code} ${option.name}`}><div className="flex flex-col py-0.5 leading-tight"><span className="text-xs font-medium text-slate-700">{option.code}</span><span className="text-[11px] text-slate-500">{option.name}</span></div><ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
       </Select>
       <div className="mt-1 whitespace-normal break-words text-[11px] leading-4 text-slate-500">
@@ -131,6 +143,7 @@ export default function InvoiceItemsBillingTable({
   onPageChange,
   onRowsPerPageChange,
   onAddItem,
+  onAddExistingItem,
   onAddHsn,
   onRemoveHsn,
   onHsnChange,
@@ -200,7 +213,7 @@ export default function InvoiceItemsBillingTable({
               : gaugeMasterList;
 
             return (
-              <Autocomplete selectedKey={currentGaugeKey} aria-label="Manual gauge name" isDisabled={isReadOnly} onSelectionChange={(key) => {
+              <Autocomplete value={currentGaugeKey} aria-label="Manual gauge name" isDisabled={isReadOnly} onSelectionChange={(key) => {
                   const selectedGaugeId = key as string | null;
                   if (!selectedGaugeId || selectedGaugeId.startsWith(CURRENT_GAUGE_FALLBACK_KEY_PREFIX)) {
                     return;
@@ -328,7 +341,7 @@ export default function InvoiceItemsBillingTable({
         case "discount":
           return (
             <div className="flex min-w-[150px] gap-1">
-              <Select aria-label="Discount type" selectedKey={hsnEntry.discountType || "none"} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(key) => key && onDiscountChange?.(gaugeIndex, hsnEntry.id, String(key) as 'none' | 'percentage' | 'flat', hsnEntry.discountValue || '')}>
+              <Select aria-label="Discount type" value={hsnEntry.discountType || "none"} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(key) => key && onDiscountChange?.(gaugeIndex, hsnEntry.id, String(key) as 'none' | 'percentage' | 'flat', hsnEntry.discountValue || '')}>
                 <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>
                   <ListBox.Item id="none" textValue="None">None<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="percentage" textValue="%">%<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="flat" textValue="₹">₹<ListBox.ItemIndicator /></ListBox.Item>
                 </ListBox></Select.Popover>
@@ -393,38 +406,36 @@ export default function InvoiceItemsBillingTable({
   );
 
   return (
-    <div className="overflow-hidden rounded-[18px] border border-slate-200 bg-white">
-      <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-50/80 px-4 py-3 md:flex-row md:items-center md:justify-end">
+    <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+      <div className="flex flex-col gap-2 border-b border-slate-200 bg-white px-3 py-3 md:flex-row md:items-center md:justify-end">
         {!isReadOnly && (
-          <Button
-            type="button"
-            onPress={onAddItem}
-            variant="primary"
-            className="h-9 rounded-xl px-4 text-sm font-semibold text-white"
-          >
-            Add Item
-          </Button>
+          <>
+            <Button type="button" onPress={onAddItem} variant="primary" className="h-9 rounded-xl px-4 text-sm font-semibold text-white">Add Item</Button>
+            {onAddExistingItem && <Button type="button" onPress={onAddExistingItem} variant="secondary" className="h-9 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700">Add Existing Item</Button>}
+          </>
         )}
       </div>
 
-      <div className="industrial-table-wrapper overflow-x-auto px-0 pb-0 pt-0">
-        <Table aria-label="Invoice billing items table" className="min-w-full">
-          <Table.ScrollContainer className="min-w-[980px] w-full overflow-x-auto"><Table.Content>
+      <div className="overflow-x-auto">
+        <Table aria-label="Invoice billing items table" className={dataTableClassName("min-w-full !rounded-none !border-0 !shadow-none")}>
+          <Table.ScrollContainer className="max-w-full overflow-x-auto p-0"><Table.Content className="min-w-[1500px] w-full table-auto">
           <Table.Header columns={tableColumns}>
             {(column) => (
-              <Table.Column id={column.uid} isRowHeader={column.uid === tableColumns[0]?.uid}>
+              <Table.Column id={column.uid} isRowHeader={column.uid === tableColumns[0]?.uid} className={COLUMN_LAYOUT[column.uid]}>
                 {column.name}
               </Table.Column>
             )}
           </Table.Header>
           <Table.Body
             items={tableRows}
-            renderEmptyState={() => loading ? <div className="py-8 text-center text-sm text-slate-500">Loading invoice items...</div> : <div className="flex flex-col items-center gap-3 py-10"><span className="text-sm text-slate-500">No invoice items added yet</span><Button type="button" onPress={onAddItem} variant="secondary" className="rounded-2xl bg-slate-100 text-slate-700" isDisabled={isReadOnly}>Add Manual Item</Button></div>}
+            renderEmptyState={() => loading ? <div className="py-8 text-center text-sm text-slate-500">Loading invoice items...</div> : <div className="flex flex-col items-center gap-3 py-10"><span className="text-sm text-slate-500">No invoice items added yet</span><div className="flex gap-2"><Button type="button" onPress={onAddItem} variant="secondary" className="rounded-2xl bg-slate-100 text-slate-700" isDisabled={isReadOnly}>Add Manual Item</Button>{onAddExistingItem && <Button type="button" onPress={onAddExistingItem} variant="secondary" className="rounded-2xl border border-slate-200 text-slate-700" isDisabled={isReadOnly}>Add Existing Item</Button>}</div></div>}
           >
             {(row) => (
               <Table.Row id={`${row.gaugeIndex}-${row.hsnEntry.id}`} columns={tableColumns}>
                 {(columnKey) => (
-                  <Table.Cell>{renderCell(row, getTableColumnKey(columnKey) as TableColumnKey)}</Table.Cell>
+                  <Table.Cell className={`align-middle ${COLUMN_LAYOUT[getTableColumnKey(columnKey) as TableColumnKey]}`}>
+                    {renderCell(row, getTableColumnKey(columnKey) as TableColumnKey)}
+                  </Table.Cell>
                 )}
               </Table.Row>
             )}
@@ -443,7 +454,7 @@ export default function InvoiceItemsBillingTable({
               <span className="text-[12px] uppercase tracking-[0.12em] text-slate-400">
                 Rows
               </span>
-              <Select aria-label="Rows per page" selectedKey={String(rowsPerPage)} onSelectionChange={onRowsChange} className="w-[88px]"><Select.Trigger className="min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>{['25','50','100','200','500'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover></Select>
+              <Select aria-label="Rows per page" value={String(rowsPerPage)} onSelectionChange={onRowsChange} className="w-[88px]"><Select.Trigger className="min-h-8 h-8 rounded-lg border border-slate-200 bg-white shadow-none"><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>{['25','50','100','200','500'].map((size) => <ListBox.Item key={size} id={size} textValue={size}>{size}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover></Select>
             </div>
 
             <Pagination aria-label="Invoice item pagination"><Pagination.Content>

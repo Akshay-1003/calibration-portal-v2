@@ -102,6 +102,8 @@ export default function CreateInvoicePage() {
       outward_nos: [],
       order_number: '',
       order_date: '',
+      po_number: '',
+      po_date: '',
       from_date: '',
       to_date: '',
       credit_days: 0,
@@ -124,6 +126,7 @@ export default function CreateInvoicePage() {
     enabled: Boolean(selectedPartyId),
     organizationId: selectedPartyId,
     limit: 500,
+    excludeInvoiced: true,
   });
   const outwardEntries = outwardEntriesQuery.data ?? [];
 
@@ -149,6 +152,8 @@ export default function CreateInvoicePage() {
         gauge_inward_ids: [],
         order_number: data.order_number?.trim() || null,
         order_date: data.order_date?.trim() || null,
+        po_number: data.po_number?.trim() || null,
+        po_date: data.po_date?.trim() || null,
         from_date: data.from_date?.trim() || null,
         to_date: data.to_date?.trim() || null,
         status: 'draft',
@@ -287,8 +292,8 @@ export default function CreateInvoicePage() {
                             {outwardEntries
                               .filter((outward) => !(field.value ?? []).includes(outward.id))
                               .map((outward) => (
-                                <ListBox.Item key={outward.id} id={outward.id} textValue={`Outward ${String(outward.outward_no ?? outward.id)}`}>
-                                  {String(outward.outward_no ?? outward.id)}
+                                  <ListBox.Item key={outward.id} id={outward.id} textValue={`Outward ${String(outward.outward_no ?? outward.id)} ${outward.outward_date ?? ''}`}>
+                                  {String(outward.outward_no ?? outward.id)}{outward.outward_date ? ` · ${outward.outward_date}` : ''}
                                   <ListBox.ItemIndicator />
                                 </ListBox.Item>
                               ))}
@@ -355,6 +360,16 @@ export default function CreateInvoicePage() {
                       <V3DatePicker ariaLabel="Order Date" value={field.value} onChange={field.onChange} />
                     )}
                   />
+                </FormField>
+                <FormField label="PO Number">
+                  <Controller control={control} name="po_number" render={({ field }) => (
+                    <Input aria-label="PO Number" placeholder="Enter PO number" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value)} />
+                  )} />
+                </FormField>
+                <FormField label="PO Date">
+                  <Controller control={control} name="po_date" render={({ field }) => (
+                    <V3DatePicker ariaLabel="PO Date" value={field.value} onChange={field.onChange} />
+                  )} />
                 </FormField>
               </div>
 

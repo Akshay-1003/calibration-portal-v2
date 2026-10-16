@@ -154,6 +154,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
       process: "calibration",
       unit: "mm",
       calibration_location_type: "permanent_facility",
+      calibration_location: "",
       calibration_done_under: "nabl",
       gauge_condition: "",
       specifications: {},
@@ -188,6 +189,7 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
         process: "calibration",
         unit: "mm",
         calibration_location_type: "permanent_facility",
+        calibration_location: "",
         calibration_done_under: "nabl",
         gauge_condition: "",
         specifications: {},
@@ -799,6 +801,13 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <V3Select value={watch("calibration_location_type")} ariaLabel="Calibration Location Type" placeholder="Select location type" onChange={(value) => setValue("calibration_location_type", value as "permanent_facility" | "site_facility" | "mobile_facility", { shouldValidate: true })} options={[
                 { value: "permanent_facility", label: "Permanent Facility" }, { value: "site_facility", label: "On Site Facility" }, { value: "mobile_facility", label: "Mobile Facility" },
               ]} />
+              <Input
+                className="mt-2"
+                aria-label="Calibration Location Details"
+                placeholder="e.g. Main Lab or customer site"
+                value={watch("calibration_location") || ""}
+                onChange={(event) => setValue("calibration_location", event.target.value, { shouldValidate: true })}
+              />
             </div>
           </div>
 

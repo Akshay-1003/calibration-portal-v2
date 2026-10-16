@@ -17,7 +17,10 @@ import EquipmentSelector from "../../../../components/CalibrationEquipments/Equi
 import { useEquipmentsWithQuery } from "../../../../hooks/useEquipmentsWithQuery";
 import { useOptimizedNavigation } from "../../../../hooks/useOptimizedNavigation";
 import { normalizeObservationNumbers } from "../../../../utils/observationNumberNormalizer";
-import { buildCalibrationObservationsPayload } from "../../../../components/calibration/observationPayload";
+import {
+  buildCalibrationObservationsPayload,
+  normalizeRequiredDialMeasurements,
+} from "../../../../components/calibration/observationPayload";
 import {
   recalculateLimitGaugeObservations,
   type LimitGaugeSpecifications,
@@ -516,7 +519,7 @@ const NablCalibrationProcessPage = () => {
               calibration_frequency: String(data.calibration_frequency || ''),
               calibration_frequency_unit: (data.calibration_frequency_unit as 'days' | 'months' | 'years') || 'months',
               specifications: (data.specifications ?? null) as Partial<Specifications> | string[] | null,
-              calibration_location: data.calibration_location_type || '',
+              calibration_location: data.calibration_location || '',
               calibration_type: 'fully',
               gauge_condition: data.gauge_condition || '',
               conformity_statement: '',
@@ -621,6 +624,10 @@ const NablCalibrationProcessPage = () => {
           observations: observationsForSubmit,
           specifications: liveSpecifications ?? effectiveSpecifications ?? undefined,
         });
+        const certificateObservations = normalizeRequiredDialMeasurements(
+          gaugeData?.certificate_type,
+          normalizedObservations,
+        );
         const normalizedObservationSnapshot = normalizeObservationNumbers<DynamicObservations>(
           normalizedObservations as DynamicObservations
         );
@@ -684,7 +691,7 @@ const NablCalibrationProcessPage = () => {
         });
 
         const payloadWithEquipments = {
-          observations: normalizedObservations,
+          observations: certificateObservations,
           equipment_ids: selectedEquipmentIds,
           status: "calibration_completed",
           calibration_frequency_unit: formValues.calibration_frequency_unit as 'days' | 'months' | 'years' | undefined,

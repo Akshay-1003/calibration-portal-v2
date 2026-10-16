@@ -134,6 +134,8 @@ export interface InvoiceDraftResponse {
   invoice_number: string;
   date_of_issue: string;
   billing_date: string;
+  po_number?: string | null;
+  po_date?: string | null;
   client_org_id: string;
   outward_id: string | null;
   outward_ids?: string[];

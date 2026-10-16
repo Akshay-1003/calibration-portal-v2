@@ -1,12 +1,12 @@
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Selection, SortDescriptor } from '@heroui/react';
-import type { DateValue } from '@internationalized/date';
+import { getLocalTimeZone, today, type DateValue } from '@internationalized/date';
 import { useTableUrlState } from './useTableUrlState';
 import { useDateFilterUrlState } from './useDateFilterUrlState';
 import { useFilterUrlState } from './useFilterUrlState';
-import { apiToCalendarDate, calendarDateToApi } from '../utils/dateAdapter';
+import { calendarDateToApi } from '../utils/dateAdapter';
 import type { InwardEntriesListQueryFilters } from './queries/inwards';
 import { buildRegisterGaugeRoute } from '../utils/inwardRoutes';
 
@@ -140,6 +140,20 @@ export function useInwardTableController({
 
   const urlDateFilters = useDateFilterUrlState({ prefix: filterPrefix });
   const urlClientFilter = useFilterUrlState({ prefix: filterPrefix, filterKeys: ['client_org_id'] });
+  const defaultEndDate = useMemo(() => today(getLocalTimeZone()), []);
+  const defaultStartDate = useMemo(() => defaultEndDate.subtract({ days: 30 }), [defaultEndDate]);
+  const defaultDateFilters = useMemo<InwardEntriesListQueryFilters>(() => ({
+    inward_date_from: calendarDateToApi(defaultStartDate),
+    inward_date_to: calendarDateToApi(defaultEndDate),
+  }), [defaultEndDate, defaultStartDate]);
+
+  // Date filters are local view state. Remove legacy URL dates so reloads do not
+  // resurrect a previous range selected in an earlier version.
+  useEffect(() => {
+    if (urlDateFilters.hasFilters) {
+      urlDateFilters.clearFilters();
+    }
+  }, [urlDateFilters.clearFilters, urlDateFilters.hasFilters]);
   // Local UI state
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>({
@@ -165,12 +179,13 @@ export function useInwardTableController({
 
   // Date filter state - sync with URL (URL stores DD-MM-YYYY, convert to DateValue for UI)
   const [startDate, setStartDate] = useState<DateValue | null>(() => {
-    return apiToCalendarDate(urlDateFilters.filters?.inward_date_from);
+    return defaultStartDate;
   });
 
   const [endDate, setEndDate] = useState<DateValue | null>(() => {
-    return apiToCalendarDate(urlDateFilters.filters?.inward_date_to);
+    return defaultEndDate;
   });
+  const [dateFilterCleared, setDateFilterCleared] = useState(false);
 
   const [dateError, setDateError] = useState<string | null>(null);
 
@@ -185,24 +200,9 @@ export function useInwardTableController({
     if (urlClientFilter.filters?.client_org_id?.trim()) {
       filters.client_org_id = urlClientFilter.filters.client_org_id.trim();
     }
-    if (urlDateFilters.filters?.inward_date_from?.trim()) {
-      filters.inward_date_from = urlDateFilters.filters.inward_date_from.trim();
-    }
-    if (urlDateFilters.filters?.inward_date_to?.trim()) {
-      filters.inward_date_to = urlDateFilters.filters.inward_date_to.trim();
-    }
-    return Object.keys(filters).length > 0 ? filters : undefined;
+    return Object.keys(filters).length > 0 ? filters : defaultDateFilters;
   });
   const [applyVersion, setApplyVersion] = useState(0);
-
-  // Sync date state with URL (browser back/forward) - URL has DD-MM-YYYY, convert to DateValue
-  useEffect(() => {
-    setStartDate(apiToCalendarDate(urlDateFilters.filters?.inward_date_from));
-  }, [urlDateFilters.filters?.inward_date_from]);
-
-  useEffect(() => {
-    setEndDate(apiToCalendarDate(urlDateFilters.filters?.inward_date_to));
-  }, [urlDateFilters.filters?.inward_date_to]);
 
   useEffect(() => {
     setClientOrgId(urlClientFilter.filters?.client_org_id ?? null);
@@ -214,17 +214,11 @@ export function useInwardTableController({
     if (urlClientFilter.filters?.client_org_id?.trim()) {
       filters.client_org_id = urlClientFilter.filters.client_org_id.trim();
     }
-    if (urlDateFilters.filters?.inward_date_from?.trim()) {
-      filters.inward_date_from = urlDateFilters.filters.inward_date_from.trim();
-    }
-    if (urlDateFilters.filters?.inward_date_to?.trim()) {
-      filters.inward_date_to = urlDateFilters.filters.inward_date_to.trim();
-    }
-    setApiFilters(Object.keys(filters).length > 0 ? filters : undefined);
+    setApiFilters(dateFilterCleared ? filters : { ...defaultDateFilters, ...filters });
   }, [
+    dateFilterCleared,
+    defaultDateFilters,
     urlClientFilter.filters?.client_org_id,
-    urlDateFilters.filters?.inward_date_from,
-    urlDateFilters.filters?.inward_date_to,
   ]);
 
 
@@ -361,29 +355,25 @@ export function useInwardTableController({
     }
 
     // Update API filters state immediately
+    setDateFilterCleared(false);
     setApiFilters(Object.keys(filters).length > 0 ? filters : undefined);
     setApplyVersion((current) => current + 1);
 
     // Update URL (for browser history/bookmarking)
     urlClientFilter.setFilter('client_org_id', clientOrgIdValue);
-    urlDateFilters.setFilters({
-      inward_date_from: dateFromApi,
-      inward_date_to: dateToApi,
-    });
-
     setPage(1);
   }, [
     clientOrgId,
     startDate,
     endDate,
     urlClientFilter,
-    urlDateFilters,
     setPage,
   ]);
 
   const handleClearFilters = useCallback(() => {
     setStartDate(null);
     setEndDate(null);
+    setDateFilterCleared(true);
     setClientOrgId(null);
     setDateError(null);
 
@@ -392,10 +382,8 @@ export function useInwardTableController({
 
     // Clear URL filters
     urlClientFilter.clearFilters();
-    urlDateFilters.clearFilters();
-
     setPage(1);
-  }, [setPage, urlClientFilter, urlDateFilters]);
+  }, [setPage, urlClientFilter]);
 
   // ==========================================
   // RETURN STABLE STATE AND HANDLERS

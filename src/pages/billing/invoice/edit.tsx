@@ -14,6 +14,7 @@ import {
   Input,
   Label,
   ListBox,
+  Modal,
   Select,
 } from '@heroui/react';
 import { UserIcon } from '@heroicons/react/24/outline';
@@ -69,6 +70,7 @@ import {
   normalizeInvoiceStatus,
 } from '../../../utils/invoiceLifecycle';
 import { getRateCardEntriesMap } from '../../../services/apiServices';
+import { useExistingGaugeStore, type ExistingGaugeData } from '../../../store/existingGaugeStore';
 import {
   getInvoiceRateCardRate,
   shouldAutofillInvoiceRate,
@@ -238,6 +240,9 @@ export default function EditInvoicePage() {
   const navigate = useNavigate();
   const { invoiceId } = useParams<{ invoiceId: string }>();
   const updateInvoiceMutation = useUpdateInvoiceMutation();
+  const [existingGaugeDialogOpen, setExistingGaugeDialogOpen] = useState(false);
+  const [existingGaugeSearch, setExistingGaugeSearch] = useState('');
+  const { existingGauges, loading: existingGaugesLoading, fetchExistingGauges } = useExistingGaugeStore();
   const generateInvoiceMutation = useGenerateInvoiceMutation();
   // Invoice parties are laboratory customers, not the platform-wide directory.
   // The customer endpoint applies the active laboratory scope for both lab
@@ -280,6 +285,8 @@ export default function EditInvoicePage() {
       outward_nos: [],
       order_number: '',
       order_date: '',
+      po_number: '',
+      po_date: '',
       from_date: '',
       to_date: '',
       credit_days: 0,
@@ -312,6 +319,12 @@ export default function EditInvoicePage() {
   const cgstRate = watch('cgst_rate');
   const sgstRate = watch('sgst_rate');
   const selectedPartyId = watch('party_id') || invoiceData?.client_org_id || '';
+
+  useEffect(() => {
+    if (existingGaugeDialogOpen && selectedPartyId) {
+      void fetchExistingGauges(selectedPartyId, { page: 1, limit: 500 });
+    }
+  }, [existingGaugeDialogOpen, selectedPartyId, fetchExistingGauges]);
   const pdfColumns = normalizeInvoicePdfColumns(watch('pdf_columns'));
   const normalizedInvoiceStatus = normalizeInvoiceStatus(invoiceData?.status);
   const invoiceDisplayStatus = getInvoiceDisplayStatus({
@@ -399,6 +412,8 @@ export default function EditInvoicePage() {
       outward_nos: getOutwardNumbers(invoiceData),
       order_number: normalizeOptionalText(invoiceData.order_number),
       order_date: normalizeDateField(invoiceData.order_date),
+      po_number: normalizeOptionalText(invoiceData.po_number),
+      po_date: normalizeDateField(invoiceData.po_date),
       from_date: normalizeDateField(invoiceData.from_date || invoiceData.invoice_from_date),
       to_date: normalizeDateField(invoiceData.to_date || invoiceData.invoice_to_date),
       credit_days: invoiceData.credit_days ?? 0,
@@ -579,6 +594,24 @@ export default function EditInvoicePage() {
 
   const handleAddManualItem = useCallback(() => {
     setInvoiceItemsData((prev) => [...prev, createManualInvoiceItemData(isGeneratedInvoice)]);
+    setPage(1);
+  }, [isGeneratedInvoice]);
+
+  const handleAddExistingItem = useCallback((gauge: ExistingGaugeData) => {
+    const item = createManualInvoiceItemData(isGeneratedInvoice);
+    item.gaugeItem = {
+      ...item.gaugeItem,
+      master_gauge_id: gauge.id,
+      master_gauge_name: gauge.master_gauge || gauge.gauge_type || 'Existing gauge',
+      identification_number: gauge.identification_number || '',
+      gauge_id: '',
+      specifications: gauge.specifications || {},
+      specification: formatSpecificationForPrint(gauge.specifications || {}),
+      process: gauge.process || 'calibration',
+    };
+    setInvoiceItemsData((prev) => [...prev, item]);
+    setExistingGaugeDialogOpen(false);
+    setExistingGaugeSearch('');
     setPage(1);
   }, [isGeneratedInvoice]);
 
@@ -1027,6 +1060,7 @@ export default function EditInvoicePage() {
     // Build billing items from invoiceItemsData
     const billingItems: InvoiceBillingItem[] = invoiceItemsData.map((itemData) => {
       const isManualItem = itemData.isManual === true;
+      const sourceType = itemData.gaugeItem.source_type || (isManualItem ? 'manual' : 'outward');
       const billingComponents: InvoiceBillingComponent[] = itemData.hsnEntries.map((hsnEntry) => {
         const processType = getInvoiceProcessFromHsn(hsnEntry.hsnCode);
         const rate = parseFloat(hsnEntry.rate) || 0;
@@ -1077,7 +1111,7 @@ export default function EditInvoicePage() {
       }
 
       return {
-        source_type: isManualItem ? 'manual' : 'outward',
+        source_type: sourceType,
         gauge_id: isManualItem
           ? null
           : itemData.gaugeItem.gauge_id || itemData.gaugeItem.id || '',
@@ -1123,11 +1157,10 @@ export default function EditInvoicePage() {
     });
 
     // Get gauge_inward_ids from invoice data
-    const gaugeInwardIds = Array.isArray(existingInvoice?.gauge_inward_ids)
-      ? existingInvoice.gauge_inward_ids
-      : getOutwardIds(existingInvoice).length > 0
-        ? billingItems.map((item) => item.inward_id).filter(Boolean)
-        : [];
+    const gaugeInwardIds = billingItems
+      .filter((item) => item.source_type === 'inward')
+      .map((item) => item.inward_id)
+      .filter(Boolean);
     const outwardIds = getOutwardIds(existingInvoice);
     const outwardNumbers = getOutwardNumbers(existingInvoice);
 
@@ -1196,6 +1229,8 @@ export default function EditInvoicePage() {
       date_of_issue: formValues.billing_date || formValues.date_of_issue,
       order_number: trimOrNull(formValues.order_number),
       order_date: trimOrNull(formValues.order_date),
+      po_number: trimOrNull(formValues.po_number),
+      po_date: trimOrNull(formValues.po_date),
       from_date: trimOrNull(formValues.from_date),
       to_date: trimOrNull(formValues.to_date),
       invoice_from_date: trimOrNull(formValues.from_date),
@@ -1503,6 +1538,18 @@ export default function EditInvoicePage() {
                     />
                   </FormField>
 
+                  <FormField label="PO Number">
+                    <Controller control={control} name="po_number" render={({ field }) => (
+                      <Input aria-label="PO Number" placeholder="Enter PO number" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value)} readOnly={isAccountingLocked} />
+                    )} />
+                  </FormField>
+
+                  <FormField label="PO Date">
+                    <Controller control={control} name="po_date" render={({ field }) => (
+                      <InvoiceDatePicker ariaLabel="PO Date" value={field.value ?? ''} onChange={field.onChange} disabled={isAccountingLocked} />
+                    )} />
+                  </FormField>
+
                   <FormField label="From Date">
                     <Controller
                       control={control}
@@ -1585,6 +1632,7 @@ export default function EditInvoicePage() {
                   setPage(1);
                 }}
                 onAddItem={handleAddManualItem}
+                onAddExistingItem={() => setExistingGaugeDialogOpen(true)}
                 onAddHsn={handleAddHSN}
                 onRemoveHsn={handleRemoveHSN}
                 onHsnChange={handleHSNChange}
@@ -1595,6 +1643,53 @@ export default function EditInvoicePage() {
                 onManualGaugeSelect={handleManualGaugeSelect}
                 isReadOnly={!canEditInvoiceLines}
               />
+
+              <Modal.Root
+                isOpen={existingGaugeDialogOpen}
+                onOpenChange={(open) => {
+                  setExistingGaugeDialogOpen(open);
+                  if (!open) setExistingGaugeSearch('');
+                }}
+              >
+                <Modal.Backdrop variant="opaque">
+                  <Modal.Container size="lg" scroll="inside">
+                    <Modal.Dialog>
+                      <Modal.Header>
+                        <Modal.Heading>Add Existing Gauge</Modal.Heading>
+                        <Modal.CloseTrigger aria-label="Close existing gauge dialog" />
+                      </Modal.Header>
+                      <Modal.Body>
+                        <p className="text-sm text-slate-500">Select a gauge already registered for this customer.</p>
+                        <Input
+                          aria-label="Search existing gauges"
+                          placeholder="Search by gauge name or identification number"
+                          value={existingGaugeSearch}
+                          onChange={(event) => setExistingGaugeSearch(event.target.value)}
+                        />
+                        <div className="max-h-80 overflow-y-auto">
+                          {existingGaugesLoading ? <div className="py-4 text-sm text-slate-500">Loading gauges...</div> : (
+                            <ListBox aria-label="Existing customer gauges">
+                              {existingGauges.filter((gauge) => `${gauge.master_gauge} ${gauge.gauge_type} ${gauge.identification_number}`.toLowerCase().includes(existingGaugeSearch.toLowerCase())).map((gauge) => (
+                                <ListBox.Item key={gauge.id} id={gauge.id} textValue={`${gauge.master_gauge || gauge.gauge_type} ${gauge.identification_number || ''}`} onAction={() => handleAddExistingItem(gauge)}>
+                                  <div className="flex w-full items-center justify-between gap-4">
+                                    <span className="font-medium text-slate-800">{gauge.master_gauge || gauge.gauge_type}</span>
+                                    <span className="text-sm text-slate-500">{gauge.identification_number || 'No identification number'}</span>
+                                  </div>
+                                  <ListBox.ItemIndicator />
+                                </ListBox.Item>
+                              ))}
+                            </ListBox>
+                          )}
+                          {!existingGaugesLoading && existingGauges.length === 0 && <div className="py-4 text-sm text-slate-500">No registered gauges found for this customer.</div>}
+                        </div>
+                      </Modal.Body>
+                      <Modal.Footer>
+                        <Button type="button" variant="outline" onClick={() => setExistingGaugeDialogOpen(false)}>Cancel</Button>
+                      </Modal.Footer>
+                    </Modal.Dialog>
+                  </Modal.Container>
+                </Modal.Backdrop>
+              </Modal.Root>
 
               <div className="space-y-4">
                 <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">

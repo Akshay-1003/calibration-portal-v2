@@ -25,7 +25,6 @@ import {
 import type { ClientData } from '../../hooks/useInwardTableController';
 import type { InwardTableState, InwardTableHandlers } from '../../hooks/useInwardTableController';
 import '../../styles/industrial-table.css';
-import { SearchField } from '@heroui/react/search-field';
 import { TablePagination } from "./TablePagination";
 import { dataTableClassName } from "./tableStyles";
 
@@ -367,15 +366,6 @@ export const InwardTable = memo<InwardTableViewProps>(
         <div className="flex flex-col gap-4">
           {/* Search and Refresh Row */}
           <div className="flex flex-col sm:flex-row gap-3 items-end">
-            {/* Search Input */}
-            <SearchField name="search">
-              <Label>Search</Label>
-              <SearchField.Group>
-                <SearchField.SearchIcon />
-                <SearchField.Input className="w-[280px]" placeholder="Search..." />
-                <SearchField.ClearButton />
-              </SearchField.Group>
-            </SearchField>
             <Input
               className="flex-1 min-w-[200px]"
               placeholder="Search by organization..."

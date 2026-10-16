@@ -342,6 +342,7 @@ export default function RegisterGaugePage() {
           manf_serial_number: data.manf_serial_number,
           unit: data.unit,
           calibration_location_type: data.calibration_location_type,
+          calibration_location: data.calibration_location?.trim() || "",
           calibration_done_under: data.calibration_done_under,
           gauge_condition: data.gauge_condition,
           specifications: convertedData.specifications,
@@ -470,6 +471,7 @@ export default function RegisterGaugePage() {
           process: "calibration" as const, // Default to calibration when editing
           unit: (gauge.unit || "mm") as "mm" | "inch" | "µm" | "kg/cm2" | "bar" | "Pa" | "degree",
           calibration_location_type: normalizeCalibrationLocation(gauge.calibration_location_type),
+          calibration_location: typeof gauge.calibration_location === "string" && !["permanent_facility", "site_facility", "mobile_facility", "customer_site"].includes(gauge.calibration_location) ? gauge.calibration_location : "",
           // calibration_location: gauge.calibration_location || "",
           calibration_done_under: gauge.calibration_done_under === "non_nabl" ? "non_nabl" : "nabl",
           gauge_condition: gauge.gauge_condition || "",
@@ -617,6 +619,7 @@ export default function RegisterGaugePage() {
         process: "calibration" as const,
         unit: (existingGauge.unit || "mm") as "mm" | "inch" | "µm" | "kg/cm2" | "bar" | "Pa" | "degree",
         calibration_location_type: normalizeCalibrationLocation(existingGauge.calibration_location_type),
+        calibration_location: typeof existingGauge.calibration_location === "string" && !["permanent_facility", "site_facility", "mobile_facility", "customer_site"].includes(existingGauge.calibration_location) ? existingGauge.calibration_location : "",
         calibration_done_under: (existingGauge.calibration_done_under || "nabl") as "nabl" | "non_nabl",
         gauge_condition: existingGauge.gauge_condition || "",
         specifications: normalizeGaugeSpecifications(existingGauge.specifications),
@@ -699,6 +702,7 @@ export default function RegisterGaugePage() {
               manf_serial_number: gauge.manf_serial_number || "",
               unit: (gauge.unit || "mm") as "mm" | "inch" | "µm" | "kg/cm2" | "bar" | "Pa" | "degree",
               calibration_location_type: normalizeCalibrationLocation(gauge.calibration_location_type),
+              calibration_location: typeof gauge.calibration_location === "string" && !["permanent_facility", "site_facility", "mobile_facility", "customer_site"].includes(gauge.calibration_location) ? gauge.calibration_location : "",
               calibration_done_under: (gauge.calibration_done_under),
               specifications: gauge.specifications || {},
             };

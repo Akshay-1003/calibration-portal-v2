@@ -52,6 +52,7 @@ interface UseOutwardEntriesQueryOptions {
   organizationId?: string;
   page?: number;
   limit?: number;
+  excludeInvoiced?: boolean;
 }
 
 // ============================================================================
@@ -65,13 +66,17 @@ export function usePaginatedOutwardEntriesQuery(options?: UseOutwardEntriesQuery
   const organizationId = options?.organizationId?.trim();
   const page = Math.max(0, Math.floor(options?.page ?? 0));
   const limit = options?.limit ?? 10;
+  const excludeInvoiced = options?.excludeInvoiced ?? false;
 
   return useQuery({
-    queryKey: queryKeys.outwards.list({ organizationId, page, limit }),
+    queryKey: queryKeys.outwards.list({ organizationId, page, limit, excludeInvoiced }),
     queryFn: async (): Promise<PaginatedListResult<OutwardEntry>> => {
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (organizationId) {
         params.set('org_id', organizationId);
+      }
+      if (excludeInvoiced) {
+        params.set('exclude_invoiced', 'true');
       }
       const response = await apiService.get<unknown>(
         `${API_ENDPOINTS.OUTWARDS.LIST}?${params.toString()}`,

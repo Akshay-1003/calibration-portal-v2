@@ -39,6 +39,8 @@ export interface InvoiceData {
   outward_no: string;
   order_number?: string;
   order_date?: string;
+  po_number?: string;
+  po_date?: string;
   client_name: string;
   client_address: string;
   client_gst_no?: string;
