@@ -344,23 +344,26 @@ export function OutwardTable({
   }, [filterValue, onSearchChange, onClear, visibleColumns]);
 
   const bottomContent = React.useMemo(() => {
+    const showingFrom = totalRecords === 0 ? 0 : (page - 1) * rowsPerPage + 1;
+    const showingTo = totalRecords === 0
+      ? 0
+      : Math.min((page - 1) * rowsPerPage + items.length, totalRecords);
+
     return (
-      <div className="w-full flex flex-col sm:grid sm:grid-cols-3 sm:items-center px-4 py-3 gap-3 border-t border-gray-200 bg-gray-50 text-sm">
-        <span className="text-gray-600 whitespace-nowrap font-medium sm:justify-self-start">
-          {selectedKeys === "all"
-            ? `All ${totalRecords} items selected`
-            : `${selectedKeys.size} of ${totalRecords} selected`}
+      <div className="grid w-full grid-cols-1 items-center gap-3 border-t border-slate-200 bg-slate-50 px-4 py-3 text-sm sm:grid-cols-3">
+        <span className="whitespace-nowrap text-slate-600 sm:justify-self-start">
+          Showing {showingFrom} to {showingTo} of {totalRecords} records
         </span>
 
         <div className="sm:justify-self-center">
           <TablePagination page={page} totalPages={pages} onPageChange={setActivePage} />
         </div>
 
-        <div className="sm:justify-self-end flex items-center gap-2">
+        <div className="flex items-center gap-2 sm:justify-self-end">
           <Select
             selectedKey={String(rowsPerPage)}
             onSelectionChange={onRowsPerPageChange}
-            className="min-w-[170px]"
+            className="w-[140px]"
           >
             <Label>Rows per page</Label>
             <Select.Trigger className="h-8 border border-gray-300 bg-white"><Select.Value /><Select.Indicator /></Select.Trigger>
@@ -373,17 +376,17 @@ export function OutwardTable({
         </div>
       </div>
     );
-  }, [page, pages, selectedKeys, rowsPerPage, onRowsPerPageChange, setActivePage, totalRecords]);
+  }, [items.length, page, pages, rowsPerPage, onRowsPerPageChange, setActivePage, totalRecords]);
 
   const emptyContent = error 
     ? `Error: ${error}` 
     : "No outward entries found";
 
   return (
-    <div className="p-2">
-      <div className="industrial-table-wrapper">
-        <div className="mb-4">{topContent}</div>
-        <Table aria-label="Outward entries table" className={dataTableClassName("min-w-full")}>
+    <div>
+      <div className="industrial-table-wrapper overflow-hidden rounded-md border border-slate-200 bg-white">
+        <div>{topContent}</div>
+        <Table aria-label="Outward entries table" className={dataTableClassName("min-w-full !rounded-none !border-0 !shadow-none")}>
           <Table.ScrollContainer className="max-h-[calc(100vh-320px)]">
             <Table.Content
               selectedKeys={selectedKeys}

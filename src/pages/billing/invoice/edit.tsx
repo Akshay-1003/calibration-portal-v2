@@ -91,7 +91,7 @@ const InvoiceSelect = ({
   disabled?: boolean;
 }) => (
   <Select aria-label={ariaLabel} selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')} isDisabled={disabled}>
-    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Trigger className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? '!bg-slate-100' : '!bg-white'}`}><Select.Value /><Select.Indicator /></Select.Trigger>
     <Select.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
   </Select>
 );
@@ -108,7 +108,7 @@ const InvoiceDatePicker = ({
   disabled?: boolean;
 }) => (
   <DatePicker value={value ? parseDate(value) : null} onChange={(date) => onChange(date ? String(date) : '')} isDisabled={disabled}>
-    <DateField.Group fullWidth>
+    <DateField.Group className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? '!bg-slate-100' : '!bg-white'}`} fullWidth>
       <DateField.Input aria-label={ariaLabel}>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
       <DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix>
     </DateField.Group>

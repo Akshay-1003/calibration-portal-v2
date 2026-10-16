@@ -80,7 +80,7 @@ export interface GaugeData {
     manf_serial_number: string;
     unit: "mm" | "inch" | "cm" | "m";
 
-    calibration_location_type: "permanent_facility" | "mobile_facility" | "customer_site";
+    calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
     calibration_done_under: "nabl" | "non_nabl";
     gauge_condition: string;
 

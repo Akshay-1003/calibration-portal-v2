@@ -21,6 +21,7 @@ import { useOutwardStore, type OutwardGaugeItem, type InwardedGaugeItem } from "
 import { useInvoiceStore } from "../../../store/invoiceStore";
 import { Loader } from "../../../components/ui/loader/loader";
 import { DeleteConfirmModal } from "../../../components/common/DeleteConfirmModal";
+import { dataTableClassName } from "../../../components/Tables/tableStyles";
 
 const OutwardDetailPage = React.memo(() => {
   const navigate = useNavigate();
@@ -462,7 +463,8 @@ const OutwardDetailPage = React.memo(() => {
                       </Button> */}
                     </div>
                   </div>
-                  <Table aria-label="Outward items table">
+                  <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+                  <Table aria-label="Outward items table" className={dataTableClassName("min-w-full !rounded-none !border-0 !shadow-none")}>
                     <Table.ScrollContainer className="max-h-[calc(100vh-320px)] p-0">
                     <Table.Content
                     selectedKeys={selectedOutwardItems === 'all' ? 'all' : selectedOutwardItems}
@@ -522,6 +524,7 @@ const OutwardDetailPage = React.memo(() => {
                     </Table.Body>
                     </Table.Content></Table.ScrollContainer>
                   </Table>
+                  </div>
                   <div className="flex justify-between items-center mt-2">
                     <div className="text-sm text-gray-600">
                       {filteredOutwardItems.length > 0 ? (
@@ -590,7 +593,8 @@ const OutwardDetailPage = React.memo(() => {
                       onChange={(event) => setInwardedItemsSearch(event.target.value)}
                     />
                   </div>
-                  <Table aria-label="Inwarded items table">
+                  <div className="overflow-hidden rounded-md border border-slate-200 bg-white">
+                  <Table aria-label="Inwarded items table" className={dataTableClassName("min-w-full !rounded-none !border-0 !shadow-none")}>
                     <Table.ScrollContainer><Table.Content
                     selectedKeys={selectedInwardedKeys === "all" ? "all" : selectedInwardedKeys}
                     selectionMode="multiple"
@@ -643,6 +647,7 @@ const OutwardDetailPage = React.memo(() => {
                       }}
                     </Table.Body></Table.Content></Table.ScrollContainer>
                   </Table>
+                  </div>
                   <div className="mt-4 text-sm text-gray-600">
                     {filteredInwardedItems.length > 0 ? (
                       <>

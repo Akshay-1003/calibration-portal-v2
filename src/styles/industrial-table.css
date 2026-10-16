@@ -2,41 +2,35 @@
 
 .industrial-table-wrapper table {
   border-collapse: collapse !important;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
   border: none !important;
 }
 
 .industrial-table-wrapper thead th {
-  background-color: #f8fafc !important;
+  background-color: #f1f5f9 !important;
   border: none !important;
   border-bottom: 1px solid #cbd5e1 !important;
   text-align: left;
-  font-size: 11px !important;
+  font-size: 12px !important;
   font-weight: 600 !important;
-  text-transform: uppercase;
-  color: #475569 !important;
-  letter-spacing: 0.08em;
-  border-radius: 2px 2px 0 0 !important;
+  color: #334155 !important;
+  letter-spacing: normal;
+  white-space: nowrap;
 }
 
-.industrial-table-wrapper thead th:first-child {
-  border-top-left-radius: 4px !important;
-}
-
-.industrial-table-wrapper thead th:last-child {
-  border-top-right-radius: 4px !important;
+.industrial-table-wrapper thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .industrial-table-wrapper tbody td {
   border: none !important;
-  border-bottom: 1px solid #e2e8f0 !important;
   font-size: 13px !important;
   color: #111827 !important;
   background: white !important;
-}
-
-.industrial-table-wrapper tbody tr:last-child td {
-  border-bottom: none !important;
+  white-space: nowrap;
 }
 
 .industrial-table-wrapper tbody tr:hover td {

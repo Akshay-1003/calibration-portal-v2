@@ -88,7 +88,7 @@ export interface LinkedGauge {
   calibration_frequency_unit: "months" | "years";
   process: string;
   unit: string;
-  calibration_location_type: "permanent_facility" | "mobile_facility" | "customer_site";
+  calibration_location_type: "permanent_facility" | "site_facility" | "mobile_facility";
   calibration_done_under: string;
   gauge_condition: string;
   created_at: string;

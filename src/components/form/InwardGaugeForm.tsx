@@ -796,8 +796,8 @@ export const InwardGaugeForm = React.forwardRef<InwardGaugeFormRef, InwardGaugeF
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Calibration Location
               </label>
-              <V3Select value={watch("calibration_location_type")} ariaLabel="Calibration Location Type" placeholder="Select location type" onChange={(value) => setValue("calibration_location_type", value as "permanent_facility" | "mobile_facility" | "customer_site", { shouldValidate: true })} options={[
-                { value: "permanent_facility", label: "Permanent Facility" }, { value: "mobile_facility", label: "Mobile Facility" }, { value: "customer_site", label: "Customer Site" },
+              <V3Select value={watch("calibration_location_type")} ariaLabel="Calibration Location Type" placeholder="Select location type" onChange={(value) => setValue("calibration_location_type", value as "permanent_facility" | "site_facility" | "mobile_facility", { shouldValidate: true })} options={[
+                { value: "permanent_facility", label: "Permanent Facility" }, { value: "site_facility", label: "On Site Facility" }, { value: "mobile_facility", label: "Mobile Facility" },
               ]} />
             </div>
           </div>

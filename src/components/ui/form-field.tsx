@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { cn } from '../../lib/utils';
-import { Label } from './label';
+import { FieldError, Label } from '@heroui/react';
 
 interface FormFieldProps {
   label?: string;
@@ -29,7 +29,7 @@ export const FormField: React.FC<FormFieldProps> = ({
   return (
     <div className={cn('min-w-0 space-y-2', className)}>
       {label && (
-        <Label className={cn('block text-sm font-medium text-foreground leading-tight', labelClassName)}>
+        <Label className={cn('block text-sm font-medium leading-tight text-slate-800', labelClassName)}>
           {label}
           {required && <span className="text-destructive ml-1 font-bold">*</span>}
         </Label>
@@ -43,6 +43,7 @@ export const FormField: React.FC<FormFieldProps> = ({
         className={cn(
           'relative w-full min-w-0',
           '[&>[data-slot=input]]:w-full',
+          '[&>[data-slot=input]]:!h-10 [&>[data-slot=input]]:!min-h-10 [&>[data-slot=input]]:!rounded-md [&>[data-slot=input]]:border [&>[data-slot=input]]:border-slate-200 [&>[data-slot=input]]:bg-white [&>[data-slot=input]]:shadow-none [&>[data-slot=input]]:hover:border-slate-300 [&>[data-slot=input]]:focus-within:border-slate-400 [&>[data-slot=input]]:focus-within:bg-slate-100',
           '[&>[data-slot=select]]:w-full',
           '[&>[data-slot=select]>[data-slot=select-trigger]]:w-full',
           '[&>[data-slot=date-picker]]:w-full',
@@ -53,19 +54,16 @@ export const FormField: React.FC<FormFieldProps> = ({
           '[&>[data-slot=textarea]]:w-full',
           '[&>[data-slot=textarea]]:min-h-20',
           '[&>textarea]:w-full',
+          '[&>[data-slot=input-wrapper]]:!h-10 [&>[data-slot=input-wrapper]]:!min-h-10 [&>[data-slot=input-wrapper]]:!rounded-md [&>[data-slot=input-wrapper]]:border [&>[data-slot=input-wrapper]]:border-slate-200 [&>[data-slot=input-wrapper]]:bg-white [&>[data-slot=input-wrapper]]:shadow-none [&>[data-slot=input-wrapper]]:hover:border-slate-300 [&>[data-slot=input-wrapper]]:focus-within:border-slate-400 [&>[data-slot=input-wrapper]]:focus-within:bg-slate-100',
+          '[&>[data-slot=select]>[data-slot=select-trigger]]:!h-10 [&>[data-slot=select]>[data-slot=select-trigger]]:!min-h-10 [&>[data-slot=select]>[data-slot=select-trigger]]:!rounded-md [&>[data-slot=select]>[data-slot=select-trigger]]:border [&>[data-slot=select]>[data-slot=select-trigger]]:border-slate-200 [&>[data-slot=select]>[data-slot=select-trigger]]:bg-white [&>[data-slot=select]>[data-slot=select-trigger]]:shadow-none [&>[data-slot=select]>[data-slot=select-trigger]]:hover:border-slate-300',
+          '[&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:!h-10 [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:!min-h-10 [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:!rounded-md [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:border [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:border-slate-200 [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:bg-white [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:shadow-none [&>[data-slot=autocomplete]>[data-slot=autocomplete-trigger]]:hover:border-slate-300',
+          '[&>[data-slot=date-picker]>[data-slot=date-input-group]]:!h-10 [&>[data-slot=date-picker]>[data-slot=date-input-group]]:!min-h-10 [&>[data-slot=date-picker]>[data-slot=date-input-group]]:!rounded-md [&>[data-slot=date-picker]>[data-slot=date-input-group]]:border [&>[data-slot=date-picker]>[data-slot=date-input-group]]:border-slate-200 [&>[data-slot=date-picker]>[data-slot=date-input-group]]:bg-white [&>[data-slot=date-picker]>[data-slot=date-input-group]]:shadow-none [&>[data-slot=date-picker]>[data-slot=date-input-group]]:hover:border-slate-300',
         )}
       >
         {children}
       </div>
       
-      {error && (
-        <p className="text-xs text-destructive mt-1 font-medium flex items-center gap-1">
-          <svg className="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-          </svg>
-          {error}
-        </p>
-      )}
+      {error && <FieldError className="mt-1 text-xs font-medium">{error}</FieldError>}
     </div>
   );
 };

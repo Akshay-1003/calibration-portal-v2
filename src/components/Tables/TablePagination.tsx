@@ -6,8 +6,8 @@ import { cn } from "../../lib/utils";
 
 type PageItem = number | "ellipsis-left" | "ellipsis-right";
 
-const linkClass = "text-muted hover:bg-surface hover:text-foreground";
-const activeClass = "bg-accent text-accent-foreground hover:bg-accent-hover";
+const linkClass = "text-slate-600 hover:bg-white hover:text-slate-900";
+const activeClass = "bg-blue-600 text-white hover:bg-blue-700";
 
 interface TablePaginationProps {
   page: number;
@@ -92,7 +92,7 @@ export function TablePagination({
       size={size}
       className={cn("justify-center", className)}
     >
-      <Pagination.Content className="gap-1 rounded-xl bg-default p-1">
+      <Pagination.Content className="gap-1 rounded-md bg-slate-100 p-1">
         <Pagination.Item>
           <Pagination.Previous
             aria-label="Previous page"

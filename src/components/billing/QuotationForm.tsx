@@ -37,7 +37,7 @@ const SECTION_CLASS_NAME = 'px-1 py-2 md:px-2 md:py-3';
 
 const INPUT_CLASS_NAMES = {
   inputWrapper:
-    'min-h-[42px] rounded-md border border-slate-200 bg-white shadow-none hover:border-slate-300 focus-within:border-blue-400',
+    'h-10 min-h-10 rounded-md border border-slate-200 bg-white shadow-none hover:border-slate-300 focus-within:border-slate-400 focus-within:bg-slate-100',
   input: 'text-sm',
 };
 
@@ -72,7 +72,7 @@ const QuotationAutocomplete = ({
 }) => (
   void allowsCustomValue,
   <div className="flex flex-col gap-2">
-    <Label isRequired={isRequired}>{label}</Label>
+    <Label className="text-sm font-medium text-slate-800" isRequired={isRequired}>{label}</Label>
     <Autocomplete
       selectedKey={selectedKey || undefined}
       onSelectionChange={onSelectionChange}
@@ -80,7 +80,7 @@ const QuotationAutocomplete = ({
       aria-label={label}
       className="w-full"
     >
-      <Autocomplete.Trigger>
+      <Autocomplete.Trigger className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${selectedKey ? 'bg-slate-100' : 'bg-white'}`}>
         <Autocomplete.Filter>
           <Input className="w-full" placeholder={placeholder} value={inputValue} onChange={(event) => onInputChange(event.target.value)} />
         </Autocomplete.Filter>
@@ -117,14 +117,14 @@ const QuotationSelect = ({
   errorMessage?: string;
 }) => (
   <div className="flex flex-col gap-2">
-    <Label>{label}</Label>
+    <Label className="text-sm font-medium text-slate-800">{label}</Label>
     <Select
       selectedKey={selectedKey}
       aria-label={label}
       isInvalid={isInvalid}
       onSelectionChange={(key) => key !== null && onSelectionChange(String(key))}
     >
-      <Select.Trigger className="w-full">
+      <Select.Trigger className={`h-10 min-h-10 w-full rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${selectedKey ? 'bg-slate-100' : 'bg-white'}`}>
         <Select.Value />
         <Select.Indicator />
       </Select.Trigger>

@@ -128,7 +128,7 @@ const ActionsCell = memo(
       <div className="flex gap-2 items-center">
         <Button
           size="sm"
-          className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs"
+          className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs rounded-md"
           onPress={handleRegisterGauge}
           aria-label="Add gauges to inward entry"
         >

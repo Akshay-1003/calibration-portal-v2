@@ -44,14 +44,14 @@ type Option = { value: string; label: string };
 
 const V3Select = ({ value, onChange, options, ariaLabel }: { value: string; onChange: (value: string) => void; options: Option[]; ariaLabel: string }) => (
   <Select aria-label={ariaLabel} selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : '')}>
-    <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger>
+    <Select.Trigger className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? '!bg-slate-100' : '!bg-white'}`}><Select.Value /><Select.Indicator /></Select.Trigger>
     <Select.Popover><ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
   </Select>
 );
 
 const V3Autocomplete = ({ value, onChange, options, placeholder, ariaLabel, disabled = false }: { value: string | null; onChange: (value: string | null) => void; options: Option[]; placeholder: string; ariaLabel: string; disabled?: boolean }) => (
   <Autocomplete aria-label={ariaLabel} placeholder={placeholder} selectedKey={value} onSelectionChange={(key) => onChange(key ? String(key) : null)} isDisabled={disabled}>
-    <Autocomplete.Trigger>
+    <Autocomplete.Trigger className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? '!bg-slate-100' : '!bg-white'}`}>
       <Autocomplete.Value />
       <Autocomplete.Indicator />
     </Autocomplete.Trigger>
@@ -64,7 +64,7 @@ const V3Autocomplete = ({ value, onChange, options, placeholder, ariaLabel, disa
 
 const V3DatePicker = ({ value, onChange, ariaLabel }: { value?: string; onChange: (value: string) => void; ariaLabel: string }) => (
   <DatePicker value={value ? parseDate(value) : null} onChange={(date) => onChange(date ? String(date) : '')}>
-    <DateField.Group fullWidth>
+    <DateField.Group className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? '!bg-slate-100' : '!bg-white'}`} fullWidth>
       <DateField.Input aria-label={ariaLabel}>{(segment) => <DateField.Segment segment={segment} />}</DateField.Input>
       <DateField.Suffix><DatePicker.Trigger><DatePicker.TriggerIndicator /></DatePicker.Trigger></DateField.Suffix>
     </DateField.Group>

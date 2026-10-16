@@ -310,7 +310,7 @@ const gaugeSubtypeSchema = z.object({
   unit: z.enum(['mm', 'µm', 'inch', 'kg/cm2', 'bar', 'Pa', 'degree'], {
     message: 'Please select a valid unit',
   }),
-  calibration_location_type: z.enum(['permanent_facility', 'mobile_facility', 'customer_site'], {
+  calibration_location_type: z.enum(['permanent_facility', 'site_facility', 'mobile_facility'], {
     message: 'Please select a valid location type',
   }),
   calibration_done_under: z.enum(['nabl', 'non_nabl'], {
@@ -340,7 +340,7 @@ export const gaugeRegistrationSchema = z.object({
   unit: z.enum(['mm', 'µm', 'inch', 'kg/cm2', 'bar', 'Pa', 'degree'], {
     message: 'Please select a valid unit',
   }),
-  calibration_location_type: z.enum(['permanent_facility', 'mobile_facility', 'customer_site'], {
+  calibration_location_type: z.enum(['permanent_facility', 'site_facility', 'mobile_facility'], {
     message: 'Please select a valid location type',
   }),
   calibration_done_under: z.enum(['nabl', 'non_nabl'], {

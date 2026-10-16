@@ -30,7 +30,7 @@ type InwardApiRequest = Omit<InwardFormData, 'client_dc_date' | 'inward_date' | 
   client_dc_date: string;
   inward_date: string;
   received_date: string;
-  commit_date: string;
+  commit_date: string | null;
 }
 
 const getFormErrorMessage = (error: unknown): string | undefined => {
@@ -59,7 +59,7 @@ const V3Select = ({
   disabled?: boolean;
 }) => (
   <Select selectedKey={value || null} onSelectionChange={(key) => onChange(key ? String(key) : "")} isDisabled={disabled} placeholder={placeholder} aria-label={ariaLabel}>
-    <Select.Trigger className="w-full">
+    <Select.Trigger className={`!h-10 !min-h-10 w-full !rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? "!bg-slate-100" : "!bg-white"}`}>
       <Select.Value />
       <Select.Indicator />
     </Select.Trigger>
@@ -90,7 +90,7 @@ const V3DatePicker = ({
     onChange={(date) => onChange(date ? new Date(String(date)) : undefined)}
     className="w-full"
   >
-    <DateField.Group fullWidth>
+    <DateField.Group className={`!h-10 !min-h-10 !rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${value ? "!bg-slate-100" : "!bg-white"}`} fullWidth>
       <DateField.Input aria-label={ariaLabel}>
         {(segment) => <DateField.Segment segment={segment} />}
       </DateField.Input>
@@ -236,7 +236,7 @@ const InwardForm = () => {
       client_dc_date: data.client_dc_date ? format(data.client_dc_date, "yyyy-MM-dd") : "",
       inward_date: data.inward_date ? format(data.inward_date, "yyyy-MM-dd") : "",
       received_date: data.received_date ? format(data.received_date, "yyyy-MM-dd") : "",
-      commit_date: data.commit_date ? format(data.commit_date, "yyyy-MM-dd") : "",
+      commit_date: data.commit_date ? format(data.commit_date, "yyyy-MM-dd") : null,
     };
   }, []);
 
