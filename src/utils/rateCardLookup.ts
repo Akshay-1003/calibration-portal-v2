@@ -1,4 +1,5 @@
 import type { InvoiceTableGaugeItem } from "../components/billing/invoiceItemTableShared";
+import { normalizeRateCardDiscount } from "./rateCardDiscount";
 
 type RateRangeLike = {
   min?: number | string | null;
@@ -214,17 +215,44 @@ export const findInvoiceRateCardEntry = (
   );
 };
 
+export const getInvoiceRateCardPricing = (
+  rateCard: InvoiceRateCardEntriesByGauge | null | undefined,
+  gaugeItem: InvoiceTableGaugeItem,
+  hsnCode: string,
+) => {
+  const entry = findInvoiceRateCardEntry(rateCard, gaugeItem, hsnCode);
+  const listRate = toNumber(entry?.rate);
+  if (listRate === undefined) return null;
+
+  const rawDiscount = normalizeRateCardDiscount(entry?.discount);
+  const discountPercentage = rawDiscount >= 0 && rawDiscount <= 100 ? rawDiscount : 0;
+  const discountAmount = Math.round((listRate * discountPercentage / 100 + Number.EPSILON) * 100) / 100;
+  const netRate = Math.round((listRate - discountAmount + Number.EPSILON) * 100) / 100;
+
+  return { listRate, discountPercentage, discountAmount, netRate };
+};
+
 export const getInvoiceRateCardRate = (
   rateCard: InvoiceRateCardEntriesByGauge | null | undefined,
   gaugeItem: InvoiceTableGaugeItem,
   hsnCode: string,
 ): string => {
-  const entry = findInvoiceRateCardEntry(rateCard, gaugeItem, hsnCode);
-  const rate = toNumber(entry?.rate);
-  return rate === undefined ? "" : String(rate);
+  const pricing = getInvoiceRateCardPricing(rateCard, gaugeItem, hsnCode);
+  return pricing ? String(pricing.netRate) : "";
 };
 
 export const shouldAutofillInvoiceRate = (rate: string | number | null | undefined) => {
   const numericRate = toNumber(rate);
   return numericRate === undefined || numericRate <= 0;
+};
+
+export const isUnchangedLegacyRateCardListPrice = (
+  currentRate: string | number | null | undefined,
+  originalRate: number,
+  listRate: number,
+) => {
+  const current = toNumber(currentRate);
+  return current !== undefined &&
+    Math.abs(current - originalRate) <= 0.005 &&
+    Math.abs(originalRate - listRate) <= 0.005;
 };

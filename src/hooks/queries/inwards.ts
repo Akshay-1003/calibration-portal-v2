@@ -13,6 +13,24 @@ import {
   extractPaginatedList,
 } from '../../utils/paginatedResponse';
 
+function inwardDeleteErrorMessage(error: Error): string {
+  try {
+    const payload = JSON.parse(error.message) as {
+      detail?: { message?: string; linked_records?: Record<string, number> } | string;
+    };
+    if (typeof payload.detail === 'string') return payload.detail;
+    if (payload.detail?.message) {
+      const links = Object.entries(payload.detail.linked_records ?? {})
+        .map(([type, count]) => `${type.replaceAll('_', ' ')} (${count})`)
+        .join(', ');
+      return links ? `${payload.detail.message} Linked records: ${links}.` : payload.detail.message;
+    }
+  } catch {
+    // The API may return a plain-text error.
+  }
+  return error.message || 'Failed to delete inward entry';
+}
+
 const toStringValue = (value: unknown): string => {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -393,8 +411,8 @@ export function useDeleteInwardEntryMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (id: string): Promise<void> => {
-      await apiService.deleteInward(id, { showErrorToast: false });
+    mutationFn: async (id: string) => {
+      return apiService.deleteInward(id, { showErrorToast: false });
     },
     onMutate: async (deletedId) => {
       // Cancel any outgoing refetches
@@ -431,9 +449,9 @@ export function useDeleteInwardEntryMutation() {
           queryClient.setQueryData(JSON.parse(key), data);
         });
       }
-      toast.error(error.message || 'Failed to delete inward entry');
+      toast.error(inwardDeleteErrorMessage(error));
     },
-    onSuccess: (_, deletedId) => {
+    onSuccess: (result, deletedId) => {
       // Remove detail query from cache
       queryClient.removeQueries({ queryKey: queryKeys.inwards.detail(deletedId) });
 
@@ -443,7 +461,7 @@ export function useDeleteInwardEntryMutation() {
         refetchType: 'none' // Don't refetch, just mark as stale
       });
 
-      toast.success('Inward entry deleted successfully!');
+      toast.success(result.msg);
     },
   });
 }

@@ -13,6 +13,7 @@ import '../../styles/industrial-table.css';
 import { getTableColumnKey } from './tableColumnKey';
 import { TablePagination } from "./TablePagination";
 import { dataTableClassName } from "./tableStyles";
+import { getDiscountedRate, normalizeRateCardDiscount } from "../../utils/rateCardDiscount";
 
 type RateCardTableEntry = RateCardEntry & {
   _internalId?: string;
@@ -28,6 +29,7 @@ type TableColumnKey =
   | 'least_count'
   | 'rate'
   | 'discount'
+  | 'discounted_rate'
   | 'unit'
   | 'actions';
 
@@ -52,6 +54,7 @@ const columns: { name: string; uid: TableColumnKey }[] = [
   { name: 'LEAST COUNT', uid: 'least_count' },
   { name: 'RATE', uid: 'rate' },
   { name: 'DISCOUNT (%)', uid: 'discount' },
+  { name: 'DISCOUNTED PRICE', uid: 'discounted_rate' },
   { name: 'UNIT', uid: 'unit' },
   { name: 'ACTIONS', uid: 'actions' },
 ];
@@ -64,6 +67,7 @@ const COLUMN_LAYOUT: Record<TableColumnKey, string> = {
   least_count: 'min-w-[140px]',
   rate: 'min-w-[120px]',
   discount: 'min-w-[140px]',
+  discounted_rate: 'min-w-[150px]',
   unit: 'min-w-[120px]',
   actions: 'min-w-[140px]',
 };
@@ -221,7 +225,13 @@ export const RateCardTable = ({ entries, onEdit, onDelete, loading = false }: Ra
       case 'discount':
         return (
           <span className="text-sm text-slate-700 [font-variant-numeric:tabular-nums]">
-            {entry.rate_type === 'flat' ? 'N/A' : `${formatNumber(entry.discount)}%`}
+            {entry.rate_type === 'flat' ? 'N/A' : `${formatNumber(normalizeRateCardDiscount(entry.discount))}%`}
+          </span>
+        );
+      case 'discounted_rate':
+        return (
+          <span className="text-sm font-medium text-slate-700 [font-variant-numeric:tabular-nums]">
+            {formatNumber(getDiscountedRate(entry.rate, entry.discount))}
           </span>
         );
       case 'unit':

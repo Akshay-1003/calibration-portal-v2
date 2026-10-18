@@ -114,16 +114,9 @@ export function OutwardTable({
     if (hasSearchFilter) {
       const lower = filterValue.toLowerCase();
       filtered = filtered.filter((item) => {
-        const searchableText = [
-          item.id,
-          item.clientOrgId,
-          (item as any).transport_by,
-        ]
-          .filter(Boolean)
-          .join(' ')
-          .toLowerCase();
-        
-        return searchableText.includes(lower);
+        const outwardNumber = String(item.outward_no ?? '').toLowerCase();
+        const clientName = String(item.client_org ?? '').toLowerCase();
+        return outwardNumber.includes(lower) || clientName.includes(lower);
       });
     }
     
@@ -145,14 +138,14 @@ export function OutwardTable({
   }, [page, pages, setActivePage]);
 
   const items = React.useMemo(() => {
-    if (isServerPagination) {
+    if (isServerPagination && !hasSearchFilter) {
       return filteredItems;
     }
 
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
     return filteredItems.slice(start, end);
-  }, [filteredItems, isServerPagination, page, rowsPerPage]);
+  }, [filteredItems, hasSearchFilter, isServerPagination, page, rowsPerPage]);
 
   const getComparableValue = React.useCallback((item: OutwardEntry, columnKey: TableColumnKey) => {
     switch (columnKey) {
@@ -302,7 +295,7 @@ export function OutwardTable({
         <div className="flex items-end justify-between gap-3">
           <Input
             className="w-full sm:max-w-[44%]"
-            placeholder="Search by outward ID, client name, transport by..."
+            placeholder="Search by outward number or client name..."
             value={filterValue}
             onChange={(event) => onSearchChange(event.target.value)}
           />

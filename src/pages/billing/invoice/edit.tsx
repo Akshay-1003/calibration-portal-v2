@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -72,7 +72,8 @@ import {
 import { getRateCardEntriesMap } from '../../../services/apiServices';
 import { useExistingGaugeStore, type ExistingGaugeData } from '../../../store/existingGaugeStore';
 import {
-  getInvoiceRateCardRate,
+  getInvoiceRateCardPricing,
+  isUnchangedLegacyRateCardListPrice,
   shouldAutofillInvoiceRate,
 } from '../../../utils/rateCardLookup';
 
@@ -197,6 +198,9 @@ type InvoiceBillingComponentApi = {
   discount_value?: number;
   discount_amount?: number;
   net_amount?: number;
+  rate_card_list_rate?: number;
+  rate_card_discount_percentage?: number;
+  rate_card_discount_amount?: number;
 };
 
 type InvoiceUpdatePayload = Omit<Invoice, 'updated_at' | 'created_at' | 'deleted_at' | 'id'>;
@@ -343,6 +347,8 @@ export default function EditInvoicePage() {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [hydratedInvoiceId, setHydratedInvoiceId] = useState<string | null>(null);
+  const legacyRateBaselineRef = useRef<Record<string, number>>({});
+  const reconciledDraftInvoiceIdRef = useRef<string | null>(null);
   const rateCardQuery = useRateCard(selectedPartyId || undefined);
   const rateCardEntries = useMemo(
     () => getRateCardEntriesMap(rateCardQuery.data),
@@ -360,6 +366,8 @@ export default function EditInvoicePage() {
     setHydratedInvoiceId(null);
     setInvoiceItemsData([]);
     setPage(1);
+    legacyRateBaselineRef.current = {};
+    reconciledDraftInvoiceIdRef.current = null;
   }, [invoiceId]);
 
   // Initialize from API response or cached query data
@@ -429,6 +437,7 @@ export default function EditInvoicePage() {
       pdf_columns: pdfColumnDefaults,
     });
 
+    const legacyRateBaselines: Record<string, number> = {};
     const items: InvoiceItemDataLocal[] = (invoiceDetails?.billing_items ?? []).map((item: InvoiceBillingItem, index: number) => {
       const formattedSpecs = formatSpecificationForPrint(item.specifications);
       const isManualItem = item.source_type === 'manual' || (!item.inward_id && !!item.master_gauge_id);
@@ -465,11 +474,24 @@ export default function EditInvoicePage() {
                   ? '998348'
                   : '998349');
 
+          const entryId = `${gaugeItem.id}-hsn-${compIndex}-${Date.now()}-${Math.random()}`;
+          const savedRate = Number(component.rate);
+          if (
+            Number.isFinite(savedRate) &&
+            component.rate_card_list_rate == null &&
+            component.rate_card_discount_percentage == null
+          ) {
+            legacyRateBaselines[entryId] = savedRate;
+          }
+
           return {
-            id: `${gaugeItem.id}-hsn-${compIndex}-${Date.now()}-${Math.random()}`,
+            id: entryId,
             hsnCode,
             hsnName: getInvoiceHsnName(hsnCode, 'Calibration'),
             rate: component.rate ? String(component.rate) : '',
+            rateCardListRate: component.rate_card_list_rate,
+            rateCardDiscountPercentage: component.rate_card_discount_percentage,
+            rateCardDiscountAmount: component.rate_card_discount_amount,
             quantity: component.quantity ?? 1,
             lineType: component.line_type || (processType === 'repair' ? 'repair' : processType === 'calibration' ? 'calibration' : 'custom'),
             description: component.description || (processType === 'calibration' ? 'Calibration' : processType === 'repair' ? 'Repair / Servicing' : ''),
@@ -485,6 +507,7 @@ export default function EditInvoicePage() {
       };
     });
 
+    legacyRateBaselineRef.current = legacyRateBaselines;
     setInvoiceItemsData(items);
     setHydratedInvoiceId(invoiceData.id);
   }, [form, hydratedInvoiceId, invoiceData, lineMode, resolvedBillingFirmName]);
@@ -526,19 +549,27 @@ export default function EditInvoicePage() {
         return entry;
       }
 
-      const nextRate = getInvoiceRateCardRate(
+      const pricing = getInvoiceRateCardPricing(
         rateCardEntries,
         item.gaugeItem,
         entry.hsnCode,
       );
-      if (!nextRate || nextRate === entry.rate) {
+      if (!pricing) {
         return entry;
       }
+
+      const nextRate = String(pricing.netRate);
+      if (nextRate === entry.rate &&
+        entry.rateCardListRate === pricing.listRate &&
+        entry.rateCardDiscountPercentage === pricing.discountPercentage) return entry;
 
       changed = true;
       return {
         ...entry,
         rate: nextRate,
+        rateCardListRate: pricing.listRate,
+        rateCardDiscountPercentage: pricing.discountPercentage,
+        rateCardDiscountAmount: pricing.discountAmount,
       };
     });
 
@@ -563,6 +594,66 @@ export default function EditInvoicePage() {
       return changed ? nextItems : prev;
     });
   }, [autofillRatesForItem, rateCardEntries]);
+
+  useEffect(() => {
+    const currentInvoiceId = invoiceData?.id;
+    if (
+      !currentInvoiceId ||
+      hydratedInvoiceId !== currentInvoiceId ||
+      !isDraftInvoice ||
+      !rateCardQuery.isSuccess ||
+      reconciledDraftInvoiceIdRef.current === currentInvoiceId
+    ) {
+      return;
+    }
+
+    setInvoiceItemsData((items) => {
+      let changed = false;
+      const reconciledItems = items.map((item) => {
+        let itemChanged = false;
+        const hsnEntries = item.hsnEntries.map((entry) => {
+          const baselineRate = legacyRateBaselineRef.current[entry.id];
+          if (
+            baselineRate === undefined ||
+            entry.rateCardListRate != null ||
+            entry.rateCardDiscountPercentage != null
+          ) {
+            return entry;
+          }
+
+          const pricing = getInvoiceRateCardPricing(rateCardEntries, item.gaugeItem, entry.hsnCode);
+          if (
+            !pricing ||
+            pricing.discountPercentage <= 0 ||
+            !isUnchangedLegacyRateCardListPrice(entry.rate, baselineRate, pricing.listRate)
+          ) {
+            return entry;
+          }
+
+          itemChanged = true;
+          return {
+            ...entry,
+            rate: String(pricing.netRate),
+            rateCardListRate: pricing.listRate,
+            rateCardDiscountPercentage: pricing.discountPercentage,
+            rateCardDiscountAmount: pricing.discountAmount,
+          };
+        });
+
+        if (itemChanged) changed = true;
+        return itemChanged ? { ...item, hsnEntries } : item;
+      });
+
+      return changed ? reconciledItems : items;
+    });
+    reconciledDraftInvoiceIdRef.current = currentInvoiceId;
+  }, [
+    hydratedInvoiceId,
+    invoiceData?.id,
+    isDraftInvoice,
+    rateCardEntries,
+    rateCardQuery.isSuccess,
+  ]);
 
   // Add HSN entry for a gauge
   const handleAddHSN = useCallback((gaugeIndex: number) => {
@@ -672,8 +763,14 @@ export default function EditInvoicePage() {
                     : 'custom',
               description: processType === 'repair' ? 'Repair / Servicing' : nextHsnName,
             };
-            const nextRate = getInvoiceRateCardRate(rateCardEntries, item.gaugeItem, hsnCode);
-            return nextRate ? { ...nextEntry, rate: nextRate } : nextEntry;
+            const pricing = getInvoiceRateCardPricing(rateCardEntries, item.gaugeItem, hsnCode);
+            return pricing ? {
+              ...nextEntry,
+              rate: String(pricing.netRate),
+              rateCardListRate: pricing.listRate,
+              rateCardDiscountPercentage: pricing.discountPercentage,
+              rateCardDiscountAmount: pricing.discountAmount,
+            } : nextEntry;
           }),
         };
       });
@@ -691,7 +788,13 @@ export default function EditInvoicePage() {
         return {
           ...item,
           hsnEntries: item.hsnEntries.map((entry) =>
-            entry.id === hsnId ? { ...entry, rate } : entry
+            entry.id === hsnId ? {
+              ...entry,
+              rate,
+              rateCardListRate: undefined,
+              rateCardDiscountPercentage: undefined,
+              rateCardDiscountAmount: undefined,
+            } : entry
           ),
         };
       });
@@ -1076,6 +1179,9 @@ export default function EditInvoicePage() {
           process: processType as 'calibration' | 'repair' | 'inspection' | 'verification' | 'spare_part',
           quantity,
           rate,
+          rate_card_list_rate: hsnEntry.rateCardListRate,
+          rate_card_discount_percentage: hsnEntry.rateCardDiscountPercentage,
+          rate_card_discount_amount: hsnEntry.rateCardDiscountAmount,
           amount,
           service_type: processType,
           line_type: hsnEntry.lineType || (processType === 'repair' || processType === 'calibration' ? processType : 'custom'),

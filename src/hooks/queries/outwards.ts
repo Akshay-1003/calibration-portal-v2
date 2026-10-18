@@ -53,6 +53,7 @@ interface UseOutwardEntriesQueryOptions {
   page?: number;
   limit?: number;
   excludeInvoiced?: boolean;
+  searchAll?: boolean;
 }
 
 // ============================================================================
@@ -67,25 +68,34 @@ export function usePaginatedOutwardEntriesQuery(options?: UseOutwardEntriesQuery
   const page = Math.max(0, Math.floor(options?.page ?? 0));
   const limit = options?.limit ?? 10;
   const excludeInvoiced = options?.excludeInvoiced ?? false;
+  const searchAll = options?.searchAll ?? false;
 
   return useQuery({
-    queryKey: queryKeys.outwards.list({ organizationId, page, limit, excludeInvoiced }),
+    queryKey: queryKeys.outwards.list({ organizationId, page: searchAll ? 0 : page, limit, excludeInvoiced, searchAll }),
     queryFn: async (): Promise<PaginatedListResult<OutwardEntry>> => {
-      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (organizationId) {
-        params.set('org_id', organizationId);
-      }
-      if (excludeInvoiced) {
-        params.set('exclude_invoiced', 'true');
-      }
-      const response = await apiService.get<unknown>(
-        `${API_ENDPOINTS.OUTWARDS.LIST}?${params.toString()}`,
+      const fetchPage = async (requestedPage: number) => {
+        const params = new URLSearchParams({ page: String(requestedPage), limit: String(limit) });
+        if (organizationId) params.set('org_id', organizationId);
+        if (excludeInvoiced) params.set('exclude_invoiced', 'true');
+        const response = await apiService.get<unknown>(`${API_ENDPOINTS.OUTWARDS.LIST}?${params.toString()}`);
+        return extractPaginatedList<OutwardEntry>(response, {
+          arrayKeys: ['data', 'outwards', 'items'],
+          fallbackPage: requestedPage,
+          fallbackLimit: limit,
+        });
+      };
+      const firstPage = await fetchPage(searchAll ? 0 : page);
+      if (!searchAll || firstPage.totalPages <= 1) return firstPage;
+      const remainingPages = await Promise.all(
+        Array.from({ length: firstPage.totalPages - 1 }, (_, index) => fetchPage(index + 1)),
       );
-      return extractPaginatedList<OutwardEntry>(response, {
-        arrayKeys: ['data', 'outwards', 'items'],
-        fallbackPage: page,
-        fallbackLimit: limit,
-      });
+      return {
+        ...firstPage,
+        items: [firstPage, ...remainingPages].flatMap((result) => result.items),
+        total: firstPage.total,
+        totalPages: 1,
+        page: 0,
+      };
     },
     staleTime: options?.staleTime ?? 5 * 60 * 1000, // 5 minutes default
     gcTime: 30 * 60 * 1000,

@@ -42,6 +42,10 @@ const formatSpecifications = (specs: unknown): string => {
   const specObj = specs as Record<string, unknown>;
   const parts: string[] = [];
 
+  if (typeof specObj.standard_specification === 'string') {
+    return specObj.standard_specification;
+  }
+
   // Handle simple key-value pairs
   if (specObj.basic_size) {
     parts.push(`${specObj.basic_size}`);
@@ -65,6 +69,10 @@ const formatSpecifications = (specs: unknown): string => {
     if (noGo.basic_size !== undefined) {
       parts.push(`${noGo.basic_size}`);
     }
+  }
+
+  if (typeof specObj.legacy_value === 'string' && specObj.legacy_value.trim()) {
+    return specObj.legacy_value;
   }
 
   // If we have parts, join them

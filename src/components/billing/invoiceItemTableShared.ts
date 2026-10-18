@@ -34,6 +34,9 @@ export interface InvoiceItemHSN {
   hsnCode: string;
   hsnName: string;
   rate: string;
+  rateCardListRate?: number;
+  rateCardDiscountPercentage?: number;
+  rateCardDiscountAmount?: number;
   quantity: number;
   discountType?: 'none' | 'percentage' | 'flat';
   discountValue?: string;

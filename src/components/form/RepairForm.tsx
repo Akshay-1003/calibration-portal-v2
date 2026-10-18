@@ -291,7 +291,13 @@ const RepairForm = ({
                     }}
                     >
                     <Autocomplete.Trigger>
-                      <Autocomplete.Filter><Input aria-label="Search gauge" placeholder="Search by gauge name or standard no..." /></Autocomplete.Filter>
+                      <Autocomplete.Filter>
+                        <Input
+                          aria-label="Search gauge"
+                          className="w-full border-0 bg-transparent shadow-none outline-none"
+                          placeholder="Search by gauge name or standard no..."
+                        />
+                      </Autocomplete.Filter>
                       <Autocomplete.Indicator />
                     </Autocomplete.Trigger>
                     <Autocomplete.Popover><ListBox>{gaugeMasterList.length ? gaugeMasterList.map((gauge) => (

@@ -34,6 +34,7 @@ const OutwardPage = React.memo(() => {
   } = usePaginatedOutwardEntriesQuery({
     page: toApiPage(page),
     limit: rowsPerPage,
+    searchAll: Boolean(tableUrlState.query),
   });
   const deleteOutwardEntryMutation = useDeleteOutwardEntryMutation();
   const outwardEntries = outwardEntriesResult?.items ?? [];

@@ -82,7 +82,13 @@ const QuotationAutocomplete = ({
     >
       <Autocomplete.Trigger className={`h-10 min-h-10 rounded-md border border-slate-200 shadow-none hover:border-slate-300 ${selectedKey ? 'bg-slate-100' : 'bg-white'}`}>
         <Autocomplete.Filter>
-          <Input className="w-full" placeholder={placeholder} value={inputValue} onChange={(event) => onInputChange(event.target.value)} />
+          <Input
+            aria-label={label}
+            className="w-full border-0 bg-transparent shadow-none outline-none"
+            placeholder={placeholder}
+            value={inputValue}
+            onChange={(event) => onInputChange(event.target.value)}
+          />
         </Autocomplete.Filter>
         <Autocomplete.Indicator />
       </Autocomplete.Trigger>

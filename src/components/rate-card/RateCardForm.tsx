@@ -17,6 +17,7 @@ import { useTaperThreadReadingsQuery } from '../../hooks/queries/taperThreadRead
 import { FormField } from '../ui/form-field';
 import { rateCardFormSchema, type RateCardFormData } from '../../lib/validations/schemas';
 import type { RateCardEntry } from '../../pages/masters/PartyMaster/rate-card';
+import { normalizeRateCardDiscount } from '../../utils/rateCardDiscount';
 
 type RangeType = 'range' | 'specification' | 'basic_size';
 
@@ -210,11 +211,7 @@ export const RateCardForm = ({
         range_type: detectedRangeType,
         description: entry.description || '',
         discount:
-          typeof entry.discount === 'number'
-            ? entry.discount.toString()
-            : entry.discount !== undefined
-              ? String(entry.discount)
-              : '',
+          entry.discount !== undefined ? String(normalizeRateCardDiscount(entry.discount)) : '',
         unit: entry.unit || 'rs/unit',
         entries: [
           {

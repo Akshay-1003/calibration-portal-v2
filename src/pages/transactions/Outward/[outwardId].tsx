@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../../components/ui/button";
 import { TablePageWrapper } from "../../../components/layout/TablePageWrapper";
@@ -60,6 +60,7 @@ const OutwardDetailPage = React.memo(() => {
 
   // Selected outward items for invoice
   const [selectedOutwardItems, setSelectedOutwardItems] = React.useState<Set<string> | 'all'>(new Set());
+  const [activeTab, setActiveTab] = useState<'outwardItems' | 'inwardedItems'>('outwardItems');
 
   // Initial data fetch
   useEffect(() => {
@@ -413,11 +414,19 @@ const OutwardDetailPage = React.memo(() => {
 
 
         <div className="flex w-full flex-col">
-          <Tabs>
-            <Tabs.ListContainer><Tabs.List aria-label="Options">
+          <Tabs
+            aria-label="Outward item views"
+            selectedKey={activeTab}
+            onSelectionChange={(key) => setActiveTab(String(key) as 'outwardItems' | 'inwardedItems')}
+            variant="secondary"
+            className="w-full"
+          >
+            <Tabs.ListContainer className="w-full rounded-xl border border-slate-200 bg-slate-100 p-1">
+              <Tabs.List aria-label="Outward item views" className="grid w-full grid-cols-2 gap-1">
               <Tabs.Tab id="outwardItems">OUTWARD ITEMS FROM THIS CHALAN</Tabs.Tab>
               <Tabs.Tab id="inwardedItems">INWARDED ITEMS</Tabs.Tab>
-            </Tabs.List></Tabs.ListContainer>
+              </Tabs.List>
+            </Tabs.ListContainer>
             <Tabs.Panel id="outwardItems">
               <Card>
                 <Card.Header className="flex justify-between items-center bg-blue-600 text-white">

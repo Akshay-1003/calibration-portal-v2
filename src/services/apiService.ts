@@ -413,10 +413,13 @@ class ApiService {
     );
   }
 
-  async deleteInward(id: string, config: RequestConfig = {}): Promise<ApiResponse<void>> {
-    return this.delete<ApiResponse<void>>(
+  async deleteInward(
+    id: string,
+    config: RequestConfig = {}
+  ): Promise<{ msg: string; action: 'archived' | 'deleted' | 'cancelled' }> {
+    return this.delete<{ msg: string; action: 'archived' | 'deleted' | 'cancelled' }>(
       API_ENDPOINTS.INWARDS.DELETE(id),
-      { successMessage: 'Inward entry deleted successfully!', ...config }
+      { showSuccessToast: false, ...config }
     );
   }
 

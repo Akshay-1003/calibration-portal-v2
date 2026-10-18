@@ -75,6 +75,27 @@ function TableSectionFallback() {
 }
 
 const HANDLED_GAUGE_SAVE_ERROR = "__GAUGE_SAVE_ERROR_HANDLED__";
+const DUPLICATE_REVIEW_PENDING = "__DUPLICATE_REVIEW_PENDING__";
+
+type GaugeDuplicateCandidate = {
+  id: string;
+  lab_id: string;
+  gauge_name: string;
+  identification_number: string;
+  manf_serial_number: string;
+  specifications: unknown;
+  master_gauge: string;
+  make: string;
+  classification: "exact" | "possible";
+};
+
+type GaugeDuplicateReview = {
+  classification: "exact" | "possible";
+  candidates: GaugeDuplicateCandidate[];
+  payload: Record<string, unknown>;
+  process: string;
+  confirmationToken?: string;
+};
 
 
 export default function RegisterGaugePage() {
@@ -162,6 +183,8 @@ export default function RegisterGaugePage() {
   const [gaugeIdToDelete, setGaugeIdToDelete] = useState<string | null>(null);
   const [deleteFlowType, setDeleteFlowType] = useState<GaugeFlowType>("calibration");
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [duplicateReview, setDuplicateReview] = useState<GaugeDuplicateReview | null>(null);
+  const [selectedDuplicateId, setSelectedDuplicateId] = useState("");
   const [bulkAddLoading, setBulkAddLoading] = useState(false);
   const [editingFormData, setEditingFormData] = useState<Partial<GaugeRegistrationFormData> | undefined>(undefined);
   const [legacySpecification, setLegacySpecification] = useState<string | null>(null);
@@ -173,14 +196,12 @@ export default function RegisterGaugePage() {
   const [formRenderKey, setFormRenderKey] = useState(0);
   const formRef = useRef<InwardGaugeFormRef>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [foundInExistingGauges, setFoundInExistingGauges] = useState(false);
   const [matchedIdentificationNumber, setMatchedIdentificationNumber] = useState<string>("");
   const [existingGaugePage, setExistingGaugePage] = useState(1);
   const [existingGaugeRowsPerPage, setExistingGaugeRowsPerPage] = useState(10);
   const [linkedGaugePage, setLinkedGaugePage] = useState(1);
   const [linkedGaugeRowsPerPage, setLinkedGaugeRowsPerPage] = useState(10);
   const [linkedGaugeSearch, setLinkedGaugeSearch] = useState("");
-  const previousIdentificationNumberRef = useRef<string>("");
   const debouncedLinkedGaugeSearch = useDebounce(linkedGaugeSearch.trim(), 400);
   const mappedGaugeId = prefilledGaugeSource?.gaugeId ?? null;
   const isInwardLinkedGaugesLoading =
@@ -286,9 +307,7 @@ export default function RegisterGaugePage() {
     setEditingFlowType("calibration");
     setPrefilledGaugeSource(null);
     setSelectedKey("addNewGauge");
-    setFoundInExistingGauges(false);
     setMatchedIdentificationNumber("");
-    previousIdentificationNumberRef.current = "";
     // Reset form once - no need for double reset
     formRef.current?.reset();
     // Force unmount/mount cycle to clear nested dynamic components.
@@ -362,6 +381,25 @@ export default function RegisterGaugePage() {
 
         const shouldMapExistingGauge = !isEditing && Boolean(mappedGaugeId);
 
+        if (!isEditing && !shouldMapExistingGauge) {
+          const duplicateResult = await apiClient.post<{
+            classification: "none" | "exact" | "possible";
+            candidates: GaugeDuplicateCandidate[];
+            confirmation_token?: string;
+          }>("/gauge/duplicates/check", payload);
+          if (duplicateResult.classification !== "none" && duplicateResult.candidates.length) {
+            setDuplicateReview({
+              classification: duplicateResult.classification,
+              candidates: duplicateResult.candidates,
+              payload,
+              process,
+              confirmationToken: duplicateResult.confirmation_token,
+            });
+            setSelectedDuplicateId(duplicateResult.candidates[0].id);
+            throw new Error(DUPLICATE_REVIEW_PENDING);
+          }
+        }
+
         // Execute API call
         if (isEditing && editingGaugeId) {
           const result = await updateInwardGaugeInState(
@@ -417,7 +455,7 @@ export default function RegisterGaugePage() {
           ? error.message 
           : "Failed to save gauge. Please try again.";
         
-        if (errorMessage !== HANDLED_GAUGE_SAVE_ERROR) {
+        if (errorMessage !== HANDLED_GAUGE_SAVE_ERROR && errorMessage !== DUPLICATE_REVIEW_PENDING) {
           toast.error(errorMessage);
         }
         
@@ -446,6 +484,54 @@ export default function RegisterGaugePage() {
       mappedGaugeId,
     ]
   );
+
+  const resolveDuplicateReview = useCallback(async (resolution: "existing" | "new" | "edit") => {
+    const review = duplicateReview;
+    if (!review) return;
+    if (resolution === "edit") {
+      setDuplicateReview(null);
+      return;
+    }
+    if (!inwardId) return;
+
+    setIsSubmitting(true);
+    try {
+      const result = resolution === "existing"
+        ? await mapGaugeToInwardState(inwardId, selectedDuplicateId, review.process)
+        : await addInwardGaugeToState(inwardId, review.payload, review.process, review.confirmationToken);
+      if (!result) throw new Error("Unable to add the selected gauge to this inward.");
+
+      if (clientId) {
+        await fetchExistingGauges(clientId, {
+          page: existingGaugePage,
+          limit: existingGaugeRowsPerPage,
+          forceRefresh: true,
+        });
+      }
+      if (review.process === "data_save") await fetchAllCurrentInwardDataSaves(inwardId, true);
+
+      setDuplicateReview(null);
+      resetFormState();
+      setFormSubmitted(true);
+      toast.success(resolution === "existing" ? "Existing gauge added to inward." : "New gauge added to inward.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to resolve the possible duplicate.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    addInwardGaugeToState,
+    clientId,
+    duplicateReview,
+    existingGaugePage,
+    existingGaugeRowsPerPage,
+    fetchExistingGauges,
+    fetchAllCurrentInwardDataSaves,
+    inwardId,
+    mapGaugeToInwardState,
+    resetFormState,
+    selectedDuplicateId,
+  ]);
   const handleEditGauge = useCallback(
     async (gaugeId: string) => {
       try {
@@ -639,9 +725,7 @@ export default function RegisterGaugePage() {
       setFormRenderKey((prev) => prev + 1);
 
       // Clear the matched identification number and search state when adding gauge
-      setFoundInExistingGauges(false);
       setMatchedIdentificationNumber("");
-      previousIdentificationNumberRef.current = "";
 
       toast.success(
         `📥 Gauge "${existingGauge.identification_number}" loaded into form.`
@@ -896,29 +980,17 @@ export default function RegisterGaugePage() {
                     legacySpecification={legacySpecification}
                     onIdentificationNumberChange={(identificationNumber) => {
                       const trimmedId = identificationNumber?.trim() || "";
-                      const previousId = previousIdentificationNumberRef.current;
-                      const wasFoundBefore = foundInExistingGauges;
                       
                       if (trimmedId.length > 0) {
                         const found = existingGauges.some(
                           (gauge) => gauge.identification_number?.toLowerCase() === trimmedId.toLowerCase()
                         );
                         
-                        // Only show toast if status changed from not found to found (and ID actually changed)
-                        if (found && !wasFoundBefore && previousId !== trimmedId) {
-                          toast.info("This gauge exists in your existing gauges. Check the 'Add Existing Gauges' tab.", {
-                            duration: 5000,
-                          });
-                          // Auto-filter the table with this identification number
+                        if (found) {
                           setMatchedIdentificationNumber(trimmedId);
                         }
-                        
-                        setFoundInExistingGauges(found);
-                        previousIdentificationNumberRef.current = trimmedId;
                       } else {
-                        setFoundInExistingGauges(false);
                         setMatchedIdentificationNumber("");
-                        previousIdentificationNumberRef.current = "";
                       }
                     }}
                   />
@@ -1012,6 +1084,63 @@ export default function RegisterGaugePage() {
             </div>
           )}
         </div>
+
+        <Modal.Root isOpen={Boolean(duplicateReview)} onOpenChange={(open) => {
+          if (!open) setDuplicateReview(null);
+        }}>
+          <Modal.Backdrop>
+            <Modal.Container size="lg" scroll="inside">
+              <Modal.Dialog>
+                <Modal.Header>
+                  <Modal.Heading>
+                    {duplicateReview?.classification === "exact" ? "Matching Gauge Found" : "Possible Duplicate Found"}
+                  </Modal.Heading>
+                  <Modal.CloseTrigger aria-label="Close duplicate review" />
+                </Modal.Header>
+                <Modal.Body>
+                  {duplicateReview?.classification === "possible" && (
+                    <p className="mb-3 text-sm text-default-600">
+                      Possible duplicate found. Identification/Serial Number is unavailable. Is this the same physical gauge?
+                    </p>
+                  )}
+                  <div className="max-h-72 space-y-2 overflow-y-auto">
+                    {duplicateReview?.candidates.map((candidate) => (
+                      <button
+                        key={candidate.id}
+                        type="button"
+                        aria-pressed={selectedDuplicateId === candidate.id}
+                        onClick={() => setSelectedDuplicateId(candidate.id)}
+                        className={`w-full rounded-md border p-3 text-left text-sm ${selectedDuplicateId === candidate.id ? "border-primary bg-primary/5" : "border-default-200"}`}
+                      >
+                        <div className="mb-2 font-semibold">{candidate.gauge_name || "Gauge"} · Lab ID: {candidate.lab_id || "-"}</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-default-600">
+                          <span>Identification: {candidate.identification_number || "-"}</span>
+                          <span>Serial: {candidate.manf_serial_number || "-"}</span>
+                          <span>Specification: {typeof candidate.specifications === "string" ? candidate.specifications : JSON.stringify(candidate.specifications ?? "-")}</span>
+                          <span>Master Gauge: {candidate.master_gauge || "-"}</span>
+                          <span>Make: {candidate.make || "-"}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onPress={() => resolveDuplicateReview("edit")}>
+                    Edit Details and Add as New
+                  </Button>
+                  <Button variant="primary" isDisabled={!selectedDuplicateId || isSubmitting} onPress={() => resolveDuplicateReview("existing")}>
+                    {duplicateReview?.classification === "exact" ? "Use Existing Gauge" : "Select Existing Gauge"}
+                  </Button>
+                  {duplicateReview?.classification === "possible" && (
+                    <Button variant="secondary" isDisabled={isSubmitting || !duplicateReview.confirmationToken} onPress={() => resolveDuplicateReview("new")}>
+                      None of These - Add as New Gauge
+                    </Button>
+                  )}
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal.Root>
 
         {/* Delete Confirmation Dialog */}
         <Modal isOpen={isOpen} onOpenChange={onOpenChange}>

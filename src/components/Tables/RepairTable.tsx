@@ -9,6 +9,7 @@ import {
   ListBox,
   Select,
   Chip,
+  Alert,
 } from '@heroui/react';
 import {
   MagnifyingGlassIcon,
@@ -339,21 +340,6 @@ export const RepairTable = memo<RepairTableViewProps>(
     </div>
   ), [onCreateRepair]);
 
-  // Error content
-  const errorContent = useMemo(() => (
-    <div className="text-center py-8">
-      <div className="text-red-500 mb-2">Error loading repairs</div>
-      <div className="text-gray-600 text-sm mb-4">{error}</div>
-      <Button
-        size="sm"
-        variant="primary"
-        onPress={onRefresh}
-      >
-        Try Again
-      </Button>
-    </div>
-  ), [error, onRefresh]);
-
   // Top content with filters
   const topContent = useMemo(() => (
     <div className="flex flex-col gap-4">
@@ -450,7 +436,16 @@ export const RepairTable = memo<RepairTableViewProps>(
     return (
       <div className="p-2">
         <div className="industrial-table-wrapper">
-          {errorContent}
+          <Alert status="danger" className="m-4">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>Unable to load repairs</Alert.Title>
+              <Alert.Description>{error}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+          <div className="flex justify-center pb-6">
+            <Button size="sm" variant="primary" onPress={onRefresh}>Try Again</Button>
+          </div>
         </div>
       </div>
     );

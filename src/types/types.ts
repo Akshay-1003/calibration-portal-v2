@@ -98,6 +98,9 @@ export interface InvoiceBillingComponent {
   process: string;
   quantity: number;
   rate: number;
+  rate_card_list_rate?: number;
+  rate_card_discount_percentage?: number;
+  rate_card_discount_amount?: number;
   amount: number;
   service_type?: string;
   line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom';

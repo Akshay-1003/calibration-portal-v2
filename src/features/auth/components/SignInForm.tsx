@@ -85,7 +85,7 @@ export const SignInForm: React.FC<SignInFormProps> = ({
 
   return (
     <div className="mx-auto min-w-0 w-full max-w-full bg-whi">
-      <div className="flex min-w-0 w-full max-w-full flex-col gap-6 rounded-md bg-content1 pb-10 pt-6 shadow-sm bg-white dark:bg-content1 sm:px-10 md:px-12 lg:px-6 xl:px-8 2xl:px-20">
+      <div className="flex min-w-0 w-full max-w-full flex-col gap-6 rounded-md bg-content1 pb-10 pt-6 shadow-sm bg-white dark:bg-content1 sm:px-10 md:px-12 lg:px-6 xl:px-8">
         <div className="mb-2">
           <BrandLogo className="mx-auto h-16 w-auto" width={256} height={64} priority />
         </div>

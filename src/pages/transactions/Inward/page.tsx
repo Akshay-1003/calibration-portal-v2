@@ -68,17 +68,15 @@ const InwardPage = React.memo(() => {
     if (!pendingDelete) return;
     setIsDeleting(true);
     
-    // Close modal immediately for instant feedback
-    setDeleteOpen(false);
-    
     try {
       await deleteMutation.mutateAsync(pendingDelete.id);
+      setDeleteOpen(false);
+      setPendingDelete(null);
     } catch (error) {
       logger.error('Error deleting inward entry:', error);
-      toast.error('An error occurred while deleting the inward entry');
+      throw error;
     } finally {
       setIsDeleting(false);
-      setPendingDelete(null);
     }
   }, [deleteMutation, pendingDelete]);
 
@@ -210,16 +208,20 @@ const InwardPage = React.memo(() => {
       <DeleteConfirmModal
         isOpen={deleteOpen}
         onClose={closeDelete}
-        title="Delete inward entry"
+        title={isSuperAdmin ? "Delete or cancel inward cycle" : "Archive inward entry"}
         message={
           <>
-            Are you sure you want to delete inward entry for{' '}
+            {isSuperAdmin
+              ? "This permanently deletes inward-owned data when there are no downstream records. If certificates exist, the inward cycle will be archived and certificates voided; outward, invoice, or active repair records must be resolved first. Gauge records and numbering history are always retained. "
+              : "This archives the inward and its inward-owned records from active workflows while preserving history and gauge inventory. "}
+            Inward for{' '}
             <span className="font-semibold text-gray-900">
               {pendingDelete?.client_org_name ?? 'this client'}
             </span>
-            ? This action cannot be undone.
+            ?
           </>
         }
+        confirmText={isSuperAdmin ? "Continue" : "Archive"}
         isConfirmLoading={isDeleting}
         onConfirm={confirmDelete}
       />

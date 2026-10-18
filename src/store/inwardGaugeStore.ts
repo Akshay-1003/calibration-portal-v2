@@ -144,7 +144,7 @@ export interface InwardGaugeState {
   fetchAllCurrentInwardDataSaves: (inwardId: string, force?: boolean) => Promise<CombinedGaugeData[]>;
   fetchGaugesWithFilters: (filters?: { client_org_id?: string; inward_date_from?: string; inward_date_to?: string; lab_id?: string; status?: string }) => Promise<LinkedGauge[]>;
 
-  addInwardGaugeToState: (inwardId: string, payload: Record<string, unknown>, process: string) => Promise<CombinedGaugeData | null>;
+  addInwardGaugeToState: (inwardId: string, payload: Record<string, unknown>, process: string, duplicateConfirmationToken?: string) => Promise<CombinedGaugeData | null>;
   mapGaugeToInwardState: (inwardId: string, gaugeId: string, process: string) => Promise<CombinedGaugeData | null>;
   updateInwardGaugeInState: (
     inwardId: string,
@@ -782,14 +782,17 @@ export const useInwardGaugeStore = create<InwardGaugeState>((set, get) => ({
       }
     ) as Promise<CombinedGaugeData[]>,
 
-  addInwardGaugeToState: async (inwardId, newGauge, process) =>
+  addInwardGaugeToState: async (inwardId, newGauge, process, duplicateConfirmationToken) =>
     runAsync(
       set,
       () => ({}),
       "loadingCurrentGauge",
       async () => {
         if (!inwardId) throw new Error("inwardId required");
-        const gaugeData = await apiClient.post<CombinedGaugeData>("/gauge", newGauge);
+        const createEndpoint = duplicateConfirmationToken
+          ? `/gauge?duplicate_confirmation_token=${encodeURIComponent(duplicateConfirmationToken)}`
+          : "/gauge";
+        const gaugeData = await apiClient.post<CombinedGaugeData>(createEndpoint, newGauge);
         const createdGaugeId = gaugeData?.id;
         if (!createdGaugeId) return null;
         let gaugeInfo: RegisterGaugeResponse = {} as RegisterGaugeResponse;

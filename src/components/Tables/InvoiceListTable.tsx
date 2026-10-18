@@ -4,7 +4,6 @@ import React from "react";
 import type { Key } from "@react-types/shared";
 import {
   Table,
-  Input,
   Button,
   Label,
   ListBox,
@@ -23,7 +22,7 @@ import {
   TrashIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { Chip } from "@heroui/chip";
 import type { CompanyWithOutward } from "../../store/invoiceStore";
 import {
