@@ -103,7 +103,8 @@ export interface InvoiceBillingComponent {
   rate_card_discount_amount?: number;
   amount: number;
   service_type?: string;
-  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom';
+  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom' | 'return_as_is';
+  return_as_is?: boolean;
   description?: string;
   hsn_sac?: string;
   tax_category?: string;
@@ -118,6 +119,10 @@ export interface InvoiceBillingComponent {
 // Note: specifications can be null in API responses, but we convert to empty object {} when building payloads
 export interface InvoiceBillingItem {
   source_type?: string;
+  gauge_inward_id?: string | null;
+  repair_id?: string | null;
+  price_list_item_id?: string | null;
+  po_line_id?: string | null;
   gauge_id: string | null;
   inward_id: string | null;
   inward_date?: string | null;
@@ -166,6 +171,9 @@ export interface ClientDetails {
 
 // Invoice Type - matches API response structure
 export interface Invoice {
+  batch_id?: string | null;
+  po_id?: string | null;
+  revision?: number;
   updated_at: string; // ISO datetime
   created_at: string; // ISO datetime
   deleted_at: string | null; // ISO datetime or null
@@ -196,6 +204,8 @@ export interface Invoice {
   outward_ids?: string[];
   outward_no: string | number | null;
   outward_nos?: Array<string | number>;
+  repair_ids?: string[];
+  repair_nos?: string[];
   gauge_inward_ids: string[] | null;
   client_details: ClientDetails;
   invoice_details: InvoiceDetails;
@@ -209,6 +219,7 @@ export interface RateRange {
 }
 
 export interface RateCardEntry {
+  price_list_item_id?: string;
   rate_type: string;
   range: RateRange;
   basic_size?: number;

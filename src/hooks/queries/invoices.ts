@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { apiClient, type ApiResponse } from '../../services/api';
+import { apiClient, ApiError, type ApiResponse } from '../../services/api';
 import { API_ENDPOINTS } from '../../config/api';
 import { queryKeys } from './queryKeys';
 import type { CompanyWithOutward, InvoiceDraftResponse } from '../../store/invoiceStore';
@@ -57,6 +57,8 @@ export interface CreateInvoicePayload {
   outward_no?: string | null;
   outward_nos: Array<string | number>;
   gauge_inward_ids: string[];
+  repair_ids?: string[];
+  repair_nos?: string[];
   order_number: string | null;
   order_date: string | null;
   po_number?: string | null;
@@ -85,6 +87,7 @@ const mapInvoiceToListEntry = (invoice: Invoice): CompanyWithOutward => {
   const billingDate = invoice.billing_date || invoice.date_of_issue || '';
 
   return {
+    batch_id: invoice.batch_id,
     company_id: invoice.client_org_id,
     company_name: invoice.client_details?.name ?? '',
     outward_count: invoice.outward_ids?.length ?? (invoice.outward_id ? 1 : 0),
@@ -629,16 +632,38 @@ export function useCancelInvoiceMutation() {
       invoiceId: string;
       remarks?: string | null;
     }): Promise<Invoice> => {
-      const response = await apiClient.patchApiResponse<Invoice>(
-        API_ENDPOINTS.INVOICES.CANCEL(invoiceId),
-        { remarks: remarks || null },
-      );
-      return (response as ApiResponse<Invoice>)?.data || (response as unknown as Invoice);
+      try {
+        const response = await apiClient.patchApiResponse<Invoice>(
+          API_ENDPOINTS.INVOICES.CANCEL(invoiceId),
+          { remarks: remarks || null },
+        );
+        return (response as ApiResponse<Invoice>)?.data || (response as unknown as Invoice);
+      } catch (error) {
+        if (!(error instanceof ApiError) || error.status !== 0) throw error;
+
+        // A lost response does not tell us whether the server applied the
+        // cancellation. Read the current invoice before allowing a retry.
+        try {
+          const response = await apiClient.getApiResponse<Invoice>(
+            `${API_ENDPOINTS.INVOICES.GET}${invoiceId}`,
+            { method: 'GET', cache: 'no-store' },
+          );
+          const invoice = (response as ApiResponse<Invoice>)?.data || (response as unknown as Invoice);
+          if (normalizeInvoiceStatus(invoice.status) === 'cancelled') return invoice;
+          throw new ApiError(0, 'The invoice was not cancelled. Please try again.', 'CANCEL_NOT_APPLIED');
+        } catch (lookupError) {
+          if (lookupError instanceof ApiError && lookupError.code === 'CANCEL_NOT_APPLIED') throw lookupError;
+          throw new ApiError(0, 'Could not confirm whether the invoice was cancelled. Refresh the list before retrying.', 'CANCEL_STATUS_UNKNOWN');
+        }
+      }
     },
     onSuccess: (invoice, variables) => {
       queryClient.setQueryData(queryKeys.invoices.detail(variables.invoiceId), invoice);
       patchInvoiceInListCaches(queryClient, invoice);
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.lists() });
+      queryClient.invalidateQueries({ queryKey: ["po-batch"] });
+      queryClient.invalidateQueries({ queryKey: ["billing-availability"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.outwards.all });
       useInvoiceStore.getState().seedInvoiceCache(invoice);
     },
   });

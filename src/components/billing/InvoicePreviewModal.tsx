@@ -12,6 +12,7 @@ import { transformInvoiceToInvoiceData } from './invoiceUtils';
 import { useAccountDetailQuery, useAccountDetailsQuery } from '../../hooks/queries/accountDetails';
 import type { AccountDetail } from '../../types/accountDetails';
 import type { Invoice } from '../../types/types';
+import { resolveInvoiceStandardSpecifications } from '../../utils/standardSpecificationResolver';
 
 interface InvoicePreviewModalProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
   // Get invoice from store if invoiceId is provided
   const { fetchInvoice, getCachedInvoice, loadingCurrentInvoice } = useInvoiceStore();
   const [localInvoice, setLocalInvoice] = useState<Invoice | null>(null);
+  const [resolvedPreviewData, setResolvedPreviewData] = useState<InvoiceData | null>(null);
+  const [isResolvingSpecifications, setIsResolvingSpecifications] = useState(false);
   const [isLoadingInvoice, setIsLoadingInvoice] = useState(false);
   const localBillingFirmId = localInvoice?.billing_firm_id?.trim() || null;
   const localBillingFirmName = localInvoice?.billing_firm_name?.trim() || '';
@@ -117,8 +120,29 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
     }
   }, [isOpen, invoiceId, providedInvoiceData, fetchInvoice, getCachedInvoice]);
 
-  // Use provided data or fetched data
-  const invoiceData = providedInvoiceData || transformedLocalInvoiceData;
+  // Resolve plain-thread specification IDs before enabling print/download.
+  const sourceInvoiceData = providedInvoiceData || transformedLocalInvoiceData;
+  useEffect(() => {
+    let active = true;
+    if (!isOpen || !sourceInvoiceData) {
+      setResolvedPreviewData(null);
+      setIsResolvingSpecifications(false);
+      return () => { active = false; };
+    }
+
+    setIsResolvingSpecifications(true);
+    resolveInvoiceStandardSpecifications(sourceInvoiceData.items)
+      .then((items) => {
+        if (active) setResolvedPreviewData({ ...sourceInvoiceData, items });
+      })
+      .finally(() => {
+        if (active) setIsResolvingSpecifications(false);
+      });
+
+    return () => { active = false; };
+  }, [isOpen, sourceInvoiceData]);
+
+  const invoiceData = resolvedPreviewData || sourceInvoiceData;
   const waitingForBillingFirm =
     !providedInvoiceData &&
     Boolean(localInvoice) &&
@@ -126,7 +150,7 @@ export const InvoicePreviewModal: React.FC<InvoicePreviewModalProps> = ({
       (Boolean(localBillingFirmId) && accountDetailQuery.isLoading) ||
       (!localBillingFirmId && Boolean(localBillingFirmName) && accountDetailsQuery.isLoading)
     );
-  const loading = providedLoading || isLoadingInvoice || loadingCurrentInvoice || waitingForBillingFirm;
+  const loading = providedLoading || isLoadingInvoice || loadingCurrentInvoice || waitingForBillingFirm || isResolvingSpecifications;
 
   /* ---------------- PRINT ---------------- */
   const handlePrint = async () => {

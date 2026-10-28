@@ -437,6 +437,7 @@ const OutwardDetailPage = React.memo(() => {
 
                     <div className="flex-1 items-center">
                       <Input
+                        aria-label="Search outward items"
                         className="w-full sm:max-w-xs"
                         placeholder="Search..."
                         value={outwardItemsSearch}
@@ -491,7 +492,7 @@ const OutwardDetailPage = React.memo(() => {
                       <Table.Column id="sn">SN</Table.Column>
                       <Table.Column id="outward_no">OUTWARD NO</Table.Column>
                       <Table.Column id="lab_id">LAB ID</Table.Column>
-                      <Table.Column id="name">NAME</Table.Column>
+                      <Table.Column id="name" isRowHeader>NAME</Table.Column>
                       <Table.Column id="identification">IDENTIFICATION NO</Table.Column>
                       <Table.Column id="process">PROCESS</Table.Column>
                       <Table.Column id="status">STATUS</Table.Column>
@@ -596,6 +597,7 @@ const OutwardDetailPage = React.memo(() => {
                 <Card.Content>
                   <div className="flex flex-col sm:flex-row gap-4 mb-4">
                     <Input
+                      aria-label="Search inwarded items"
                       className="w-full sm:max-w-xs"
                       placeholder="Search..."
                       value={inwardedItemsSearch}
@@ -617,7 +619,7 @@ const OutwardDetailPage = React.memo(() => {
                     }}
                   >
                     <Table.Header>
-                      <Table.Column id="sn">SN</Table.Column><Table.Column id="inward_no">INWARD NO</Table.Column><Table.Column id="lab_id">LAB ID</Table.Column><Table.Column id="name">NAME</Table.Column><Table.Column id="identification">IDENTIFICATION NO</Table.Column><Table.Column id="process">PROCESS</Table.Column><Table.Column id="status">STATUS</Table.Column><Table.Column id="action">ACTION</Table.Column>
+                      <Table.Column id="sn">SN</Table.Column><Table.Column id="inward_no">INWARD NO</Table.Column><Table.Column id="lab_id">LAB ID</Table.Column><Table.Column id="name" isRowHeader>NAME</Table.Column><Table.Column id="identification">IDENTIFICATION NO</Table.Column><Table.Column id="process">PROCESS</Table.Column><Table.Column id="status">STATUS</Table.Column><Table.Column id="action">ACTION</Table.Column>
                     </Table.Header>
                     <Table.Body items={filteredInwardedItems} renderEmptyState={() => loading.inwardedItems ? <div className="py-8 text-center">Loading inwarded items...</div> : 'No inwarded items found'}>
                       {(item: InwardedGaugeItem) => {

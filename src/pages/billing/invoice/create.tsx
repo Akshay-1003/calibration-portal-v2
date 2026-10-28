@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +7,7 @@ import { parseDate } from '@internationalized/date';
 import { UserIcon } from '@heroicons/react/24/outline';
 import {
   Autocomplete,
+  SearchField,
   Calendar,
   Card,
   Checkbox,
@@ -24,6 +26,9 @@ import { FormField } from '../../../components/ui/form-field';
 import { PageMeta } from '../../../components/common/PageMeta';
 import { useOrganizationsQuery } from '../../../hooks/queries/organizations';
 import { useOutwardEntriesQuery } from '../../../hooks/queries/outwards';
+import { useClientRepairsQuery } from '../../../hooks/queries/repairs';
+import { useCustomerPos, useCreatePoBatch, useBillingAvailability, type PoAssignment, type PoAllocationIssue, type PoBatchRequest } from '../../../hooks/queries/poInvoicing';
+import { ApiError } from '../../../services/api';
 import { useCreateInvoiceMutation } from '../../../hooks/queries/invoices';
 import { useAccountDetailsQuery } from '../../../hooks/queries/accountDetails';
 import {
@@ -39,6 +44,8 @@ import { PAYMENT_TERMS } from '../../../utils/invoiceLifecycle';
 import { getCurrentIsoDate } from '../../../utils/dateAdapter';
 
 const EMPTY_ORGANIZATIONS: Array<{ id: string; name: string }> = [];
+
+const filterOptions = (text: string, query: string) => text.toLocaleLowerCase().includes(query.toLocaleLowerCase());
 
 type Option = { value: string; label: string };
 
@@ -56,8 +63,8 @@ const V3Autocomplete = ({ value, onChange, options, placeholder, ariaLabel, disa
       <Autocomplete.Indicator />
     </Autocomplete.Trigger>
     <Autocomplete.Popover>
-      <Autocomplete.Filter><Input aria-label={`Search ${ariaLabel}`} placeholder="Search..." /></Autocomplete.Filter>
-      <ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox>
+      <Autocomplete.Filter filter={filterOptions}><SearchField><SearchField.Group><SearchField.Input aria-label={`Search ${ariaLabel}`} placeholder="Search..." /></SearchField.Group></SearchField>
+      <ListBox>{options.map((option) => <ListBox.Item key={option.value} id={option.value} textValue={option.label}>{option.label}<ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Autocomplete.Filter>
     </Autocomplete.Popover>
   </Autocomplete>
 );
@@ -78,6 +85,12 @@ const V3DatePicker = ({ value, onChange, ariaLabel }: { value?: string; onChange
 export default function CreateInvoicePage() {
   const navigate = useNavigate();
   const createInvoiceMutation = useCreateInvoiceMutation();
+  const batchMutation = useCreatePoBatch();
+  const batchRequest = useRef<{ fingerprint: string; id: string } | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [poIssues, setPoIssues] = useState<PoAllocationIssue[]>([]);
+  const [poAssignments, setPoAssignments] = useState<Record<string, PoAssignment>>({});
+  const [excludedSourceKeys, setExcludedSourceKeys] = useState<string[]>([]);
 
   const organizationsQuery = useOrganizationsQuery({ directory: 'customers' });
   const organizations = organizationsQuery.data?.organizations ?? EMPTY_ORGANIZATIONS;
@@ -100,6 +113,8 @@ export default function CreateInvoicePage() {
       outward_no: '',
       outward_ids: [],
       outward_nos: [],
+      repair_ids: [],
+      repair_nos: [],
       order_number: '',
       order_date: '',
       po_number: '',
@@ -108,6 +123,7 @@ export default function CreateInvoicePage() {
       to_date: '',
       credit_days: 0,
       pdf_columns: DEFAULT_INVOICE_PDF_COLUMNS,
+      pdf_columns_user_configured: false,
     },
     mode: 'onChange',
   });
@@ -122,13 +138,21 @@ export default function CreateInvoicePage() {
   } = form;
   const pdfColumns = normalizeInvoicePdfColumns(watch('pdf_columns'));
   const selectedPartyId = watch('party_id');
+  const posQuery = useCustomerPos(selectedPartyId);
+  const poMode = Boolean((watch('outward_ids') ?? []).length && posQuery.data?.items.some(po => po.status === 'active'));
+  const repairOnly = (watch('outward_ids') ?? []).length === 0 && (watch('repair_ids') ?? []).length > 0;
+  const availabilityQuery = useBillingAvailability(poMode ? selectedPartyId : undefined);
+  const submitting = createInvoiceMutation.isPending || batchMutation.isPending;
   const outwardEntriesQuery = useOutwardEntriesQuery({
-    enabled: Boolean(selectedPartyId),
+    enabled: Boolean(selectedPartyId) && !posQuery.isLoading && !posQuery.isError,
     organizationId: selectedPartyId,
     limit: 500,
-    excludeInvoiced: true,
+    searchAll: true,
+    excludeInvoiced: !poMode,
   });
   const outwardEntries = outwardEntriesQuery.data ?? [];
+  const repairsQuery = useClientRepairsQuery(selectedPartyId, { enabled: Boolean(selectedPartyId), limit: 500 });
+  const repairEntries = (repairsQuery.data ?? []).filter(repair => repair.client_org_id === selectedPartyId && !repair.archived);
 
   const getOutwardNumbers = (outwardIds: string[]) =>
     outwardIds
@@ -136,9 +160,42 @@ export default function CreateInvoicePage() {
       .filter((outwardNo): outwardNo is string | number => outwardNo !== undefined && outwardNo !== null)
       .map(String);
 
+  const resetPoResolution = () => {
+    setBatchError(null);
+    setPoIssues([]);
+    setPoAssignments({});
+    setExcludedSourceKeys([]);
+    batchRequest.current = null;
+  };
+
   const onSubmit = async (data: CreateInvoiceHeaderFormData) => {
+    setBatchError(null);
     try {
+      if (posQuery.isLoading) { toast.error('Customer PO mappings are still loading.'); return; }
+      if (posQuery.error) { toast.error(posQuery.error.message); return; }
+      if (poMode) {
+        if (!data.outward_ids.length && !data.repair_ids.length) {
+          toast.error('Select at least one Outward or Repair number.'); return;
+        }
+        if (!posQuery.data?.items.some(po => po.status === 'active')) {
+          toast.error('This customer has no active PO. Open or create a PO on the Rate Card first.'); return;
+        }
+        const request: PoBatchRequest = {
+          client_org_id: data.party_id, billing_firm_id: data.billing_firm_id, billing_date: data.billing_date,
+          outward_ids: data.outward_ids, repair_ids: data.repair_ids,
+          order_number: data.order_number?.trim() || null, order_date: data.order_date?.trim() || null,
+          from_date: data.from_date?.trim() || null, to_date: data.to_date?.trim() || null,
+          credit_days: data.credit_days, discount_mode: 'line', pdf_columns: normalizeInvoicePdfColumns(data.pdf_columns),
+          pdf_columns_user_configured: data.pdf_columns_user_configured,
+          assignments: Object.values(poAssignments), excluded_source_keys: excludedSourceKeys,
+        };
+        const fingerprint = JSON.stringify(request);
+        if (batchRequest.current?.fingerprint !== fingerprint) batchRequest.current = { fingerprint, id: crypto.randomUUID() };
+        const batch = await batchMutation.mutateAsync({ ...request, request_id: batchRequest.current.id });
+        navigate(`/billing/invoice/batch/${batch.id}/edit`); return;
+      }
       const selectedOutwardNumbers = getOutwardNumbers(data.outward_ids);
+      const selectedRepairNumbers = data.repair_ids.map(id => repairEntries.find(repair => (repair.id || repair.repair_id) === id)?.repair_no).filter((value): value is string => Boolean(value));
 
       const invoice = await createInvoiceMutation.mutateAsync({
         billing_firm_id: data.billing_firm_id,
@@ -150,17 +207,19 @@ export default function CreateInvoicePage() {
         outward_ids: data.outward_ids,
         outward_nos: selectedOutwardNumbers.length > 0 ? selectedOutwardNumbers : data.outward_nos,
         gauge_inward_ids: [],
+        repair_ids: data.repair_ids,
+        repair_nos: selectedRepairNumbers,
         order_number: data.order_number?.trim() || null,
         order_date: data.order_date?.trim() || null,
-        po_number: data.po_number?.trim() || null,
-        po_date: data.po_date?.trim() || null,
+        po_number: repairOnly ? null : data.po_number?.trim() || null,
+        po_date: repairOnly ? null : data.po_date?.trim() || null,
         from_date: data.from_date?.trim() || null,
         to_date: data.to_date?.trim() || null,
         status: 'draft',
         discount_mode: 'line',
         credit_days: data.credit_days,
         pdf_columns: normalizeInvoicePdfColumns(data.pdf_columns),
-        pdf_columns_user_configured: false,
+        pdf_columns_user_configured: data.pdf_columns_user_configured,
       });
 
       toast.success('Draft invoice created successfully!');
@@ -168,7 +227,14 @@ export default function CreateInvoicePage() {
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Failed to create invoice draft';
-      toast.error(message);
+      if (poMode) {
+        setBatchError(message);
+        const detail = error instanceof ApiError && error.status === 422 ? error.details?.response?.detail : null;
+        setPoIssues(Array.isArray(detail?.unresolved) ? detail.unresolved : []);
+        toast.error('PO drafts were not created. Review the allocation details below.');
+      } else {
+        toast.error(message);
+      }
     }
   };
 
@@ -234,9 +300,12 @@ export default function CreateInvoicePage() {
                         value={field.value || null}
                         onChange={(key) => {
                           const selected = key ? String(key) : '';
+                          resetPoResolution();
                           field.onChange(selected);
                           setValue('outward_ids', [], { shouldDirty: true, shouldValidate: true });
                           setValue('outward_nos', [], { shouldDirty: true, shouldValidate: true });
+                          setValue('repair_ids', [], { shouldDirty: true, shouldValidate: true });
+                          setValue('repair_nos', [], { shouldDirty: true, shouldValidate: true });
                         }}
                         disabled={organizationsLoading}
                         options={organizations.map((organization) => ({ value: organization.id, label: organization.name }))}
@@ -272,6 +341,7 @@ export default function CreateInvoicePage() {
                             if (!key) return;
 
                             const outwardId = String(key);
+                            resetPoResolution();
                             const nextOutwardIds = Array.from(
                               new Set([...(field.value ?? []), outwardId]),
                             );
@@ -287,17 +357,19 @@ export default function CreateInvoicePage() {
                             <Autocomplete.Indicator />
                           </Autocomplete.Trigger>
                           <Autocomplete.Popover>
-                            <Autocomplete.Filter><Input aria-label="Search outward numbers" placeholder="Search..." /></Autocomplete.Filter>
+                            <Autocomplete.Filter filter={filterOptions}><SearchField><SearchField.Group><SearchField.Input aria-label="Search outward numbers" placeholder="Search..." /></SearchField.Group></SearchField>
                             <ListBox>
                             {outwardEntries
                               .filter((outward) => !(field.value ?? []).includes(outward.id))
-                              .map((outward) => (
-                                  <ListBox.Item key={outward.id} id={outward.id} textValue={`Outward ${String(outward.outward_no ?? outward.id)} ${outward.outward_date ?? ''}`}>
-                                  {String(outward.outward_no ?? outward.id)}{outward.outward_date ? ` · ${outward.outward_date}` : ''}
+                              .map((outward) => {
+                                const availability = availabilityQuery.data?.outwards[outward.id];
+                                const isFullyBilled = poMode && availability?.available === 0;
+                                return <ListBox.Item key={outward.id} id={outward.id} isDisabled={isFullyBilled} textValue={`Outward ${String(outward.outward_no ?? outward.id)} ${outward.outward_date ?? ''}`}>
+                                  {String(outward.outward_no ?? outward.id)}{outward.outward_date ? ` · ${outward.outward_date}` : ''}{poMode && availability ? ` · ${availability.available} available · ${availability.reserved} in drafts · ${availability.invoiced} invoiced` : ''}{isFullyBilled ? ' · Fully billed' : ''}
                                   <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                              ))}
-                            </ListBox>
+                                </ListBox.Item>;
+                              })}
+                            </ListBox></Autocomplete.Filter>
                           </Autocomplete.Popover>
                         </Autocomplete>
 
@@ -314,6 +386,7 @@ export default function CreateInvoicePage() {
                                   variant="soft"
                                   color="accent"
                                   onClick={() => {
+                                    resetPoResolution();
                                     const nextOutwardIds = (field.value ?? []).filter(
                                       (id) => id !== outwardId,
                                     );
@@ -326,7 +399,7 @@ export default function CreateInvoicePage() {
                                   className="max-w-full"
                                 >
                                   <span className="block max-w-[200px] truncate">{outwardNumber}</span>
-                                  <button type="button" aria-label={`Remove outward ${outwardNumber}`} className="ml-1" onClick={(event) => { event.stopPropagation(); const nextOutwardIds = (field.value ?? []).filter((id) => id !== outwardId); field.onChange(nextOutwardIds); setValue('outward_nos', getOutwardNumbers(nextOutwardIds), { shouldDirty: true, shouldValidate: true }); }}>x</button>
+                                  <button type="button" aria-label={`Remove outward ${outwardNumber}`} className="ml-1" onClick={(event) => { event.stopPropagation(); resetPoResolution(); const nextOutwardIds = (field.value ?? []).filter((id) => id !== outwardId); field.onChange(nextOutwardIds); setValue('outward_nos', getOutwardNumbers(nextOutwardIds), { shouldDirty: true, shouldValidate: true }); }}>x</button>
                                 </Chip>
                               );
                             })}
@@ -335,6 +408,27 @@ export default function CreateInvoicePage() {
                       </div>
                     )}
                   />
+                </FormField>
+
+                <FormField label="Repair Numbers">
+                  <Controller control={control} name="repair_ids" render={({ field }) => <div className="space-y-2">
+                    <Autocomplete allowsEmptyCollection aria-label="Repair Numbers" placeholder={!selectedPartyId ? 'Select customer first' : 'Select repair number'} selectedKey={null} isDisabled={!selectedPartyId} onSelectionChange={key => {
+                      if (!key) return;
+                      resetPoResolution();
+                      const next = [...new Set([...(field.value ?? []), String(key)])];
+                      field.onChange(next);
+                      setValue('repair_nos', next.map(id => repairEntries.find(repair => (repair.id || repair.repair_id) === id)?.repair_no).filter((value): value is string => Boolean(value)), { shouldDirty: true });
+                    }}>
+                      <Autocomplete.Trigger><Autocomplete.Value /><Autocomplete.Indicator /></Autocomplete.Trigger>
+                      <Autocomplete.Popover><Autocomplete.Filter filter={filterOptions}><SearchField><SearchField.Group><SearchField.Input aria-label="Search repair numbers" placeholder="Search..." /></SearchField.Group></SearchField><ListBox>
+                        {repairsQuery.isLoading && <ListBox.Item id="loading-repairs" isDisabled>Loading repairs...</ListBox.Item>}
+                        {repairEntries.filter(repair => !(field.value ?? []).includes(String(repair.id || repair.repair_id))).map(repair => <ListBox.Item key={String(repair.id || repair.repair_id)} id={String(repair.id || repair.repair_id)} textValue={String(repair.repair_no || repair.id)}>{repair.repair_no || repair.id}<ListBox.ItemIndicator /></ListBox.Item>)}
+                      </ListBox></Autocomplete.Filter></Autocomplete.Popover>
+                    </Autocomplete>
+                    {repairsQuery.isError && <p role="alert" className="text-sm text-red-600">Unable to load repair numbers. <button type="button" className="underline" onClick={() => void repairsQuery.refetch()}>Retry</button></p>}
+                    {selectedPartyId && repairsQuery.isSuccess && !repairEntries.length && <p className="text-sm text-slate-500">No repairs available for this customer.</p>}
+                    <div className="flex flex-wrap gap-2">{(field.value ?? []).map(id => <Chip key={id} size="sm" variant="soft" color="accent"><span>{repairEntries.find(repair => (repair.id || repair.repair_id) === id)?.repair_no || id}</span><button type="button" aria-label={`Remove repair ${id}`} className="ml-1" onClick={() => { resetPoResolution(); const next = (field.value ?? []).filter(value => value !== id); field.onChange(next); setValue('repair_nos', next.map(value => repairEntries.find(repair => (repair.id || repair.repair_id) === value)?.repair_no).filter((item): item is string => Boolean(item)), { shouldDirty: true }); }}>×</button></Chip>)}</div>
+                  </div>} />
                 </FormField>
 
                 <FormField label="Order No">
@@ -361,17 +455,70 @@ export default function CreateInvoicePage() {
                     )}
                   />
                 </FormField>
-                <FormField label="PO Number">
+                {!poMode && !repairOnly && <FormField label="PO Number">
                   <Controller control={control} name="po_number" render={({ field }) => (
                     <Input aria-label="PO Number" placeholder="Enter PO number" value={field.value ?? ''} onChange={(event) => field.onChange(event.target.value)} />
                   )} />
-                </FormField>
-                <FormField label="PO Date">
+                </FormField>}
+                {!poMode && !repairOnly && <FormField label="PO Date">
                   <Controller control={control} name="po_date" render={({ field }) => (
                     <V3DatePicker ariaLabel="PO Date" value={field.value} onChange={field.onChange} />
                   )} />
-                </FormField>
+                </FormField>}
               </div>
+
+              {poMode && <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-slate-700">
+                <strong>PO invoice drafts</strong> · {posQuery.data?.items.filter(po => po.status === 'active').length} active PO groups. Selected items will be allocated using the customer’s Rate Card mappings and reviewed in separate invoice tabs.
+                {!posQuery.data?.items.some(po => po.status === 'active') && <p className="mt-1 text-amber-700">No active PO. Open or create a PO on the Rate Card first.</p>}
+                {(watch('outward_ids') ?? []).map(id => { const availability = availabilityQuery.data?.outwards[id]; if (!availability) return null;
+                  const invoices = [...new Map(availability.items.filter(item => item.invoice?.invoice_id).map(item => [item.invoice!.invoice_id, item.invoice!])).values()];
+                  return <p key={id}>{getOutwardNumbers([id])[0] || id}: {availability.available} available · {availability.reserved} in drafts · {availability.invoiced} invoiced
+                    {invoices.map(invoice => <button key={invoice.invoice_id} type="button" className="ml-2 text-blue-700 underline" onClick={() => navigate(`/billing/invoice/${invoice.invoice_id}/edit`)}>{invoice.invoice_number}</button>)}
+                  </p>;
+                })}
+              </div>}
+              {poMode && batchError && <div role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-900">
+                <strong>PO drafts were not created</strong>
+                <p className="mt-1 whitespace-pre-line">{batchError}</p>
+                {poIssues.length > 0 && <div className="mt-3 max-h-80 space-y-3 overflow-y-auto">
+                  {poIssues.map((issue) => {
+                    const excluded = excludedSourceKeys.includes(issue.source_key);
+                    const selected = poAssignments[issue.source_key];
+                    const selectedIndex = selected ? issue.options.findIndex((option) => option.po_id === selected.po_id && option.price_list_item_id === selected.price_list_item_id) : -1;
+                    return <div key={issue.source_key} className="rounded-md border border-red-200 bg-white p-3">
+                      <p className="font-medium">{issue.label}{issue.source ? ` · Source ${issue.source}` : ''}</p>
+                      <p className="mt-1 text-xs">{issue.reason}</p>
+                      {issue.options.length > 0 && <select
+                        aria-label={`PO allocation for ${issue.label}`}
+                        className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
+                        value={selectedIndex < 0 ? '' : String(selectedIndex)}
+                        disabled={excluded}
+                        onChange={(event) => {
+                          const option = issue.options[Number(event.target.value)];
+                          setPoAssignments((current) => {
+                            const next = { ...current };
+                            if (event.target.value && option) next[issue.source_key] = { source_key: issue.source_key, po_id: option.po_id, price_list_item_id: option.price_list_item_id };
+                            else delete next[issue.source_key];
+                            return next;
+                          });
+                          if (option) setExcludedSourceKeys((current) => current.filter((key) => key !== issue.source_key));
+                        }}
+                      >
+                        <option value="">Choose PO and Price List row</option>
+                        {issue.options.map((option, index) => <option key={`${option.po_id}:${option.price_list_item_id}`} value={String(index)}>{option.po_number} · {option.label || option.price_list_item_id}</option>)}
+                      </select>}
+                      <label className="mt-2 flex items-center gap-2 text-xs text-slate-700">
+                        <input type="checkbox" checked={excluded} onChange={(event) => {
+                          setExcludedSourceKeys((current) => event.target.checked ? [...new Set([...current, issue.source_key])] : current.filter((key) => key !== issue.source_key));
+                          if (event.target.checked) setPoAssignments((current) => { const next = { ...current }; delete next[issue.source_key]; return next; });
+                        }} />
+                        Exclude this item from this batch; it remains available for later invoicing
+                      </label>
+                    </div>;
+                  })}
+                </div>}
+                {selectedPartyId && <Button type="button" variant="outline" className="mt-3" onClick={() => navigate(`/masters/party-master/${selectedPartyId}/rate-card`)}>Open customer Rate Card</Button>}
+              </div>}
 
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
                 <FormField label="From Date">
@@ -439,17 +586,17 @@ export default function CreateInvoicePage() {
                   type="button"
                   variant="outline"
                   onClick={() => navigate('/billing/invoice')}
-                  disabled={createInvoiceMutation.isPending}
+                  disabled={submitting}
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   className="bg-blue-600 text-white hover:bg-blue-700"
-                  disabled={createInvoiceMutation.isPending}
-                  loading={createInvoiceMutation.isPending}
+                  disabled={submitting || (poMode && !posQuery.data?.items.some(po => po.status === 'active'))}
+                  loading={submitting}
                 >
-                  Create Invoice
+                  {poMode ? 'Create Invoice Drafts' : 'Create Invoice'}
                 </Button>
               </div>
             </form>

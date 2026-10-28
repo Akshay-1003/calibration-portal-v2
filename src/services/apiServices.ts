@@ -188,7 +188,6 @@ export type RateCardEntriesByGauge = Record<string, RateCardEntry[]>;
 
 export interface RateCardApiResponse extends Record<string, unknown> {
   rate_card?: RateCardEntriesByGauge | null;
-  price_list?: string | null;
 }
 
 export interface RateCardImportSummary {
@@ -217,11 +216,6 @@ export interface RateCardImportResult {
   summary: RateCardImportSummary;
   rows: RateCardImportRow[];
   rate_card?: RateCardEntriesByGauge;
-}
-
-interface RateCardUpdateOptions {
-  priceList?: string | null;
-  preserveDocument?: RateCardApiResponse | null;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -274,53 +268,8 @@ export const getRateCardEntriesMap = (
   return entries;
 };
 
-export const getRateCardPriceList = (
-  value: RateCardApiResponse | null | undefined
-): string | null | undefined => {
-  const source = extractResponseData(value);
-  if (!isRecord(source) || !("price_list" in source)) {
-    return undefined;
-  }
-
-  const priceList = source.price_list;
-  if (priceList === null) {
-    return null;
-  }
-
-  return typeof priceList === "string" ? priceList : undefined;
-};
-
-const normalizeRateCardDocument = (value: unknown): RateCardApiResponse => {
-  const source = extractResponseData(value);
-  const entries = getRateCardEntriesMap(source as RateCardApiResponse);
-  const normalized: RateCardApiResponse = { ...entries };
-
-  const priceList = getRateCardPriceList(source as RateCardApiResponse);
-  if (priceList !== undefined) {
-    normalized.price_list = priceList;
-  }
-
-  return normalized;
-};
-
-const buildRateCardPatchPayload = (
-  rateCard: RateCardEntriesByGauge,
-  options?: RateCardUpdateOptions
-): RateCardEntriesByGauge | RateCardApiResponse => {
-  const preservedPriceList =
-    options && "priceList" in options
-      ? options.priceList
-      : getRateCardPriceList(options?.preserveDocument ?? null);
-
-  if (preservedPriceList === undefined) {
-    return rateCard;
-  }
-
-  return {
-    rate_card: rateCard,
-    price_list: preservedPriceList,
-  };
-};
+const normalizeRateCardDocument = (value: unknown): RateCardApiResponse =>
+  getRateCardEntriesMap(extractResponseData(value) as RateCardApiResponse);
 
 /**
  * Fetch rate card for an organization
@@ -336,43 +285,16 @@ export const fetchRateCard = async (orgId: string): Promise<RateCardApiResponse>
  */
 export const updateRateCard = async (
   orgId: string,
-  rateCard: RateCardEntriesByGauge,
-  options?: RateCardUpdateOptions
+  rateCard: RateCardEntriesByGauge
 ): Promise<RateCardApiResponse> => {
-  const payload = buildRateCardPatchPayload(rateCard, options);
-  const endpoint = `/organization/${orgId}/rate-card`;
-  let response: unknown;
-
-  try {
-    response = await apiClientFromApi.patchApiResponse<RateCardApiResponse>(
-      endpoint,
-      payload
-    );
-  } catch (error) {
-    const isExplicitPriceListUpdate = Boolean(options && "priceList" in options);
-    const usedMetadataPayload = payload !== rateCard;
-
-    if (!usedMetadataPayload || isExplicitPriceListUpdate) {
-      throw error;
-    }
-
-    response = await apiClientFromApi.patchApiResponse<RateCardApiResponse>(
-      endpoint,
-      rateCard
-    );
-  }
-
+  const payload = getRateCardEntriesMap(rateCard);
+  const response = await apiClientFromApi.patchApiResponse<RateCardApiResponse>(
+    `/organization/${orgId}/rate-card`, payload
+  );
   const normalizedResponse = normalizeRateCardDocument(response);
-  const responseHasEntries = Object.keys(getRateCardEntriesMap(normalizedResponse)).length > 0;
-  const payloadHasEntries = Object.keys(rateCard).length > 0;
-  const responseHasPriceList = getRateCardPriceList(normalizedResponse) !== undefined;
-  const payloadHasPriceList = getRateCardPriceList(payload as RateCardApiResponse) !== undefined;
-
-  if ((!responseHasEntries && payloadHasEntries) || (!responseHasPriceList && payloadHasPriceList)) {
-    return normalizeRateCardDocument(payload);
-  }
-
-  return normalizedResponse;
+  return Object.keys(normalizedResponse).length || !Object.keys(payload).length
+    ? normalizedResponse
+    : payload;
 };
 
 const getAuthOnlyHeaders = (): HeadersInit => {

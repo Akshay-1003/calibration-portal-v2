@@ -225,14 +225,18 @@ const RepairForm = ({
   }, []);
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <Card>
-        <Card.Header className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-          <h2 className="text-xl font-bold">
+    <div className="mx-auto w-full max-w-6xl">
+      <Card className="overflow-hidden border border-slate-200 shadow-sm">
+        <Card.Header className="border-b border-slate-200 bg-white px-6 py-5">
+          <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Maintenance</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">
             {isEditing ? 'Edit Repair' : 'Create New Repair'}
           </h2>
+          <p className="mt-1 text-sm text-slate-500">Capture the gauge, service status, technician details, and parts used.</p>
+          </div>
         </Card.Header>
-        <Card.Content>
+        <Card.Content className="px-6 py-6">
           <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
             <input type="hidden" {...register('gauge_id', { required: 'Gauge selection is required' })} />
             {/* Basic Information */}

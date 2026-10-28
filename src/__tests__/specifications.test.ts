@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { isSpecArray, isSpecObject, normalizeSpecByType, isValidSpecForType } from '../utils/specifications';
 import { formatSpecificationForPrint } from '../utils/specificationPrintFormatter';
+import { extractSpecificationTypes } from '../utils/specificationParser';
 import { transformOutwardToChalanData } from '../components/chalan/chalanUtils';
 
 describe('specifications utils', () => {
@@ -50,6 +51,27 @@ describe('specifications utils', () => {
     expect(formatSpecificationForPrint('56.5500')).toBe('56.5500 mm');
     expect(formatSpecificationForPrint({ value: '24.7700' })).toBe('24.7700 mm');
     expect(formatSpecificationForPrint('18.00 mm')).toBe('18.00 mm');
+  });
+
+  it('prints concentric master-piece dimensions without size labels', () => {
+    expect(formatSpecificationForPrint(
+      { basic_size: [8.37, 50] },
+      '5000',
+      'Master Piece/ OD Master.(Concentric)',
+    )).toBe('8.3700 mm / 50.00 mm');
+  });
+
+  it('extracts concentric dimensions as individually labeled sizes', () => {
+    const types = extractSpecificationTypes(
+      { basic_size: [8.37, 50] },
+      'Master Piece/ OD Master.(Concentric)',
+      '5000',
+    );
+
+    expect(types.map(({ label, value }) => [label, value])).toEqual([
+      ['Size A', '8.3700 mm'],
+      ['Size B', '50.00 mm'],
+    ]);
   });
 
   it('prefers standard_specification over standard_specification_id for outward print', () => {

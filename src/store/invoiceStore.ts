@@ -19,6 +19,7 @@ const invoiceInFlight = new InFlightManager();
 
 // Type definitions
 export interface CompanyWithOutward {
+  batch_id?: string | null;
   company_id: string;
   company_name: string;
   outward_count: number;
@@ -94,7 +95,8 @@ export interface InvoiceBillingComponent {
   rate_card_discount_amount?: number;
   amount: number;
   service_type?: string;
-  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom';
+  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom' | 'return_as_is';
+  return_as_is?: boolean;
   description?: string;
   hsn_sac?: string;
   tax_category?: string;

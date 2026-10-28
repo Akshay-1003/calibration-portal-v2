@@ -1,6 +1,9 @@
+import { RateCardBulkEditor } from '../../../components/rate-card/RateCardBulkEditor';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RateCardForm } from '../../../components/rate-card/RateCardForm';
 import { RateCardTable } from '../../../components/Tables/RateCardTable';
+import { PoAssignmentPanel } from '../../../components/rate-card/PoAssignmentPanel';
+import { useCustomerPos } from '../../../hooks/queries/poInvoicing';
 import { Button } from '../../../components/ui/button';
 import { Card } from '@heroui/react';
 import {
@@ -17,9 +20,9 @@ import {
   useRateCardEntries, 
   useAddRateCardEntry, 
   useAddRateCardEntries,
-  useUpdateRateCardEntry, 
+  useUpdateRateCardEntry,
+  useUpdateGaugeRates,
   useDeleteRateCardEntry,
-  useUpdateRateCardPriceList,
   usePreviewRateCardImport,
   useConfirmRateCardImport,
   type RateCardEntryWithId 
@@ -32,6 +35,7 @@ import {
 } from '../../../services/apiServices';
 
 export interface RateCardEntry {
+  price_list_item_id?: string;
   rate_type: 'discount' | 'discounted' | 'flat' | string;
   range: {
     min: number;
@@ -51,14 +55,18 @@ const RateCardPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  const [editingEntries, setEditingEntries] = useState<RateCardEntryWithId[] | null>(null);
+  const bulkUpdateMutation = useUpdateGaugeRates(id);
   const [selectedEntry, setSelectedEntry] = useState<RateCardEntry | null>(null);
+  const [selectedRateIds, setSelectedRateIds] = useState<Set<string>>(new Set());
+  useEffect(() => setSelectedRateIds(new Set()), [id]);
   const [isEditing, setIsEditing] = useState(false);
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<RateCardImportResult | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   // Store internal tracking data (not in RateCardEntry interface)
-  const [internalEntryData, setInternalEntryData] = useState<{ id?: string; gauge_id?: string; gauge_name?: string } | null>(null);
+  const [internalEntryData, setInternalEntryData] = useState<{ id?: string; price_list_item_id?: string; gauge_id?: string; gauge_name?: string } | null>(null);
   
   // Fetch gauge masters to ensure gauge names are available
   const { gaugeMasterList, fetchGaugeMasters } = useMasterDataStore();
@@ -70,12 +78,12 @@ const RateCardPage = () => {
   }, [gaugeMasterList.length, fetchGaugeMasters]);
   
   // TanStack Query hooks
-  const { data: flattenedEntries = [], isLoading, priceList } = useRateCardEntries(id);
+  const { data: flattenedEntries = [], isLoading } = useRateCardEntries(id);
+  const customerPos = useCustomerPos(id);
   const addMutation = useAddRateCardEntry(id);
   const addManyMutation = useAddRateCardEntries(id);
   const updateMutation = useUpdateRateCardEntry(id);
   const deleteMutation = useDeleteRateCardEntry(id);
-  const updatePriceListMutation = useUpdateRateCardPriceList(id);
   const previewImportMutation = usePreviewRateCardImport(id);
   const confirmImportMutation = useConfirmRateCardImport(id);
 
@@ -93,30 +101,20 @@ const RateCardPage = () => {
       } as RateCardEntry & { _internalId?: string; _internalGaugeId?: string; _internalGaugeName?: string };
     });
   }, [flattenedEntries]);
+  const poLabels = useMemo(() => Object.fromEntries(rateCardEntries.map(entry => [
+    entry.price_list_item_id || '',
+    (customerPos.data?.items ?? [])
+      .filter(po => po.lines.some(line => line.price_list_item_id === entry.price_list_item_id))
+      .map(po => po.po_number).join(', '),
+  ])), [rateCardEntries, customerPos.data?.items]);
+  const mappedRateCount = rateCardEntries.filter(entry => Boolean(entry.price_list_item_id && poLabels[entry.price_list_item_id])).length;
 
-  const handleEditEntry = (entry: RateCardEntry & { _internalId?: string; _internalGaugeId?: string; _internalGaugeName?: string }) => {
-    // Find the corresponding entry with ID from flattened entries
-    const entryWithId = flattenedEntries.find(e => e.id === entry._internalId);
-    
-    if (entryWithId) {
-      // Store the entry for editing (without id, gauge_id, gauge_name)
-      setSelectedEntry(entry);
-      // Store internal tracking data separately
-      setInternalEntryData({
-        id: entryWithId.id,
-        gauge_id: entryWithId.gauge_id,
-        gauge_name: entryWithId.gauge_name,
-      });
-      setIsEditing(true);
-    } else {
-      setSelectedEntry(entry);
-      setInternalEntryData({
-        id: entry._internalId,
-        gauge_id: entry._internalGaugeId,
-        gauge_name: entry._internalGaugeName,
-      });
-      setIsEditing(true);
-    }
+  const handleEditEntry = (entry: RateCardEntry & { _internalId?: string; _internalGaugeId?: string }) => {
+    const selected = flattenedEntries.find(row => row.id === entry._internalId);
+    const gaugeId = selected?.gauge_id || entry._internalGaugeId;
+    if (!gaugeId) { toast.error('Gauge ID is missing. Refresh the Rate Card.'); return; }
+    setEditingEntries(flattenedEntries.filter(row => row.gauge_id === gaugeId));
+    requestAnimationFrame(() => document.getElementById('rate-card-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
 
   const handleSaveEntry = async (entry: RateCardEntry & { gauge_id?: string }) => {
@@ -145,6 +143,7 @@ const RateCardPage = () => {
       const entryWithId: RateCardEntryWithId = {
         ...entry,
         id: internalId || `${id}_${gaugeId}_${Date.now()}`,
+        price_list_item_id: isEditing ? internalEntryData?.price_list_item_id : crypto.randomUUID(),
         gauge_id: gaugeId,
         gauge_name: gaugeName,
         range_unit: entry.range_unit || entry.unit || '',
@@ -195,6 +194,7 @@ const RateCardPage = () => {
       const entriesWithIds: RateCardEntryWithId[] = entries.map((entry, index) => ({
         ...entry,
         id: `${id}_${gaugeId}_${timestamp}_${index}`,
+        price_list_item_id: crypto.randomUUID(),
         gauge_id: gaugeId,
         gauge_name: gaugeName,
         range_unit: entry.range_unit || entry.unit || '',
@@ -229,9 +229,6 @@ const RateCardPage = () => {
     }
   };
 
-  const handlePriceListUpload = async (file: File) => {
-    await updatePriceListMutation.mutateAsync(file.name);
-  };
 
   const handleDownloadTemplate = async () => {
     setTemplateDownloading(true);
@@ -348,6 +345,17 @@ const RateCardPage = () => {
         </Card.Header>
 
         <Card.Content className="p-2 lg:p-2">
+          <div id="rate-card-editor">
+          {editingEntries ? <RateCardBulkEditor
+            key={editingEntries[0]?.gauge_id}
+            entries={editingEntries}
+            saving={bulkUpdateMutation.isPending}
+            onCancel={() => setEditingEntries(null)}
+            onSave={async entries => {
+              await bulkUpdateMutation.mutateAsync({ original: editingEntries, entries });
+              setEditingEntries(null);
+            }}
+          /> : (
           <RateCardForm
             entry={selectedEntry}
             onSave={handleSaveEntry}
@@ -358,10 +366,9 @@ const RateCardPage = () => {
               setIsEditing(false);
             }}
             saving={addMutation.isPending || addManyMutation.isPending || updateMutation.isPending}
-            priceList={priceList}
-            priceListUploading={updatePriceListMutation.isPending}
-            onPriceListUpload={handlePriceListUpload}
           />
+          )}
+          </div>
 
           <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
             <input
@@ -502,7 +509,12 @@ const RateCardPage = () => {
                 {rateCardEntries.length} {rateCardEntries.length === 1 ? 'entry' : 'entries'}
               </span>
             </div>
+            {id && <PoAssignmentPanel customerId={id} selectedIds={[...selectedRateIds]} onAssigned={() => setSelectedRateIds(new Set())} />}
+            {customerPos.data && <p className="text-sm text-slate-600">{customerPos.data.items.length} saved POs · {mappedRateCount} of {rateCardEntries.length} Rate Card entries assigned</p>}
             <RateCardTable
+              selectedKeys={selectedRateIds}
+              onSelectionChange={setSelectedRateIds}
+              poLabels={poLabels}
               entries={rateCardEntries}
               onEdit={handleEditEntry}
               onDelete={handleDeleteEntry}

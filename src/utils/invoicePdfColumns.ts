@@ -39,7 +39,6 @@ const REQUIRED_COLUMN_KEYS: InvoicePdfColumnKey[] = [
   'specification',
   'hsn',
   'calibration_charge',
-  'repair_new',
   'qty',
   'amount',
 ];
@@ -120,6 +119,8 @@ export const normalizeInvoicePdfColumns = (
     ...(columns ?? {}),
   };
 
+  normalized.repair_new = hasRepairCharge(items) && normalized.repair_new;
+
   if ((options?.autoEnableServiceColumns ?? false) && hasRepairCharge(items)) {
     normalized.repair_new = true;
   }
@@ -148,7 +149,7 @@ export const getInvoicePdfTableColumns = (
 
   if (!visibility.repair_new) {
     weights.gauge_name += BASE_COLUMN_WEIGHTS.repair_new * 0.55;
-    weights.specification += BASE_COLUMN_WEIGHTS.repair_new * 0.45;
+    weights.identification_number += BASE_COLUMN_WEIGHTS.repair_new * 0.45;
   }
 
   if (!visibility.hsn) {

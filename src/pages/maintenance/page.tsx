@@ -185,13 +185,14 @@ const RepairPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white px-6 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Repair Management</h1>
-          <p className="text-gray-600">Manage instrument repairs and maintenance</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Maintenance</p>
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Repair Management</h1>
+          <p className="mt-1 text-sm text-slate-500">Manage instrument repairs, servicing, and repair charges.</p>
         </div>
-        <Button variant="primary" onPress={handleCreateRepair}>
+        <Button variant="primary" onPress={handleCreateRepair} className="shrink-0">
           <PlusIcon className="h-4 w-4" />
           Create Repair
         </Button>

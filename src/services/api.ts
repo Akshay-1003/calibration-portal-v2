@@ -43,6 +43,17 @@ export class ApiError extends Error {
 }
 
 const getApiErrorMessage = (errorData: any, fallbackMessage: string): string => {
+  if (typeof errorData?.detail?.message === 'string' && errorData.detail.message.trim()) {
+    return errorData.detail.message;
+  }
+  if (typeof errorData?.detail === 'string' && errorData.detail.trim()) {
+    return errorData.detail;
+  }
+
+  if (Array.isArray(errorData?.detail) && errorData.detail.length > 0) {
+    return errorData.detail.map((item: { msg?: string }) => item.msg).filter(Boolean).join('; ') || fallbackMessage;
+  }
+
   if (typeof errorData?.message === 'string' && errorData.message.trim()) {
     return errorData.message;
   }
@@ -136,6 +147,7 @@ class ApiClient {
       
       if (!response.ok) {
         const errorText = await response.text();
+        let errorData: any;
         const isInwardGaugeList = endpoint.includes('/gauge/list/inward_gauges');
         let errorMessage = isInwardGaugeList && response.status >= 500
           ? 'The inward gauge list could not be loaded because one record contains invalid numeric data. Please correct that gauge record and try again.'
@@ -143,7 +155,7 @@ class ApiClient {
         
         // Parse error response if it's JSON
         try {
-          const errorData = JSON.parse(errorText);
+          errorData = JSON.parse(errorText);
           errorMessage = getApiErrorMessage(errorData, errorMessage);
         } catch {
           // If not JSON, use the text as is
@@ -153,7 +165,7 @@ class ApiClient {
           response.status,
           errorMessage,
           response.statusText,
-          { url, status: response.status }
+          { url, status: response.status, response: errorData }
         );
       }
 
@@ -196,25 +208,13 @@ class ApiClient {
           );
         }
         
-        // Network errors (including CORS failures)
+        // Browsers report several failures as "Failed to fetch". That message
+        // alone cannot distinguish a CORS rejection from a server/network error.
         if (error.message.includes('Failed to fetch') || 
             error.message.includes('ERR_CONNECTION_REFUSED') ||
             error.message.includes('ERR_FAILED') ||
             error.message.includes('NetworkError')) {
-          // Check if it's a CORS issue by checking if we got a response
-          const isCorsError = error.message.includes('CORS') || 
-                             error.message.includes('Access-Control-Allow-Origin') ||
-                             (error.message.includes('Failed to fetch') && !error.message.includes('ERR_CONNECTION_REFUSED'));
-          
-          if (isCorsError) {
-            throw new ApiError(
-              0,
-              'CORS Error: The server is blocking cross-origin requests. Please ensure the backend has CORS properly configured.',
-              'CORS_ERROR'
-            );
-          }
-          
-          throw new ApiError(0, ERROR_MESSAGES.NETWORK_ERROR, 'CONNECTION_REFUSED');
+          throw new ApiError(0, ERROR_MESSAGES.NETWORK_ERROR, 'NETWORK_ERROR');
         }
         
         if (error.message.includes('ERR_NETWORK')) {

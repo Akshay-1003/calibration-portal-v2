@@ -432,6 +432,10 @@ const InvoicePage = React.memo(() => {
   };
 
   const handleEditInvoice = (company: CompanyWithOutward) => {
+    if (company.batch_id) {
+      navigate(`/billing/invoice/batch/${company.batch_id}/edit`);
+      return;
+    }
     const invoiceId = company.invoice_id || company.id;
     if (!invoiceId) {
       toast.error('Invoice ID not found');

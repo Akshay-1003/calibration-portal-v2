@@ -3,7 +3,7 @@
  * Provides query and mutation hooks with automatic cache invalidation
  */
 
-import { useInfiniteQuery, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiClient } from '../../services/api';
 import { queryKeys } from './queryKeys';
 import type { ThreadRingPlugData, ThreadRingPlugApiResponse, ThreadRingPlugFormData } from '../../store/threadRingPlugStore';
@@ -122,6 +122,21 @@ export function useThreadRingPlugByIdQuery(
     enabled: (options?.enabled ?? true) && trimmedId.length > 0,
     staleTime: options?.staleTime ?? 5 * 60 * 1000,
     refetchOnWindowFocus: false,
+  });
+}
+
+export function useThreadSpecificationLabelsQuery(ids: string[]) {
+  return useQueries({
+    queries: ids.map((id) => ({
+      queryKey: queryKeys.threadRingPlugs.detail(id),
+      queryFn: () => fetchThreadRingPlugById(id),
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    })),
+    combine: (results): Record<string, string> => Object.fromEntries(ids.flatMap((id, index) => {
+      const label = results[index].data?.standard_specification?.trim();
+      return label ? [[id, label]] : [];
+    })),
   });
 }
 

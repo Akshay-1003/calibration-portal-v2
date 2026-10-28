@@ -8,18 +8,20 @@ import {
   ListBox,
   Input,
   Pagination,
+  Popover,
   Select,
   Table,
 } from "@heroui/react";
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { formatSpecificationForPrint } from "../../utils/specificationPrintFormatter";
+import { ChevronDownIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { InvoiceSpecificationDisplay } from "./InvoiceSpecificationDisplay";
 import { useGaugeMastersWithQuery } from "../../hooks/useGaugeMastersWithQuery";
 import { getTableColumnKey } from '../Tables/tableColumnKey';
 import { dataTableClassName } from '../Tables/tableStyles';
 import {
   INVOICE_HSN_OPTIONS,
-  getInvoiceHsnName,
-  getInvoiceHsnOption,
+  RETURN_AS_IS_CODE,
+  RETURN_AS_IS_LABEL,
+  isReturnAsIsEntry,
   type EditableGaugeField,
   type InvoiceBillingTableRow,
   type InvoiceItemHSN,
@@ -49,11 +51,10 @@ interface InvoiceItemsBillingTableProps {
   onRowsPerPageChange: (rowsPerPage: number) => void;
   onAddItem: () => void;
   onAddExistingItem?: () => void;
-  onAddHsn: (gaugeIndex: number) => void;
-  onRemoveHsn: (gaugeIndex: number, hsnId: string) => void;
-  onHsnChange: (gaugeIndex: number, hsnId: string, hsnCode: string, hsnName?: string) => void;
+  onHsnSelectionChange: (gaugeIndex: number, hsnCodes: string[]) => void;
+  onRemoveItem: (gaugeIndex: number) => void;
   onRateChange: (gaugeIndex: number, hsnId: string, rate: string) => void;
-  onQuantityChange: (gaugeIndex: number, hsnId: string, quantity: number) => void;
+  onQuantityChange: (gaugeIndex: number, quantity: number) => void;
   onDiscountChange?: (gaugeIndex: number, hsnId: string, type: 'none' | 'percentage' | 'flat', value: string) => void;
   onGaugeFieldChange: (
     gaugeIndex: number,
@@ -74,7 +75,8 @@ type TableColumnKey =
   | "identification"
   | "specifications"
   | "hsn"
-  | "rate"
+  | "calibration"
+  | "repair"
   | "qty"
   | "discount"
   | "amount"
@@ -86,7 +88,8 @@ const columns: { name: string; uid: TableColumnKey }[] = [
   { name: "IDENTIFICATION", uid: "identification" },
   { name: "SPECIFICATIONS", uid: "specifications" },
   { name: "HSN", uid: "hsn" },
-  { name: "RATE", uid: "rate" },
+  { name: "CALIBRATION", uid: "calibration" },
+  { name: "REPAIR", uid: "repair" },
   { name: "QTY", uid: "qty" },
   { name: "DISCOUNT", uid: "discount" },
   { name: "AMOUNT", uid: "amount" },
@@ -94,13 +97,14 @@ const columns: { name: string; uid: TableColumnKey }[] = [
 ];
 
 const COLUMN_LAYOUT: Record<TableColumnKey, string> = {
-  sr_no: 'min-w-[72px] w-[72px]',
-  gauge_name: 'min-w-[220px]',
-  identification: 'min-w-[190px]',
-  specifications: 'min-w-[280px]',
-  hsn: 'min-w-[145px]',
-  rate: 'min-w-[145px]',
-  qty: 'min-w-[100px]',
+  sr_no: 'min-w-[58px] w-[58px]',
+  gauge_name: 'min-w-[175px]',
+  identification: 'min-w-[150px]',
+  specifications: 'min-w-[210px]',
+  hsn: 'min-w-[185px]',
+  calibration: 'min-w-[125px]',
+  repair: 'min-w-[125px]',
+  qty: 'min-w-[75px]',
   discount: 'min-w-[180px]',
   amount: 'min-w-[135px]',
   actions: 'min-w-[105px] w-[105px]',
@@ -108,27 +112,49 @@ const COLUMN_LAYOUT: Record<TableColumnKey, string> = {
 
 const CURRENT_GAUGE_FALLBACK_KEY_PREFIX = "__current_invoice_gauge__";
 
-function HsnCodeCombobox({
-  entry,
+function HsnMultiSelect({
+  entries,
   onChange,
   isDisabled = false,
 }: {
-  entry: InvoiceItemHSN;
-  onChange: (value: string, label?: string) => void;
+  entries: InvoiceItemHSN[];
+  onChange: (values: string[]) => void;
   isDisabled?: boolean;
 }) {
-  const value = getInvoiceHsnOption(entry.hsnCode)?.code ?? null;
-  const currentLabel = entry.hsnName || getInvoiceHsnName(entry.hsnCode);
+  const [isOpen, setIsOpen] = React.useState(false);
+  const catalogCodes = new Set(INVOICE_HSN_OPTIONS.map((option) => option.code));
+  const legacyOptions = entries
+    .filter((entry) => entry.hsnCode && entry.hsnCode !== RETURN_AS_IS_CODE && !catalogCodes.has(entry.hsnCode as typeof INVOICE_HSN_OPTIONS[number]["code"]))
+    .map((entry) => ({ code: entry.hsnCode, name: entry.hsnName || entry.hsnCode }));
+  const options = [...INVOICE_HSN_OPTIONS, { code: RETURN_AS_IS_CODE, name: RETURN_AS_IS_LABEL }, ...legacyOptions.filter(
+    (option, index, list) => list.findIndex((candidate) => candidate.code === option.code) === index,
+  )];
+  const selectedNames = entries.map((entry) => entry.hsnCode === RETURN_AS_IS_CODE
+    ? "Return as is"
+    : options.find((option) => option.code === entry.hsnCode)?.name || entry.hsnName || entry.hsnCode);
 
   return (
     <div className="w-full min-w-0">
-      <Select value={value} onSelectionChange={(key) => key && onChange(String(key), getInvoiceHsnName(String(key)))} isDisabled={isDisabled} className="w-full">
-        <Select.Trigger className="h-9 min-h-9 w-full px-2"><Select.Value /><Select.Indicator /></Select.Trigger>
-        <Select.Popover><ListBox>{INVOICE_HSN_OPTIONS.map((option) => <ListBox.Item key={option.code} id={option.code} textValue={`${option.code} ${option.name}`}><div className="flex flex-col py-0.5 leading-tight"><span className="text-xs font-medium text-slate-700">{option.code}</span><span className="text-[11px] text-slate-500">{option.name}</span></div><ListBox.ItemIndicator /></ListBox.Item>)}</ListBox></Select.Popover>
-      </Select>
-      <div className="mt-1 whitespace-normal break-words text-[11px] leading-4 text-slate-500">
-        {currentLabel}
-      </div>
+      <Popover isOpen={isOpen} onOpenChange={setIsOpen}>
+        <Popover.Trigger>
+          <button type="button" disabled={isDisabled} aria-label="Select invoice services" className="flex min-h-9 w-full items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-2 text-left text-xs text-slate-700 disabled:opacity-60">
+            <span className="min-w-0 truncate">{selectedNames.length ? selectedNames.join(", ") : "Select services"}</span>
+            <ChevronDownIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
+          </button>
+        </Popover.Trigger>
+        <Popover.Content className="min-w-[260px] p-1">
+          <Popover.Dialog>
+            <ListBox aria-label="Invoice services" selectionMode="multiple" selectedKeys={new Set(entries.map((entry) => entry.hsnCode))} onSelectionChange={(keys) => {
+              if (keys === "all") onChange(options.map((option) => option.code));
+              else onChange(Array.from(keys, String));
+            }}>
+              {options.map((option) => <ListBox.Item key={option.code} id={option.code} textValue={`${option.code} ${option.name}`}>
+                <div className="flex flex-col py-0.5 leading-tight">{option.code === RETURN_AS_IS_CODE ? <span className="text-xs font-medium text-slate-700">Return as is</span> : <><span className="text-xs font-medium text-slate-700">{option.code}</span><span className="text-[11px] text-slate-500">{option.name}</span></>}<ListBox.ItemIndicator /></div>
+              </ListBox.Item>)}
+            </ListBox>
+          </Popover.Dialog>
+        </Popover.Content>
+      </Popover>
     </div>
   );
 }
@@ -144,9 +170,8 @@ export default function InvoiceItemsBillingTable({
   onRowsPerPageChange,
   onAddItem,
   onAddExistingItem,
-  onAddHsn,
-  onRemoveHsn,
-  onHsnChange,
+  onHsnSelectionChange,
+  onRemoveItem,
   onRateChange,
   onQuantityChange,
   onDiscountChange,
@@ -165,7 +190,7 @@ export default function InvoiceItemsBillingTable({
   );
 
   const tableRows = React.useMemo(
-    () => rows.map((row, index) => ({ ...row, rowIndex: index })),
+    () => rows.map((row, index) => ({ ...row, rowIndex: index, rowKey: `${row.gaugeIndex}-${row.itemData.gaugeItem.id}` })),
     [rows],
   );
   const tableColumns = React.useMemo(
@@ -181,7 +206,8 @@ export default function InvoiceItemsBillingTable({
       row: InvoiceBillingTableRow & { rowIndex: number },
       columnKey: TableColumnKey,
     ) => {
-      const { gaugeIndex, hsnEntry, itemData, amount, rowIndex } = row;
+      const { gaugeIndex, itemData, amount, rowIndex, quantity, calibrationEntry, repairEntry, otherEntries } = row;
+      const allEntries = [...otherEntries, calibrationEntry, repairEntry].filter((entry): entry is InvoiceItemHSN => Boolean(entry));
 
       switch (columnKey) {
         case "sr_no":
@@ -284,55 +310,40 @@ export default function InvoiceItemsBillingTable({
             />
           ) : (
             <div className="max-w-full whitespace-pre-wrap break-words text-sm leading-[1.35] text-slate-600">
-              {formatSpecificationForPrint(
+              <InvoiceSpecificationDisplay
+                className="whitespace-pre-wrap break-words"
+                specification={
                 itemData.gaugeItem.specifications ||
                 itemData.gaugeItem.specification ||
-                itemData.gaugeItem.gauge_specification,
-                String(itemData.gaugeItem.unit || "mm"),
-              )}
+                itemData.gaugeItem.gauge_specification
+                }
+                unit={String(itemData.gaugeItem.unit || "mm")}
+                gaugeType={itemData.gaugeItem.master_gauge_name}
+              />
             </div>
           );
         case "hsn":
           return (
-            <HsnCodeCombobox
-              entry={hsnEntry}
-              isDisabled={isReadOnly}
-              onChange={(value, label) => {
-                if (!isReadOnly) onHsnChange(gaugeIndex, hsnEntry.id, value, label);
-              }}
-            />
-          );
-        case "rate":
-          return (
-            <div className="w-full min-w-0">
-              <Input
-                aria-label="Rate"
-                type="number"
-                value={hsnEntry.rate}
-                onChange={(event) => onRateChange(gaugeIndex, hsnEntry.id, event.target.value)}
-                disabled={isReadOnly}
-                min="0"
-                step="0.01"
-                className="w-full"
-              />
-              <div className="mt-1 whitespace-nowrap text-right text-[11px] text-slate-500 [font-variant-numeric:tabular-nums]">
-                {formatCurrency(hsnEntry.rate || 0)}
-              </div>
+            <div className="space-y-2">
+              <HsnMultiSelect entries={allEntries} isDisabled={isReadOnly} onChange={(codes) => onHsnSelectionChange(gaugeIndex, codes)} />
+              {otherEntries.map((entry) => isReturnAsIsEntry(entry)
+                ? <div key={entry.id} className="text-xs font-medium text-slate-700">Return as is</div>
+                : <div key={entry.id} className="flex items-center gap-1"><span className="min-w-[48px] text-[11px] text-slate-500">{entry.hsnCode}</span><Input aria-label={`${entry.hsnName || entry.hsnCode} rate`} type="number" value={entry.rate} onChange={(event) => onRateChange(gaugeIndex, entry.id, event.target.value)} disabled={isReadOnly} min="0" step="0.01" /></div>)}
             </div>
           );
+        case "calibration":
+        case "repair": {
+          const entry = columnKey === "calibration" ? calibrationEntry : repairEntry;
+          if (!entry || isReturnAsIsEntry(entry)) return <span className="text-slate-400">-</span>;
+          return <div className="w-full min-w-0"><Input aria-label={`${columnKey} rate`} type="number" value={entry.rate} onChange={(event) => onRateChange(gaugeIndex, entry.id, event.target.value)} disabled={isReadOnly} min="0" step="0.01" className="w-full" /><div className="mt-1 whitespace-nowrap text-right text-[11px] text-slate-500">{formatCurrency(entry.rate || 0)}</div></div>;
+        }
         case "qty":
           return (
             <Input
               aria-label="Quantity"
               type="number"
-              value={String(hsnEntry.quantity)}
-              onChange={(event) =>
-                onQuantityChange(
-                  gaugeIndex,
-                  hsnEntry.id,
-                  parseInt(event.target.value, 10) || 1,
-                )
-              }
+              value={String(quantity)}
+              onChange={(event) => onQuantityChange(gaugeIndex, parseInt(event.target.value, 10) || 1)}
               disabled={isReadOnly}
               min="1"
               className="w-full "
@@ -340,13 +351,16 @@ export default function InvoiceItemsBillingTable({
           );
         case "discount":
           return (
-            <div className="flex min-w-[150px] gap-1">
-              <Select aria-label="Discount type" value={hsnEntry.discountType || "none"} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(key) => key && onDiscountChange?.(gaugeIndex, hsnEntry.id, String(key) as 'none' | 'percentage' | 'flat', hsnEntry.discountValue || '')}>
+            <div className="space-y-1.5">
+              {allEntries.map((entry) => <div key={entry.id} className="flex min-w-[155px] items-center gap-1">
+              <span className="w-[42px] truncate text-[11px] text-slate-500" title={`${entry.hsnCode} ${entry.hsnName}`}>{entry.hsnCode === RETURN_AS_IS_CODE ? "Return" : entry.hsnCode}</span>
+              <Select aria-label={`${entry.hsnCode} discount type`} value={entry.discountType || "none"} isDisabled={isReadOnly || !onDiscountChange} onSelectionChange={(key) => key && onDiscountChange?.(gaugeIndex, entry.id, String(key) as 'none' | 'percentage' | 'flat', entry.discountValue || '')}>
                 <Select.Trigger><Select.Value /><Select.Indicator /></Select.Trigger><Select.Popover><ListBox>
                   <ListBox.Item id="none" textValue="None">None<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="percentage" textValue="%">%<ListBox.ItemIndicator /></ListBox.Item><ListBox.Item id="flat" textValue="₹">₹<ListBox.ItemIndicator /></ListBox.Item>
                 </ListBox></Select.Popover>
               </Select>
-              <Input aria-label="Discount value" type="number" min="0" value={hsnEntry.discountValue || ""} disabled={isReadOnly || !onDiscountChange} onChange={(event) => onDiscountChange?.(gaugeIndex, hsnEntry.id, hsnEntry.discountType || 'none', event.target.value)} />
+              <Input aria-label="Discount value" type="number" min="0" value={entry.discountValue || ""} disabled={isReadOnly || !onDiscountChange || isReturnAsIsEntry(entry)} onChange={(event) => onDiscountChange?.(gaugeIndex, entry.id, entry.discountType || 'none', event.target.value)} />
+              </div>)}
             </div>
           );
         case "amount":
@@ -363,24 +377,12 @@ export default function InvoiceItemsBillingTable({
                 size="sm"
                 variant="ghost"
                 isIconOnly
-                aria-label="Remove HSN"
-                onPress={() => onRemoveHsn(gaugeIndex, hsnEntry.id)}
+                aria-label="Remove invoice item"
+                onPress={() => onRemoveItem(gaugeIndex)}
                 isDisabled={isReadOnly}
                 className="h-8 w-8 min-w-8 rounded-lg border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
               >
                 <TrashIcon className="h-3.5 w-3.5" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                isIconOnly
-                aria-label="Add HSN"
-                onPress={() => onAddHsn(gaugeIndex)}
-                isDisabled={isReadOnly}
-                className="h-8 w-8 min-w-8 rounded-lg border border-sky-200 bg-sky-50 text-sky-600 hover:bg-sky-100"
-              >
-                <PlusIcon className="h-3.5 w-3.5" />
               </Button>
             </div>
           );
@@ -389,17 +391,17 @@ export default function InvoiceItemsBillingTable({
       }
     },
     [
-      onAddHsn,
       gaugeMasterError,
       gaugeMasterList,
       gaugeMasterLoading,
+      isReadOnly,
       onGaugeFieldChange,
-      onHsnChange,
+      onHsnSelectionChange,
       onManualGaugeSelect,
       onQuantityChange,
       onDiscountChange,
       onRateChange,
-      onRemoveHsn,
+      onRemoveItem,
       page,
       rowsPerPage,
     ],
@@ -418,7 +420,7 @@ export default function InvoiceItemsBillingTable({
 
       <div className="overflow-x-auto">
         <Table aria-label="Invoice billing items table" className={dataTableClassName("min-w-full !rounded-none !border-0 !shadow-none")}>
-          <Table.ScrollContainer className="max-w-full overflow-x-auto p-0"><Table.Content className="min-w-[1500px] w-full table-auto">
+          <Table.ScrollContainer className="max-w-full overflow-x-auto p-0"><Table.Content className="min-w-[1480px] w-full table-auto">
           <Table.Header columns={tableColumns}>
             {(column) => (
               <Table.Column id={column.uid} isRowHeader={column.uid === tableColumns[0]?.uid} className={COLUMN_LAYOUT[column.uid]}>
@@ -431,7 +433,7 @@ export default function InvoiceItemsBillingTable({
             renderEmptyState={() => loading ? <div className="py-8 text-center text-sm text-slate-500">Loading invoice items...</div> : <div className="flex flex-col items-center gap-3 py-10"><span className="text-sm text-slate-500">No invoice items added yet</span><div className="flex gap-2"><Button type="button" onPress={onAddItem} variant="secondary" className="rounded-2xl bg-slate-100 text-slate-700" isDisabled={isReadOnly}>Add Manual Item</Button>{onAddExistingItem && <Button type="button" onPress={onAddExistingItem} variant="secondary" className="rounded-2xl border border-slate-200 text-slate-700" isDisabled={isReadOnly}>Add Existing Item</Button>}</div></div>}
           >
             {(row) => (
-              <Table.Row id={`${row.gaugeIndex}-${row.hsnEntry.id}`} columns={tableColumns}>
+              <Table.Row id={row.rowKey} columns={tableColumns}>
                 {(columnKey) => (
                   <Table.Cell className={`align-middle ${COLUMN_LAYOUT[getTableColumnKey(columnKey) as TableColumnKey]}`}>
                     {renderCell(row, getTableColumnKey(columnKey) as TableColumnKey)}
@@ -446,7 +448,7 @@ export default function InvoiceItemsBillingTable({
       {totalRows > 0 && (
         <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/80 px-3 py-3 text-sm md:flex-row md:items-center md:justify-between">
           <span className="text-slate-500">
-            Showing {showingFrom} to {showingTo} of {totalRows} line items
+            Showing {showingFrom} to {showingTo} of {totalRows} items
           </span>
 
           <div className="flex items-center gap-3 self-end md:self-auto">

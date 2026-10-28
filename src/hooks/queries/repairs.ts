@@ -152,7 +152,9 @@ const extractRepairList = (response: unknown): RepairApiRecord[] => {
     }
   }
 
-  return [];
+  return payload.data && typeof payload.data === 'object'
+    ? extractRepairList(payload.data)
+    : [];
 };
 
 const extractRepairRecord = (response: unknown): RepairApiRecord | null => {
@@ -269,6 +271,23 @@ export function useRepairsQuery(options?: { enabled?: boolean; staleTime?: numbe
     refetchOnMount: false,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    retry: 1,
+  });
+}
+
+export function useClientRepairsQuery(clientOrgId: string | null | undefined, options?: { enabled?: boolean; limit?: number; search?: string }) {
+  const limit = options?.limit ?? 500;
+  const search = options?.search?.trim() ?? '';
+  return useQuery({
+    queryKey: queryKeys.repairs.list({ client_org_id: clientOrgId ?? '', limit, search }),
+    queryFn: async (): Promise<RepairApiRecord[]> => {
+      if (!clientOrgId) return [];
+      const params = new URLSearchParams({ client_org_id: clientOrgId, limit: String(limit) });
+      if (search) params.set('search', search);
+      return extractRepairList(await apiClient.get(`${API_ENDPOINTS.REPAIRS.LIST}?${params.toString()}`));
+    },
+    enabled: (options?.enabled ?? true) && Boolean(clientOrgId),
+    staleTime: 30 * 1000,
     retry: 1,
   });
 }

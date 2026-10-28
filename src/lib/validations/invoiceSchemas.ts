@@ -41,6 +41,8 @@ export const createInvoiceHeaderFormSchema = z.object({
   outward_no: z.string().optional(),
   outward_ids: z.array(z.string().min(1, 'Outward id is required')).default([]),
   outward_nos: z.array(z.string().min(1, 'Outward number is required')).default([]),
+  repair_ids: z.array(z.string()).default([]),
+  repair_nos: z.array(z.string()).default([]),
   order_number: z.string().optional(),
   order_date: z.string().optional(),
   po_number: z.string().optional(),
@@ -51,6 +53,7 @@ export const createInvoiceHeaderFormSchema = z.object({
     message: 'Payment terms must be Immediate, 30 Days, 45 Days, or 60 Days.',
   }),
   pdf_columns: invoicePdfColumnsSchema.default(DEFAULT_INVOICE_PDF_COLUMNS),
+  pdf_columns_user_configured: z.boolean().default(false),
 });
 
 export type CreateInvoiceHeaderFormData = z.infer<typeof createInvoiceHeaderFormSchema>;
@@ -62,6 +65,8 @@ export const billingComponentSchema = z.object({
   rate: z.number().min(0, 'Rate must be 0 or greater'),
   amount: z.number().min(0, 'Amount must be 0 or greater'),
   service_type: z.string().optional(),
+  line_type: z.enum(['calibration', 'repair', 'spare_part', 'custom', 'return_as_is']).optional(),
+  return_as_is: z.boolean().optional(),
   description: z.string().optional(),
   hsn_sac: z.string().optional(),
   tax_category: z.string().optional(),

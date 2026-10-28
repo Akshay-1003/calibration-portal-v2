@@ -1,3 +1,4 @@
+import { applyRateCardEdits } from '../utils/rateCardBulkEdit';
 /**
  * TanStack Query hooks for Rate Card operations
  * Provides caching and automatic table updates
@@ -8,7 +9,6 @@ import { toast } from 'sonner';
 import {
   fetchRateCard,
   getRateCardEntriesMap,
-  getRateCardPriceList,
   importRateCardExcel,
   updateRateCard,
   type RateCardApiResponse,
@@ -70,7 +70,7 @@ const flattenRateCard = (
     // Ensure entries is an array
     if (Array.isArray(entries)) {
       entries.forEach((entry, index) => {
-        const entryId = `${orgId}_${masterGaugeId}_${index}`;
+        const entryId = entry.price_list_item_id || `${orgId}_${masterGaugeId}_${index}`;
         const existingEntry = existingMap.get(entryId);
         
         // Preserve gauge_name from existing entry, or fetch from master data store
@@ -102,6 +102,7 @@ const unflattenRateCard = (entries: RateCardEntryWithId[]): RateCardEntriesByGau
     }
     
     const apiEntry: RateCardEntry = {
+      price_list_item_id: entry.price_list_item_id,
       rate_type: normalizeRateTypeForApi(entry.rate_type),
       range: entry.range,
       basic_size: entry.basic_size,
@@ -140,33 +141,6 @@ const unflattenRateCard = (entries: RateCardEntryWithId[]): RateCardEntriesByGau
   return rateCard;
 };
 
-const buildRateCardDocument = (
-  entries: RateCardEntriesByGauge,
-  source?: RateCardApiResponse | null,
-  priceListOverride?: string | null
-): RateCardApiResponse => {
-  const nextDocument: RateCardApiResponse = { ...entries };
-  const priceList =
-    priceListOverride !== undefined
-      ? priceListOverride
-      : getRateCardPriceList(source ?? null);
-
-  if (priceList !== undefined) {
-    nextDocument.price_list = priceList;
-  }
-
-  return nextDocument;
-};
-
-const buildUpdateOptions = (source?: RateCardApiResponse | null) => {
-  const priceList = getRateCardPriceList(source ?? null);
-
-  return priceList !== undefined ? { priceList } : undefined;
-};
-
-/**
- * Query key factory for rate card queries
- */
 export const rateCardKeys = {
   all: ['rate-cards'] as const,
   byOrg: (orgId: string) => [...rateCardKeys.all, orgId] as const,
@@ -209,7 +183,6 @@ export const useRateCardEntries = (orgId: string | undefined) => {
     ...rest,
     data: flattenedEntries,
     rateCard,
-    priceList: getRateCardPriceList(rateCard ?? null),
   };
 };
 
@@ -242,7 +215,7 @@ export const useAddRateCardEntry = (orgId: string | undefined) => {
       const rateCard = unflattenRateCard(updated);
       
       // Update via API
-      return updateRateCard(orgId, rateCard, buildUpdateOptions(currentRateCard));
+      return updateRateCard(orgId, rateCard);
     },
     onMutate: async () => {
       if (!orgId) return;
@@ -311,7 +284,7 @@ export const useAddRateCardEntries = (orgId: string | undefined) => {
       const updated = [...currentEntries, ...entriesWithIds];
       const rateCard = unflattenRateCard(updated);
 
-      return updateRateCard(orgId, rateCard, buildUpdateOptions(currentRateCard));
+      return updateRateCard(orgId, rateCard);
     },
     onMutate: async () => {
       if (!orgId) return;
@@ -354,6 +327,28 @@ export const useAddRateCardEntries = (orgId: string | undefined) => {
 /**
  * Hook to update a rate card entry
  */
+/** Save all ranges for a gauge in one request, retaining unrelated rows and PO identities. */
+export const useUpdateGaugeRates = (orgId: string | undefined) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ original, entries }: { original: RateCardEntryWithId[]; entries: RateCardEntryWithId[] }) => {
+      if (!orgId) throw new Error('Organization ID is required');
+      const current = getRateCardEntriesMap(await fetchRateCard(orgId));
+      const next = applyRateCardEdits(current, orgId, original, entries);
+      const gaugeId = original[0].gauge_id!;
+      const saved = await updateRateCard(orgId, { [gaugeId]: next[gaugeId] });
+      return { ...current, ...getRateCardEntriesMap(saved) };
+    },
+    onSuccess: data => {
+      if (!orgId) return;
+      queryClient.setQueryData(rateCardKeys.byOrg(orgId), data);
+      queryClient.setQueryData(['rate-card-entries', orgId], flattenRateCard(data, orgId));
+      queryClient.invalidateQueries({ queryKey: ['customer-pos', orgId] });
+      toast.success('Gauge ranges updated successfully');
+    },
+  });
+};
+
 export const useUpdateRateCardEntry = (orgId: string | undefined) => {
   const queryClient = useQueryClient();
   
@@ -378,7 +373,7 @@ export const useUpdateRateCardEntry = (orgId: string | undefined) => {
       const rateCard = unflattenRateCard(updated);
       
       // Update via API
-      return updateRateCard(orgId, rateCard, buildUpdateOptions(currentRateCard));
+      return updateRateCard(orgId, rateCard);
     },
     onMutate: async (entry) => {
       if (!orgId) return;
@@ -405,10 +400,7 @@ export const useUpdateRateCardEntry = (orgId: string | undefined) => {
           ? { ...entry, id: entry.id, gauge_name: gaugeName || e.gauge_name } 
           : e
       );
-      const optimisticRateCard = buildRateCardDocument(
-        unflattenRateCard(updated),
-        currentRateCard
-      );
+      const optimisticRateCard = unflattenRateCard(updated);
       
       queryClient.setQueryData(rateCardKeys.byOrg(orgId), optimisticRateCard);
       queryClient.setQueryData(['rate-card-entries', orgId], updated);
@@ -472,7 +464,7 @@ export const useDeleteRateCardEntry = (orgId: string | undefined) => {
       const rateCard = unflattenRateCard(updated);
       
       // Update via API
-      return updateRateCard(orgId, rateCard, buildUpdateOptions(currentRateCard));
+      return updateRateCard(orgId, rateCard);
     },
     onMutate: async (entryId) => {
       if (!orgId) return;
@@ -492,10 +484,7 @@ export const useDeleteRateCardEntry = (orgId: string | undefined) => {
       ) || [];
       const currentEntries = flattenRateCard(currentRateCard, orgId, existingEntries);
       const updated = currentEntries.filter((e) => e.id !== entryId);
-      const optimisticRateCard = buildRateCardDocument(
-        unflattenRateCard(updated),
-        currentRateCard
-      );
+      const optimisticRateCard = unflattenRateCard(updated);
       
       queryClient.setQueryData(rateCardKeys.byOrg(orgId), optimisticRateCard);
       queryClient.setQueryData(['rate-card-entries', orgId], updated);
@@ -537,73 +526,6 @@ export const useDeleteRateCardEntry = (orgId: string | undefined) => {
 /**
  * Hook to update the saved price-list PDF reference for a rate card.
  */
-export const useUpdateRateCardPriceList = (orgId: string | undefined) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (priceList: string | null) => {
-      if (!orgId) throw new Error('Organization ID is required');
-
-      const currentRateCard = queryClient.getQueryData<RateCardApiResponse>(
-        rateCardKeys.byOrg(orgId)
-      ) || {};
-      const currentEntries = flattenRateCard(currentRateCard, orgId);
-      const rateCard = unflattenRateCard(currentEntries);
-
-      return updateRateCard(orgId, rateCard, { priceList });
-    },
-    onMutate: async (priceList) => {
-      if (!orgId) return;
-
-      await queryClient.cancelQueries({ queryKey: rateCardKeys.byOrg(orgId) });
-
-      const previousRateCard = queryClient.getQueryData<RateCardApiResponse>(
-        rateCardKeys.byOrg(orgId)
-      );
-      const existingEntries = queryClient.getQueryData<RateCardEntryWithId[]>(
-        ['rate-card-entries', orgId]
-      ) || [];
-      const currentRateCard = previousRateCard || {};
-      const currentEntries = flattenRateCard(currentRateCard, orgId, existingEntries);
-      const optimisticRateCard = buildRateCardDocument(
-        unflattenRateCard(currentEntries),
-        currentRateCard,
-        priceList
-      );
-
-      queryClient.setQueryData(rateCardKeys.byOrg(orgId), optimisticRateCard);
-      queryClient.setQueryData(['rate-card-entries', orgId], currentEntries);
-
-      return { previousRateCard };
-    },
-    onSuccess: (data) => {
-      if (!orgId) {
-        return;
-      }
-
-      const existingEntries = queryClient.getQueryData<RateCardEntryWithId[]>(
-        ['rate-card-entries', orgId]
-      ) || [];
-      queryClient.setQueryData(rateCardKeys.byOrg(orgId), data);
-      queryClient.setQueryData(
-        ['rate-card-entries', orgId],
-        flattenRateCard(data, orgId, existingEntries)
-      );
-      toast.success('Price list PDF updated successfully');
-    },
-    onError: (error, _variables, context) => {
-      if (orgId && context?.previousRateCard) {
-        queryClient.setQueryData(rateCardKeys.byOrg(orgId), context.previousRateCard);
-      }
-      console.error('Error updating price list PDF:', error);
-      toast.error('Failed to update price list PDF');
-    },
-  });
-};
-
-/**
- * Hook to preview an Excel rate-card import without saving.
- */
 export const usePreviewRateCardImport = (orgId: string | undefined) => {
   return useMutation<RateCardImportResult, Error, File>({
     mutationFn: async (file: File) => {
@@ -629,12 +551,9 @@ export const useConfirmRateCardImport = (orgId: string | undefined) => {
         return;
       }
 
-      const currentRateCard = queryClient.getQueryData<RateCardApiResponse>(
-        rateCardKeys.byOrg(orgId)
-      ) || {};
 
       if (data.rate_card) {
-        const nextDocument = buildRateCardDocument(data.rate_card, currentRateCard);
+        const nextDocument = data.rate_card;
         queryClient.setQueryData(rateCardKeys.byOrg(orgId), nextDocument);
         queryClient.setQueryData(
           ['rate-card-entries', orgId],

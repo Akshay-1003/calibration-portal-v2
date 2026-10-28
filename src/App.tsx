@@ -71,6 +71,7 @@ const NablCalibrationProcessPage = lazy(() => import("./pages/transactions/calib
 const InvoicePage = lazy(() => import("./pages/billing/invoice/page"));
 const CreateBillingInvoicePage = lazy(() => import("./pages/billing/invoice/create"));
 const EditBillingInvoicePage = lazy(() => import("./pages/billing/invoice/edit"));
+const PoInvoiceBatchPage = lazy(() => import("./pages/billing/invoice/batch"));
 const QuotationPage = lazy(() => import("./pages/billing/quotation/page"));
 const CreateQuotationPage = lazy(() => import("./pages/billing/quotation/create"));
 const SettingsPage = lazy(() => import("./pages/settings/index"));
@@ -284,6 +285,13 @@ export default function App() {
                 withModuleAccess("invoice", "edit",
                   <Suspense fallback={<PageLoader />}>
                     <EditBillingInvoicePage />
+                  </Suspense>, billingAccessRoles
+                )
+              } />
+              <Route path="/billing/invoice/batch/:batchId/edit" element={
+                withModuleAccess("invoice", "edit",
+                  <Suspense fallback={<PageLoader />}>
+                    <PoInvoiceBatchPage />
                   </Suspense>, billingAccessRoles
                 )
               } />

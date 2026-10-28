@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { Button } from '@heroui/react';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import RepairForm from '../../components/form/RepairForm';
 import { useGaugeMastersWithQuery } from '../../hooks/useGaugeMastersWithQuery';
 import { useOrganizations } from '../../hooks/useOrganizations';
@@ -58,7 +59,7 @@ const RepairEditPage = () => {
 
   if (repairQuery.isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-[320px] items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading repair data...</p>
@@ -69,7 +70,7 @@ const RepairEditPage = () => {
 
   if (repairQuery.isError || !initialData) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex min-h-[320px] items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 mb-4">Repair not found</p>
           <Button variant="primary" onClick={() => navigate('/maintenance')}>
@@ -81,10 +82,11 @@ const RepairEditPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mb-6">
-        <Button variant="ghost" onClick={handleCancel} className="mb-4">
-          ← Back to Repairs
+    <div className="space-y-4">
+      <div>
+        <Button variant="ghost" onPress={handleCancel} className="px-0 text-slate-600">
+          <ArrowLeftIcon className="h-4 w-4" />
+          Back to Repairs
         </Button>
       </div>
 

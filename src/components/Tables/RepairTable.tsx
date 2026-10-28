@@ -344,15 +344,9 @@ export const RepairTable = memo<RepairTableViewProps>(
   const topContent = useMemo(() => (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4 flex-1">
-          <Input className="w-full sm:max-w-[44%]" placeholder="Search by repair no, client, gauge ID..." value={searchValue} onChange={(event) => onSearchChange(event.target.value)} />
+        <div className="flex items-center gap-3 flex-1">
+          <Input className="w-full sm:max-w-[520px]" placeholder="Search by repair no, client, gauge ID..." value={searchValue} onChange={(event) => onSearchChange(event.target.value)} />
           {searchValue ? <Button type="button" variant="ghost" aria-label="Clear repair search" onPress={onSearchClear}><MagnifyingGlassIcon className="h-4 w-4 text-gray-400" /></Button> : null}
-          <Button
-            variant="primary"
-            onPress={onCreateRepair}
-          >
-            Create Repair
-          </Button>
         </div>
       </div>
       

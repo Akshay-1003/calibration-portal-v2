@@ -25,6 +25,7 @@ export interface InvoiceItem {
   is_service_child?: boolean;
   instrument_quantity?: number;
   group_key?: string;
+  standard_specification_id?: string;
   row_kind?: 'instrument' | 'service';
 }
 
@@ -106,7 +107,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
       case 'gauge_name':
         return item.gauge_name || '-';
       case 'identification_number':
-        return item.identification_number || '-';
+        return item.identification_number?.trim() || '-';
       case 'dc_no':
         return item.dc_no || '-';
       case 'specification':
@@ -220,7 +221,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.2fr 0.9fr',
+            gridTemplateColumns: '1fr 1fr',
             gap: '18px',
             marginBottom: '10px',
             fontSize: '12px',
@@ -233,22 +234,36 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
             {data.client_gst_no ? <div>GSTIN: {data.client_gst_no}</div> : null}
           </div>
 
-          <table style={{  width :'100%',borderCollapse: 'collapse', fontSize: '12px' }}>
-            <tbody>
-              {[
-                ['INVOICE NO. :', data.invoice_number || '-'],
-                ['DATE :', formatDate(data.billing_date)],
-                // ['OUTWARD NO(S). :', data.outward_no || '-'],
-                ['ORDER NO. :', data.order_number || '-'],
-                ['ORDER DATE :', formatDate(data.order_date)],
-              ].map(([label, value]) => (
-                <tr key={String(label)}>
-                  <td style={{ padding: '2px 0', fontWeight: 700,width:'40%' }}>{label}</td>
-                  <td style={{ padding: '2px 0', textAlign: 'left', fontWeight: 700 ,width:'60%'}}>{value}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ width: '100%', display: 'grid', gridTemplateColumns: data.po_number || data.po_date ? '1.2fr 1fr' : '1fr', gap: '12px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', tableLayout: 'fixed' }}>
+              <tbody>
+                {[
+                  ['INVOICE NO. :', data.invoice_number || '-'],
+                  ['DATE :', formatDate(data.billing_date)],
+                  ['ORDER NO. :', data.order_number || '-'],
+                  ['ORDER DATE :', formatDate(data.order_date)],
+                ].map(([label, value]) => (
+                  <tr key={String(label)}>
+                    <td style={{ padding: '2px 3px 2px 0', fontWeight: 700, width: '42%', verticalAlign: 'top' }}>{label}</td>
+                    <td style={{ padding: '2px 0', textAlign: 'left', fontWeight: 700, width: '58%', overflowWrap: 'anywhere', wordBreak: 'break-word', verticalAlign: 'top' }}>{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {data.po_number || data.po_date ? <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px', tableLayout: 'fixed' }}>
+              <tbody>
+                {[
+                  ...(data.po_number ? [['PO NO. :', data.po_number]] : []),
+                  ...(data.po_date ? [['PO DATE :', formatDate(data.po_date)]] : []),
+                ].map(([label, value]) => (
+                  <tr key={String(label)}>
+                    <td style={{ padding: '2px 3px 2px 0', fontWeight: 700, width: '35%', verticalAlign: 'top' }}>{label}</td>
+                    <td style={{ padding: '2px 0', textAlign: 'left', fontWeight: 700, width: '65%', overflowWrap: 'anywhere', wordBreak: 'break-word', verticalAlign: 'top' }}>{value}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table> : null}
+          </div>
         </div>
 
         <table

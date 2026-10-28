@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef, useImperativeHandle } from 'react';
+import type { Ref } from 'react';
 import { z } from 'zod';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -35,6 +36,8 @@ import {
 } from '../../../hooks/queries/invoices';
 import { useOrganizationsQuery } from '../../../hooks/queries/organizations';
 import { useRateCard } from '../../../hooks/useRateCard';
+import { useThreadSpecificationLabelsQuery } from '../../../hooks/queries/threadRingPlugs';
+import { getStandardSpecificationId } from '../../../utils/standardSpecificationResolver';
 import { useAccountDetailQuery } from '../../../hooks/queries/accountDetails';
 import { FormField } from '../../../components/ui/form-field';
 import { FormDateProvider } from '../../../components/form/FormDateProvider';
@@ -53,6 +56,9 @@ import {
   DEFAULT_INVOICE_HSN,
   getInvoiceHsnName,
   getInvoiceProcessFromHsn,
+  RETURN_AS_IS_CODE,
+  RETURN_AS_IS_LABEL,
+  isReturnAsIsEntry,
   type EditableGaugeField,
   type InvoiceItemDataLocal,
   type InvoiceItemHSN,
@@ -187,7 +193,8 @@ const getOutwardNumbers = (invoice?: Invoice | null) =>
 type InvoiceBillingComponentApi = {
   process?: string;
   service_type?: string;
-  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom';
+  line_type?: 'calibration' | 'repair' | 'spare_part' | 'custom' | 'return_as_is';
+  return_as_is?: boolean;
   description?: string;
   hsn_sac?: string;
   tax_category?: string;
@@ -240,9 +247,20 @@ const createManualInvoiceItemData = (isGenerated: boolean): InvoiceItemDataLocal
   };
 };
 
-export default function EditInvoicePage() {
+export interface InvoiceEditorHandle { save: () => Promise<boolean> }
+interface InvoiceEditorProps {
+  invoiceId?: string;
+  controlRef?: Ref<InvoiceEditorHandle>;
+  onSaved?: () => void;
+  onGenerated?: () => void;
+  onCancel?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+export function InvoiceEditor({ invoiceId: invoiceIdOverride, controlRef, onSaved, onGenerated, onCancel, onDirtyChange }: InvoiceEditorProps = {}) {
   const navigate = useNavigate();
-  const { invoiceId } = useParams<{ invoiceId: string }>();
+  const { invoiceId: routeInvoiceId } = useParams<{ invoiceId: string }>();
+  const invoiceId = invoiceIdOverride || routeInvoiceId;
   const updateInvoiceMutation = useUpdateInvoiceMutation();
   const [existingGaugeDialogOpen, setExistingGaugeDialogOpen] = useState(false);
   const [existingGaugeSearch, setExistingGaugeSearch] = useState('');
@@ -340,10 +358,16 @@ export default function EditInvoicePage() {
   const invoiceOutwardIds = getOutwardIds(invoiceData);
   const canEditSummaryTotals = isDraftInvoice || isGeneratedInvoice;
   const isAccountingLocked = !isDraftInvoice;
-  const canEditInvoiceLines = isDraftInvoice || isGeneratedInvoice;
+  const canEditInvoiceLines = isDraftInvoice || (isGeneratedInvoice && !invoiceData?.batch_id);
   const lineMode = invoiceData?.invoice_details?.discount_mode === 'line';
 
   const [invoiceItemsData, setInvoiceItemsData] = useState<InvoiceItemDataLocal[]>([]);
+  const manuallyEditedRateIdsRef = useRef(new Set<string>());
+  const standardSpecificationIds = useMemo(() => [...new Set(invoiceItemsData.map((item) =>
+    getStandardSpecificationId(item.gaugeItem.specifications)
+  ).filter(Boolean))], [invoiceItemsData]);
+  const standardSpecifications = useThreadSpecificationLabelsQuery(standardSpecificationIds);
+  const itemBaselineRef = useRef('');
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [hydratedInvoiceId, setHydratedInvoiceId] = useState<string | null>(null);
@@ -367,6 +391,7 @@ export default function EditInvoicePage() {
     setInvoiceItemsData([]);
     setPage(1);
     legacyRateBaselineRef.current = {};
+    manuallyEditedRateIdsRef.current.clear();
     reconciledDraftInvoiceIdRef.current = null;
   }, [invoiceId]);
 
@@ -440,13 +465,13 @@ export default function EditInvoicePage() {
     const legacyRateBaselines: Record<string, number> = {};
     const items: InvoiceItemDataLocal[] = (invoiceDetails?.billing_items ?? []).map((item: InvoiceBillingItem, index: number) => {
       const formattedSpecs = formatSpecificationForPrint(item.specifications);
-      const isManualItem = item.source_type === 'manual' || (!item.inward_id && !!item.master_gauge_id);
-      const sourceType = isManualItem ? 'manual' : 'outward';
+      const isManualItem = item.source_type === 'manual' || (!item.inward_id && !item.gauge_inward_id && !item.repair_id && !!item.master_gauge_id);
+      const sourceType = isManualItem ? 'manual' : item.source_type || 'outward';
 
       const gaugeItem: InvoiceTableGaugeItem = {
         id: item.gauge_id || item.master_gauge_id || item.inward_gauge_lab_id || `invoice-${index}`,
         inward_id: item.inward_id || '',
-        gauge_inward_id: item.inward_id || item.inward_gauge_lab_id || '',
+        gauge_inward_id: item.gauge_inward_id || item.inward_id || item.inward_gauge_lab_id || '',
         gauge_id: item.gauge_id || '',
         inward_gauge_lab_id: item.inward_gauge_lab_id || '',
         master_gauge_name: item.master_gauge_name || '',
@@ -458,13 +483,15 @@ export default function EditInvoicePage() {
         specification: formattedSpecs,
         specifications: item.specifications || {},
         master_gauge_id: item.master_gauge_id || '',
-        source_type: sourceType,
+        price_list_item_id: item.price_list_item_id || undefined,
+        source_type: sourceType as InvoiceTableGaugeItem['source_type'],
       };
 
       const hsnEntries: InvoiceItemHSN[] =
         item.billing_components?.map((component: InvoiceBillingComponentApi, compIndex: number) => {
+          const returnAsIs = component.return_as_is === true || component.line_type === 'return_as_is' || component.process === 'return_as_is' || component.service_type === 'return_as_is';
           const processType = component.process?.toLowerCase() || 'calibration';
-          const hsnCode =
+          const hsnCode = returnAsIs ? RETURN_AS_IS_CODE :
             component.hsn_sac ||
             (processType === 'calibration'
               ? '998346'
@@ -488,13 +515,13 @@ export default function EditInvoicePage() {
             id: entryId,
             hsnCode,
             hsnName: getInvoiceHsnName(hsnCode, 'Calibration'),
-            rate: component.rate ? String(component.rate) : '',
+            rate: returnAsIs ? '0' : component.rate != null ? String(component.rate) : '',
             rateCardListRate: component.rate_card_list_rate,
             rateCardDiscountPercentage: component.rate_card_discount_percentage,
             rateCardDiscountAmount: component.rate_card_discount_amount,
             quantity: component.quantity ?? 1,
-            lineType: component.line_type || (processType === 'repair' ? 'repair' : processType === 'calibration' ? 'calibration' : 'custom'),
-            description: component.description || (processType === 'calibration' ? 'Calibration' : processType === 'repair' ? 'Repair / Servicing' : ''),
+            lineType: returnAsIs ? 'return_as_is' : component.line_type || (processType === 'repair' ? 'repair' : processType === 'calibration' ? 'calibration' : 'custom'),
+            description: returnAsIs ? RETURN_AS_IS_LABEL : component.description || (processType === 'calibration' ? 'Calibration' : processType === 'repair' ? 'Repair / Servicing' : ''),
             discountType: lineMode ? (component.discount_type || 'none') : 'none',
             discountValue: lineMode && component.discount_value !== undefined ? String(component.discount_value) : '',
           };
@@ -504,11 +531,13 @@ export default function EditInvoicePage() {
         isManual: isManualItem,
         gaugeItem,
         hsnEntries,
+        sourceItem: item,
       };
     });
 
     legacyRateBaselineRef.current = legacyRateBaselines;
     setInvoiceItemsData(items);
+    itemBaselineRef.current = JSON.stringify(items);
     setHydratedInvoiceId(invoiceData.id);
   }, [form, hydratedInvoiceId, invoiceData, lineMode, resolvedBillingFirmName]);
 
@@ -545,7 +574,8 @@ export default function EditInvoicePage() {
   ): InvoiceItemDataLocal => {
     let changed = false;
     const nextEntries = item.hsnEntries.map((entry) => {
-      if (!options?.force && !shouldAutofillInvoiceRate(entry.rate)) {
+      if (isReturnAsIsEntry(entry)) return entry;
+      if (!options?.force && (manuallyEditedRateIdsRef.current.has(entry.id) || !shouldAutofillInvoiceRate(entry.rate))) {
         return entry;
       }
 
@@ -553,6 +583,7 @@ export default function EditInvoicePage() {
         rateCardEntries,
         item.gaugeItem,
         entry.hsnCode,
+        standardSpecifications,
       );
       if (!pricing) {
         return entry;
@@ -574,10 +605,10 @@ export default function EditInvoicePage() {
     });
 
     return changed ? { ...item, hsnEntries: nextEntries } : item;
-  }, [rateCardEntries]);
+  }, [rateCardEntries, standardSpecifications]);
 
   useEffect(() => {
-    if (!Object.keys(rateCardEntries).length) {
+    if (!isDraftInvoice || !hydratedInvoiceId || hydratedInvoiceId !== invoiceData?.id || !Object.keys(rateCardEntries).length) {
       return;
     }
 
@@ -593,7 +624,7 @@ export default function EditInvoicePage() {
 
       return changed ? nextItems : prev;
     });
-  }, [autofillRatesForItem, rateCardEntries]);
+  }, [autofillRatesForItem, rateCardEntries, hydratedInvoiceId, invoiceData?.id, isDraftInvoice]);
 
   useEffect(() => {
     const currentInvoiceId = invoiceData?.id;
@@ -615,13 +646,15 @@ export default function EditInvoicePage() {
           const baselineRate = legacyRateBaselineRef.current[entry.id];
           if (
             baselineRate === undefined ||
+            isReturnAsIsEntry(entry) ||
+            manuallyEditedRateIdsRef.current.has(entry.id) ||
             entry.rateCardListRate != null ||
             entry.rateCardDiscountPercentage != null
           ) {
             return entry;
           }
 
-          const pricing = getInvoiceRateCardPricing(rateCardEntries, item.gaugeItem, entry.hsnCode);
+          const pricing = getInvoiceRateCardPricing(rateCardEntries, item.gaugeItem, entry.hsnCode, standardSpecifications);
           if (
             !pricing ||
             pricing.discountPercentage <= 0 ||
@@ -653,35 +686,59 @@ export default function EditInvoicePage() {
     isDraftInvoice,
     rateCardEntries,
     rateCardQuery.isSuccess,
+    standardSpecifications,
   ]);
 
-  // Add HSN entry for a gauge
-  const handleAddHSN = useCallback((gaugeIndex: number) => {
-    setInvoiceItemsData((prev) => {
-      return prev.map((item, index) => {
-        if (index !== gaugeIndex) {
-          return item;
-        }
+  const handleHsnSelectionChange = useCallback((gaugeIndex: number, hsnCodes: string[]) => {
+    const requestedCodes = Array.from(new Set(hsnCodes.map((code) => code.trim()).filter(Boolean)));
+    if (requestedCodes.length === 0) return;
 
-        const seed = String(item?.gaugeItem?.id ?? gaugeIndex);
-        const hasRepair = item.hsnEntries.some((entry) => entry.hsnCode === '998347');
-        const newHSN: InvoiceItemHSN = {
-          ...createDefaultHsnEntry(seed),
-          hsnCode: hasRepair ? DEFAULT_INVOICE_HSN : '998347',
-          hsnName: getInvoiceHsnName(hasRepair ? DEFAULT_INVOICE_HSN : '998347', hasRepair ? 'Calibration' : 'Repair'),
-          lineType: hasRepair ? 'calibration' : 'repair',
-          description: hasRepair ? 'Calibration' : 'Repair / Servicing',
+    setInvoiceItemsData((prev) => prev.map((item, index) => {
+      if (index !== gaugeIndex) return item;
+      const hadReturnAsIs = item.hsnEntries.some((entry) => entry.hsnCode === RETURN_AS_IS_CODE);
+      const selectedCodes = requestedCodes.includes(RETURN_AS_IS_CODE)
+        ? hadReturnAsIs && requestedCodes.length > 1
+          ? requestedCodes.filter((code) => code !== RETURN_AS_IS_CODE)
+          : [RETURN_AS_IS_CODE]
+        : requestedCodes;
+      const quantity = item.hsnEntries[0]?.quantity || 1;
+      const existingEntries = new Map(item.hsnEntries.map((entry) => [entry.hsnCode, entry]));
+      const seed = String(item.gaugeItem.id || gaugeIndex);
+      const hsnEntries = selectedCodes.map((hsnCode, entryIndex) => {
+        const existing = existingEntries.get(hsnCode);
+        if (existing) return { ...existing, quantity };
+        if (hsnCode === RETURN_AS_IS_CODE) return {
+          ...createDefaultHsnEntry(`${seed}-${entryIndex}`),
+          id: `${seed}-return-as-is-${Date.now()}`,
+          hsnCode: RETURN_AS_IS_CODE,
+          hsnName: RETURN_AS_IS_LABEL,
+          rate: '0',
+          quantity,
+          lineType: 'return_as_is' as const,
+          description: RETURN_AS_IS_LABEL,
+          discountType: 'none' as const,
+          discountValue: '0',
         };
-
+        const process = getInvoiceProcessFromHsn(hsnCode);
+        const hsnName = getInvoiceHsnName(hsnCode);
         return {
-          ...autofillRatesForItem({
-            ...item,
-            hsnEntries: [...item.hsnEntries, newHSN],
-          }),
+          ...createDefaultHsnEntry(`${seed}-${entryIndex}`),
+          id: `${seed}-hsn-${hsnCode}-${Date.now()}-${entryIndex}`,
+          hsnCode,
+          hsnName,
+          rate: '',
+          quantity,
+          lineType: process === 'calibration' ? 'calibration' as const : process === 'repair' ? 'repair' as const : 'custom' as const,
+          description: process === 'repair' ? 'Repair / Servicing' : hsnName,
         };
       });
-    });
+      return autofillRatesForItem({ ...item, hsnEntries });
+    }));
   }, [autofillRatesForItem]);
+
+  const handleRemoveItem = useCallback((gaugeIndex: number) => {
+    setInvoiceItemsData((prev) => prev.filter((_, index) => index !== gaugeIndex));
+  }, []);
 
   const handleAddManualItem = useCallback(() => {
     setInvoiceItemsData((prev) => [...prev, createManualInvoiceItemData(isGeneratedInvoice)]);
@@ -700,85 +757,15 @@ export default function EditInvoicePage() {
       specification: formatSpecificationForPrint(gauge.specifications || {}),
       process: gauge.process || 'calibration',
     };
-    setInvoiceItemsData((prev) => [...prev, item]);
+    setInvoiceItemsData((prev) => [...prev, autofillRatesForItem(item)]);
     setExistingGaugeDialogOpen(false);
     setExistingGaugeSearch('');
     setPage(1);
-  }, [isGeneratedInvoice]);
-
-  // Remove HSN entry - if it's the last one, remove the entire gauge row
-  const handleRemoveHSN = useCallback((gaugeIndex: number, hsnId: string) => {
-    setInvoiceItemsData((prev) => {
-      const target = prev[gaugeIndex];
-      if (!target) {
-        return prev;
-      }
-
-      if (target.hsnEntries.length > 1) {
-        return prev.map((item, index) =>
-          index === gaugeIndex
-            ? {
-                ...item,
-                hsnEntries: item.hsnEntries.filter((entry) => entry.id !== hsnId),
-              }
-            : item
-        );
-      }
-
-      return prev.filter((_, index) => index !== gaugeIndex);
-    });
-  }, []);
-
-  // Update HSN code
-  const handleHSNChange = useCallback((
-    gaugeIndex: number,
-    hsnId: string,
-    hsnCode: string,
-    hsnName?: string,
-  ) => {
-    setInvoiceItemsData((prev) => {
-      return prev.map((item, index) => {
-        if (index !== gaugeIndex) {
-          return item;
-        }
-
-        return {
-          ...item,
-          hsnEntries: item.hsnEntries.map((entry) => {
-            if (entry.id !== hsnId) {
-              return entry;
-            }
-
-            const processType = getInvoiceProcessFromHsn(hsnCode);
-            const nextHsnName = getInvoiceHsnName(hsnCode, hsnName ?? entry.hsnName);
-            const nextEntry: InvoiceItemHSN = {
-              ...entry,
-              hsnCode,
-              hsnName: nextHsnName,
-              lineType:
-                processType === 'repair'
-                  ? 'repair'
-                  : processType === 'calibration'
-                    ? 'calibration'
-                    : 'custom',
-              description: processType === 'repair' ? 'Repair / Servicing' : nextHsnName,
-            };
-            const pricing = getInvoiceRateCardPricing(rateCardEntries, item.gaugeItem, hsnCode);
-            return pricing ? {
-              ...nextEntry,
-              rate: String(pricing.netRate),
-              rateCardListRate: pricing.listRate,
-              rateCardDiscountPercentage: pricing.discountPercentage,
-              rateCardDiscountAmount: pricing.discountAmount,
-            } : nextEntry;
-          }),
-        };
-      });
-    });
-  }, [rateCardEntries]);
+  }, [isGeneratedInvoice, autofillRatesForItem]);
 
   // Update rate
   const handleRateChange = useCallback((gaugeIndex: number, hsnId: string, rate: string) => {
+    manuallyEditedRateIdsRef.current.add(hsnId);
     setInvoiceItemsData((prev) => {
       return prev.map((item, index) => {
         if (index !== gaugeIndex) {
@@ -802,7 +789,7 @@ export default function EditInvoicePage() {
   }, []);
 
   // Update quantity
-  const handleQuantityChange = useCallback((gaugeIndex: number, hsnId: string, quantity: number) => {
+  const handleQuantityChange = useCallback((gaugeIndex: number, quantity: number) => {
     setInvoiceItemsData((prev) => {
       return prev.map((item, index) => {
         if (index !== gaugeIndex) {
@@ -811,9 +798,7 @@ export default function EditInvoicePage() {
 
         return {
           ...item,
-          hsnEntries: item.hsnEntries.map((entry) =>
-            entry.id === hsnId ? { ...entry, quantity } : entry
-          ),
+          hsnEntries: item.hsnEntries.map((entry) => ({ ...entry, quantity })),
         };
       });
     });
@@ -908,6 +893,7 @@ export default function EditInvoicePage() {
       }
 
       for (const hsnEntry of itemData.hsnEntries) {
+        if (isReturnAsIsEntry(hsnEntry)) continue;
         if (!hsnEntry.hsnCode) {
           toast.error(`Please select HSN code for ${itemData.gaugeItem.master_gauge_name}`);
           return false;
@@ -1165,8 +1151,9 @@ export default function EditInvoicePage() {
       const isManualItem = itemData.isManual === true;
       const sourceType = itemData.gaugeItem.source_type || (isManualItem ? 'manual' : 'outward');
       const billingComponents: InvoiceBillingComponent[] = itemData.hsnEntries.map((hsnEntry) => {
+        const returnAsIs = isReturnAsIsEntry(hsnEntry);
         const processType = getInvoiceProcessFromHsn(hsnEntry.hsnCode);
-        const rate = parseFloat(hsnEntry.rate) || 0;
+        const rate = returnAsIs ? 0 : parseFloat(hsnEntry.rate) || 0;
         const quantity = hsnEntry.quantity || 1;
         const amount = calculateLineAmount(rate, quantity);
         const discountType = lineMode ? (hsnEntry.discountType || 'none') : 'none';
@@ -1176,17 +1163,18 @@ export default function EditInvoicePage() {
           : lineMode && discountType === 'flat' ? Math.min(amount, discountValue) : 0;
 
         return {
-          process: processType as 'calibration' | 'repair' | 'inspection' | 'verification' | 'spare_part',
+          process: (returnAsIs ? 'return_as_is' : processType) as 'calibration' | 'repair' | 'inspection' | 'verification' | 'spare_part' | 'return_as_is',
           quantity,
           rate,
           rate_card_list_rate: hsnEntry.rateCardListRate,
           rate_card_discount_percentage: hsnEntry.rateCardDiscountPercentage,
           rate_card_discount_amount: hsnEntry.rateCardDiscountAmount,
           amount,
-          service_type: processType,
-          line_type: hsnEntry.lineType || (processType === 'repair' || processType === 'calibration' ? processType : 'custom'),
-          description: hsnEntry.description || undefined,
-          hsn_sac: hsnEntry.hsnCode,
+          service_type: returnAsIs ? 'return_as_is' : processType,
+          line_type: returnAsIs ? 'return_as_is' : hsnEntry.lineType || (processType === 'repair' || processType === 'calibration' ? processType : 'custom'),
+          return_as_is: returnAsIs,
+          description: returnAsIs ? RETURN_AS_IS_LABEL : hsnEntry.description || undefined,
+          hsn_sac: returnAsIs ? undefined : hsnEntry.hsnCode,
           discount_type: discountType,
           discount_value: discountValue,
           discount_amount: discountAmount,
@@ -1217,12 +1205,13 @@ export default function EditInvoicePage() {
       }
 
       return {
+        ...itemData.sourceItem,
         source_type: sourceType,
-        gauge_id: isManualItem
+        gauge_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.gauge_id : isManualItem
           ? null
           : itemData.gaugeItem.gauge_id || itemData.gaugeItem.id || '',
-        inward_id: isManualItem ? null : itemData.gaugeItem.inward_id || '',
-        master_gauge_id: isManualItem
+        inward_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.inward_id : isManualItem ? null : itemData.gaugeItem.inward_id || '',
+        master_gauge_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.master_gauge_id : isManualItem
           ? itemData.gaugeItem.master_gauge_id || null
           : String(
               itemData.gaugeItem.master_gauge_id ||
@@ -1323,6 +1312,9 @@ export default function EditInvoicePage() {
 
     // Build payload matching exact API format
     const payload: InvoiceUpdatePayload = {
+      batch_id: existingInvoice?.batch_id,
+      po_id: existingInvoice?.po_id,
+      revision: existingInvoice?.revision,
       archived: existingInvoice?.archived || false,
       billing_firm_id: formValues.billing_firm_id || DEFAULT_BILLING_FIRM_ID,
       billing_firm_name:
@@ -1353,46 +1345,57 @@ export default function EditInvoicePage() {
       outward_ids: outwardIds,
       outward_no: outwardNumbers[0] ?? trimOrNull(formValues.outward_no),
       outward_nos: outwardNumbers,
+      repair_ids: existingInvoice?.repair_ids,
+      repair_nos: existingInvoice?.repair_nos,
       gauge_inward_ids: (gaugeInwardIds ?? []).filter((id): id is string => typeof id === 'string'),
       client_details: clientDetails,
       invoice_details: invoiceDetails,
     };
 
     return payload;
-  }, [invoiceItemsData, invoiceData, form, organizations, billingFirmDetailQuery.data?.firm_name]);
+  }, [invoiceItemsData, invoiceData, form, lineMode, organizations, billingFirmDetailQuery.data?.firm_name]);
 
-  // Flatten all items for table display
-  const flattenedItems = useMemo(() => {
-    return invoiceItemsData.flatMap((itemData, gaugeIndex) =>
-      itemData.hsnEntries.map((hsnEntry) => ({
-        gaugeIndex,
-        hsnEntry,
-        itemData,
-        amount: (() => {
-          const gross = calculateLineAmount(hsnEntry.rate, hsnEntry.quantity);
-          if (!lineMode) return gross;
-          const value = Number(hsnEntry.discountValue || 0);
-          const discountAmount = hsnEntry.discountType === 'percentage'
-            ? calculateLineAmount(gross * value, 0.01)
-            : hsnEntry.discountType === 'flat' ? Math.min(gross, value) : 0;
-          return Math.max(0, gross - discountAmount);
-        })(),
-      }))
+  const groupedItems = useMemo(() => invoiceItemsData.map((itemData, gaugeIndex) => {
+    const calibrationEntry = itemData.hsnEntries.find(
+      (entry) => entry.hsnCode !== RETURN_AS_IS_CODE && getInvoiceProcessFromHsn(entry.hsnCode) === 'calibration',
     );
-  }, [invoiceItemsData, lineMode]);
+    const repairEntry = itemData.hsnEntries.find(
+      (entry) => entry.hsnCode !== RETURN_AS_IS_CODE && getInvoiceProcessFromHsn(entry.hsnCode) === 'repair',
+    );
+    const otherEntries = itemData.hsnEntries.filter((entry) => entry !== calibrationEntry && entry !== repairEntry);
+    const amount = itemData.hsnEntries.reduce((sum, entry) => {
+      const gross = calculateLineAmount(entry.rate, entry.quantity);
+      if (!lineMode) return sum + gross;
+      const value = Number(entry.discountValue || 0);
+      const discountAmount = entry.discountType === 'percentage'
+        ? calculateLineAmount(gross * value, 0.01)
+        : entry.discountType === 'flat' ? Math.min(gross, value) : 0;
+      return sum + Math.max(0, gross - discountAmount);
+    }, 0);
+
+    return {
+      gaugeIndex,
+      itemData,
+      amount,
+      quantity: itemData.hsnEntries[0]?.quantity || 1,
+      calibrationEntry,
+      repairEntry,
+      otherEntries,
+    };
+  }), [invoiceItemsData, lineMode]);
 
   // Pagination
   const paginatedItems = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
-    return flattenedItems.slice(start, end);
-  }, [flattenedItems, page, rowsPerPage]);
+    return groupedItems.slice(start, end);
+  }, [groupedItems, page, rowsPerPage]);
 
-  const totalPages = Math.ceil(flattenedItems.length / rowsPerPage);
+  const totalPages = Math.ceil(groupedItems.length / rowsPerPage);
 
   const handleCancel = useCallback(() => {
-    navigate('/billing/invoice');
-  }, [navigate]);
+    if (onCancel) onCancel(); else navigate('/billing/invoice');
+  }, [navigate, onCancel]);
 
   const saveDraft = async (
     successMessage = 'Draft saved successfully!',
@@ -1420,6 +1423,11 @@ export default function EditInvoicePage() {
         data: invoicePayload as Invoice,
       });
 
+      itemBaselineRef.current = JSON.stringify(invoiceItemsData);
+      form.reset(form.getValues());
+      onDirtyChange?.(false);
+      onSaved?.();
+
       toast.success(successMessage);
       return true;
     } catch (error) {
@@ -1435,9 +1443,16 @@ export default function EditInvoicePage() {
       { requireItems: isGeneratedInvoice },
     );
     if (saved) {
-      navigate('/billing/invoice');
+      if (!invoiceIdOverride) navigate('/billing/invoice');
     }
   };
+
+  useImperativeHandle(controlRef, () => ({ save: () => saveDraft('Draft saved successfully!') }));
+  useEffect(() => {
+    if (hydratedInvoiceId === invoiceId) {
+      onDirtyChange?.(form.formState.isDirty || JSON.stringify(invoiceItemsData) !== itemBaselineRef.current);
+    }
+  }, [form.formState.isDirty, invoiceItemsData, hydratedInvoiceId, invoiceId, onDirtyChange]);
 
   const handleGenerateInvoice = async () => {
     const saved = await saveDraft('Draft saved. Generating invoice...', {
@@ -1450,7 +1465,8 @@ export default function EditInvoicePage() {
     try {
       await generateInvoiceMutation.mutateAsync(invoiceId);
       toast.success('Invoice generated successfully!');
-      navigate('/billing/invoice');
+      onGenerated?.();
+      if (!invoiceIdOverride) navigate('/billing/invoice');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to generate invoice.';
       toast.error(errorMessage);
@@ -1513,6 +1529,7 @@ export default function EditInvoicePage() {
               <div>
                 <h1 className="text-xl font-semibold text-white">Edit Invoice</h1>
               </div>
+              {invoiceData.batch_id && !invoiceIdOverride && <Button type="button" variant="outline" className="ml-auto" onClick={() => navigate(`/billing/invoice/batch/${invoiceData.batch_id}/edit`)}>Open PO batch</Button>}
             </div>
           </Card.Header>
 
@@ -1727,7 +1744,7 @@ export default function EditInvoicePage() {
 
               <InvoiceItemsBillingTable
                 rows={paginatedItems}
-                totalRows={flattenedItems.length}
+                totalRows={groupedItems.length}
                 loading={loadingInvoice}
                 page={page}
                 rowsPerPage={rowsPerPage}
@@ -1737,11 +1754,10 @@ export default function EditInvoicePage() {
                   setRowsPerPage(value);
                   setPage(1);
                 }}
-                onAddItem={handleAddManualItem}
-                onAddExistingItem={() => setExistingGaugeDialogOpen(true)}
-                onAddHsn={handleAddHSN}
-                onRemoveHsn={handleRemoveHSN}
-                onHsnChange={handleHSNChange}
+                onAddItem={invoiceData.batch_id ? () => toast.error('Add mapped items from the PO batch review.') : handleAddManualItem}
+                onAddExistingItem={() => invoiceData.batch_id ? toast.error('Add mapped items from the PO batch review.') : setExistingGaugeDialogOpen(true)}
+                onHsnSelectionChange={handleHsnSelectionChange}
+                onRemoveItem={handleRemoveItem}
                 onRateChange={handleRateChange}
                 onQuantityChange={handleQuantityChange}
                 onDiscountChange={lineMode ? handleDiscountChange : undefined}
@@ -1944,3 +1960,5 @@ export default function EditInvoicePage() {
     </FormDateProvider>
   );
 }
+
+export default function EditInvoicePage() { return <InvoiceEditor />; }

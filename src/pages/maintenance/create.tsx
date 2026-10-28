@@ -1,5 +1,6 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@heroui/react';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import RepairForm from '../../components/form/RepairForm';
 import { useGaugeMastersWithQuery } from '../../hooks/useGaugeMastersWithQuery';
 import { useOrganizations } from '../../hooks/useOrganizations';
@@ -38,10 +39,11 @@ const RepairCreatePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mb-2">
-        <Button variant="ghost" onClick={handleCancel} className="mb-4">
-          ← Back to Repairs
+    <div className="space-y-4">
+      <div>
+        <Button variant="ghost" onPress={handleCancel} className="px-0 text-slate-600">
+          <ArrowLeftIcon className="h-4 w-4" />
+          Back to Repairs
         </Button>
       </div>
 

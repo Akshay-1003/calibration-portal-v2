@@ -235,7 +235,7 @@ export const getDefaultHeaders = (): HeadersInit => {
 
 // Error messages
 export const ERROR_MESSAGES = {
-  NETWORK_ERROR: 'Network error: Unable to connect to server. Please check your internet connection.',
+  NETWORK_ERROR: 'Network error: Unable to reach the server or read its response. Check your connection and try again.',
   TIMEOUT_ERROR: 'Request timeout: Server took too long to respond.',
   SERVER_ERROR: 'Server error: Something went wrong on our end.',
   VALIDATION_ERROR: 'Validation error: Please check your input.',

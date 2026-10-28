@@ -71,14 +71,21 @@ const styles = StyleSheet.create({
   infoSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
+    gap: 10,
     marginBottom: 6,
   },
   billTo: {
-    width: '55%',
+    width: '47%',
   },
   metaTable: {
-    width: '45%',
+    width: '51%',
+    flexDirection: 'row',
+  },
+  metaGroup: {
+    width: '62%',
+  },
+  poMetaGroup: {
+    width: '38%',
   },
   sectionLabel: {
     fontSize: 8.6,
@@ -96,21 +103,17 @@ const styles = StyleSheet.create({
   },
   metaRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     paddingVertical: 1.5,
   },
-  metaPairRow: { flexDirection: 'row', paddingVertical: 1.5 },
-  metaPair: { width: '50%', flexDirection: 'row' },
-  metaPairLabel: { width: '45%', fontSize: 7.2 },
-  metaPairValue: { width: '55%', fontSize: 7.2, fontWeight: 'bold' },
   metaLabel: {
-    width: '40%',
+    width: '34%',
     fontSize: 8,
     fontWeight: 400,
   },
   metaValue: {
-    width: '40%',
+    width: '66%',
     fontSize: 8,
-    textAlign: 'right',
     fontWeight: 'bold',
   },
   table: {
@@ -140,6 +143,7 @@ const styles = StyleSheet.create({
   },
   tableTotalRow: {
     flexDirection: 'row',
+    borderTop: TABLE_BORDER,
     borderBottom: TABLE_BORDER,
     minHeight: 20,
     backgroundColor: '#ffffff',
@@ -397,7 +401,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
       case 'gauge_name':
         return item.gauge_name || '-';
       case 'identification_number':
-        return item.identification_number || '-';
+        return item.identification_number?.trim() || '-';
       case 'dc_no':
         return item.dc_no || '-';
       case 'specification':
@@ -474,40 +478,32 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
               </View>
 
               <View style={styles.metaTable}>
-                <View style={styles.metaPairRow}>
-                  <View style={styles.metaPair}>
-                    <Text style={styles.metaPairLabel}>INVOICE NO. :</Text>
-                    <Text style={styles.metaPairValue}>{data.invoice_number || '-'}</Text>
-                  </View>
-                  {data.po_number ? (
-                    <View style={styles.metaPair}>
-                      <Text style={styles.metaPairLabel}>PO NO. :</Text>
-                      <Text style={styles.metaPairValue}>{data.po_number}</Text>
+                <View style={[styles.metaGroup, !data.po_number && !data.po_date ? { width: '100%' } : undefined]}>
+                  {[
+                    ['INVOICE NO. :', data.invoice_number || '-'],
+                    ['DATE :', formatDate(data.billing_date)],
+                    ['ORDER NO. :', data.order_number || '-'],
+                    ['ORDER DATE :', formatDate(data.order_date)],
+                  ].map(([label, value]) => (
+                    <View key={String(label)} style={styles.metaRow}>
+                      <Text style={styles.metaLabel}>{label}</Text>
+                      <Text style={styles.metaValue}>{value}</Text>
                     </View>
-                  ) : null}
+                  ))}
                 </View>
-                <View style={styles.metaPairRow}>
-                  <View style={styles.metaPair}>
-                    <Text style={styles.metaPairLabel}>DATE :</Text>
-                    <Text style={styles.metaPairValue}>{formatDate(data.billing_date)}</Text>
+                {data.po_number || data.po_date ? (
+                  <View style={styles.poMetaGroup}>
+                    {[
+                      ...(data.po_number ? [['PO NO. :', data.po_number]] : []),
+                      ...(data.po_date ? [['PO DATE :', formatDate(data.po_date)]] : []),
+                    ].map(([label, value]) => (
+                      <View key={String(label)} style={styles.metaRow}>
+                        <Text style={[styles.metaLabel, { width: '34%' }]}>{label}</Text>
+                        <Text style={[styles.metaValue, { width: '66%' }]}>{value}</Text>
+                      </View>
+                    ))}
                   </View>
-                  {data.po_date ? (
-                    <View style={styles.metaPair}>
-                      <Text style={styles.metaPairLabel}>PO DATE :</Text>
-                      <Text style={styles.metaPairValue}>{formatDate(data.po_date)}</Text>
-                    </View>
-                  ) : null}
-                </View>
-                {[
-                  // ['OUTWARD NO(S). :', data.outward_no || '-'],
-                  ['ORDER NO. :', data.order_number || '-'],
-                  ['ORDER DATE :', formatDate(data.order_date)],
-                ].map(([label, value]) => (
-                  <View key={String(label)} style={styles.metaRow}>
-                    <Text style={styles.metaLabel}>{label}</Text>
-                    <Text style={[styles.metaValue, { textAlign: 'left' }]}>{value}</Text>
-                  </View>
-                ))}
+                ) : null}
               </View>
             </View>
           </>
@@ -533,6 +529,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                 key={`${item.sr_no}-${index}`}
                 style={[styles.tableRow, item.row_kind === 'instrument' ? styles.instrumentRow : undefined]}
                 wrap={false}
+                minPresenceAhead={index === displayRows.length - 1 ? 30 : 0}
               >
                 {tableColumns.map((column, columnIndex) => (
                   <Text
@@ -542,7 +539,9 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : undefined,
                     ]}
                   >
-                    {wrapPdfCellText(getItemCellValue(item, column, index + 1))}
+                    {column.key === 'identification_number'
+                      ? getItemCellValue(item, column, index + 1).trim()
+                      : wrapPdfCellText(getItemCellValue(item, column, index + 1))}
                   </Text>
                 ))}
               </View>
@@ -550,24 +549,24 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
           })}
         </View>
 
-        <View style={styles.finalSummaryBlock} wrap={false}>
-            <View style={styles.finalTotalTable}>
-              <View style={styles.tableTotalRow}>
-                {totalRowCells.map((cell, cellIndex) => (
-                  <Text
-                    key={cell.key}
-                    style={[
-                      styles.tableTotalCell,
-                      { width: cell.width, textAlign: cell.align },
-                      cellIndex === totalRowCells.length - 1 ? styles.noBorderRight : undefined,
-                    ]}
-                  >
-                    {cell.value}
-                  </Text>
-                ))}
-              </View>
-            </View>
+        <View style={styles.finalTotalTable} wrap={false}>
+          <View style={styles.tableTotalRow}>
+            {totalRowCells.map((cell, cellIndex) => (
+              <Text
+                key={cell.key}
+                style={[
+                  styles.tableTotalCell,
+                  { width: cell.width, textAlign: cell.align },
+                  cellIndex === totalRowCells.length - 1 ? styles.noBorderRight : undefined,
+                ]}
+              >
+                {cell.value}
+              </Text>
+            ))}
+          </View>
+        </View>
 
+        <View style={styles.finalSummaryBlock} wrap={false}>
             <View style={styles.finalSummarySection}>
               <View>
                 <Text style={styles.amountWords}>AMOUNT IN WORDS: {amountInWords}</Text>

@@ -16,6 +16,67 @@ const baseGauge = (overrides: Partial<InvoiceTableGaugeItem>): InvoiceTableGauge
 });
 
 describe("rate card invoice lookup", () => {
+  it('uses the assigned PO price-list row and never substitutes a different row', () => {
+    const rates = { 'gauge-1': [
+      { price_list_item_id: 'other-po', range: { min: 0, max: 100 }, rate: 100 },
+      { price_list_item_id: 'assigned-po', range: { min: 0, max: 100 }, rate: 200, discount: 5 },
+    ] };
+    const gauge = baseGauge({ price_list_item_id: 'assigned-po', specifications: { basic_size: 68.0175 } });
+    expect(getInvoiceRateCardRate(rates, gauge, '998346')).toBe('190');
+    expect(getInvoiceRateCardRate(rates, { ...gauge, price_list_item_id: 'missing-row' }, '998346')).toBe('');
+    expect(getInvoiceRateCardRate(rates, gauge, '__return_as_is__')).toBe('');
+    expect(getInvoiceRateCardRate(rates, gauge, '998347')).toBe('');
+  });
+
+  it('resolves a thread specification ID without matching an unrelated designation', () => {
+    const rates = { 'gauge-1': [{ standard_specification: 'M26 x 1.5 - 6H', range: { min: 0, max: 0 }, rate: 350 }] };
+    const gauge = baseGauge({ specifications: { standard_specification_id: 'thread-1' } });
+    expect(getInvoiceRateCardPricing(rates, gauge, '998346')).toBeNull();
+    expect(getInvoiceRateCardPricing(rates, gauge, '998346', { 'thread-1': 'M26X1.5-6H' })?.netRate).toBe(350);
+    expect(getInvoiceRateCardPricing(rates, gauge, '998346', { 'thread-1': 'M12X1.5-6H' })).toBeNull();
+  });
+
+  it("uses a populated range instead of the legacy basic_size zero default", () => {
+    expect(getInvoiceRateCardRate({
+      'gauge-1': [{ rate_type: 'discounted', range: { min: 50, max: 100 }, basic_size: 0, rate: 200, discount: 5 }],
+    }, baseGauge({ specifications: { basic_size: 68.0175 } }), '998346')).toBe('190');
+  });
+
+  it.each([
+    { basic_size: [6.353, 12.7] },
+    { basic_size: [{ basic_size: 6.353 }, { basic_size: 12.7 }] },
+    { go: 6.353, no_go: 12.7 },
+    { go: { basic_size: 6.353 }, no_go: { basic_size: 12.7 } },
+    { range: 12.7 },
+  ])('matches structured imported dimensions: %j', (specifications) => {
+    expect(getInvoiceRateCardRate({
+      'gauge-1': [{ range: { min: 0, max: 25 }, rate: 120 }],
+    }, baseGauge({ specifications }), '998346')).toBe('120');
+  });
+
+  it('requires a slab containing every imported size, not just the first displayed size', () => {
+    expect(getInvoiceRateCardRate({
+      'gauge-1': [
+        { range: { min: 0, max: 10 }, rate: 120 },
+        { range: { min: 0, max: 25 }, rate: 180 },
+      ],
+    }, baseGauge({ specifications: { basic_size: [6.353, 12.7] }, specification: '6.353, 12.7 mm' }), '998346')).toBe('180');
+  });
+
+  it('matches a thread designation without interpreting its pitch and class as a range', () => {
+    expect(getInvoiceRateCardRate({
+      'gauge-1': [
+        { standard_specification: 'M26 x 1.5 - 6H', range: { min: 0, max: 0 }, rate: 350 },
+      ],
+    }, baseGauge({ specifications: 'M26X1.5-6H' }), '998346')).toBe('350');
+  });
+
+  it('does not assign a different thread or another master gauge rate', () => {
+    const rates = { 'gauge-1': [{ rate_type: 'flat', standard_specification: 'M26X1.5-6H', rate: 350 }] };
+    expect(getInvoiceRateCardRate(rates, baseGauge({ specifications: 'M12X1.5-6H' }), '998346')).toBe('');
+    expect(getInvoiceRateCardRate(rates, baseGauge({ master_gauge_id: 'another-gauge', specifications: 'M26X1.5-6H' }), '998346')).toBe('');
+  });
+
   it("applies a per-entry discount and retains its price breakdown", () => {
     const pricing = getInvoiceRateCardPricing(
       { "gauge-1": [{ rate_type: "range", range: { min: 0, max: 100 }, rate: 7500, discount: 5 }] },

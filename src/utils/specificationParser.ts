@@ -60,6 +60,27 @@ function formatMeasurementList(values: string[], unit: string, maxItems: number 
   };
 }
 
+function normalizeSpecificationUnit(unit: string): string {
+  const normalized = unit.trim();
+  return /^(mm|cm|m|inch|in|um|μm|µm)$/i.test(normalized) ? normalized : 'mm';
+}
+
+function isConcentricGauge(gaugeType?: string | null): boolean {
+  return /concentric/i.test(gaugeType || '');
+}
+
+function getConcentricSizeTypes(values: unknown[], unit: string): SpecificationType[] {
+  return values.flatMap((value, index) => {
+    if (!hasValue(value)) return [];
+    return [{
+      type: 'concentric_size',
+      label: `Size ${index < 26 ? String.fromCharCode(65 + index) : index + 1}`,
+      value: `${formatValueNoUnit(value)} ${unit}`,
+      hasValue: true,
+    }];
+  });
+}
+
 /**
  * Map of specification keys to display labels
  */
@@ -203,10 +224,11 @@ function hasNestedValue(obj: unknown): boolean {
  */
 export function extractSpecificationTypes(
   specifications: unknown,
-  _gaugeType?: string | null,
+  gaugeType?: string | null,
   unit: string = 'mm'
 ): SpecificationType[] {
   const types: SpecificationType[] = [];
+  unit = normalizeSpecificationUnit(unit);
   
   if (!specifications || typeof specifications !== 'object') {
     return types;
@@ -217,6 +239,9 @@ export function extractSpecificationTypes(
   // Format: 100.00 mm, 200.00 mm (readable measurements)
   if (Array.isArray(specifications)) {
     if (specifications.length > 0) {
+      if (isConcentricGauge(gaugeType)) {
+        return getConcentricSizeTypes(specifications, unit);
+      }
       const values = specifications.map(v => formatValueNoUnit(v)).filter(Boolean);
       const { displayValue, fullValue } = formatMeasurementList(values, unit);
       types.push({
@@ -357,6 +382,10 @@ export function extractSpecificationTypes(
   // Check for basic_size (Master Piece, etc.) - Format: 100.00 mm, 200.00 mm (if multiple)
   if (specs.basic_size) {
     if (Array.isArray(specs.basic_size) && specs.basic_size.length > 0) {
+      if (isConcentricGauge(gaugeType)) {
+        types.push(...getConcentricSizeTypes(specs.basic_size, unit));
+        return types;
+      }
       const values = specs.basic_size.map(v => formatValueNoUnit(v)).filter(Boolean);
       const { displayValue, fullValue } = formatMeasurementList(values, unit);
       types.push({

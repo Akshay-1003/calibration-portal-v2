@@ -1,16 +1,13 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useFieldArray, useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '../ui/button';
-import { Autocomplete, Input, ListBox, Select } from '@heroui/react';
+import { ComboBox, Input, ListBox, Select, useFilter } from '@heroui/react';
 import {
-  ArrowUpTrayIcon,
-  DocumentTextIcon,
   PlusIcon,
   TrashIcon,
 } from '@heroicons/react/24/outline';
-import { toast } from 'sonner';
 import { useGaugeMastersQuery } from '../../hooks/queries/masterData';
 import { useThreadRingPlugsQuery } from '../../hooks/queries/threadRingPlugs';
 import { useTaperThreadReadingsQuery } from '../../hooks/queries/taperThreadReadings';
@@ -27,9 +24,6 @@ interface RateCardFormProps {
   onSaveMany?: (entries: RateCardEntry[]) => void | Promise<void>;
   onCancel: () => void;
   saving?: boolean;
-  priceList?: string | null;
-  priceListUploading?: boolean;
-  onPriceListUpload?: (file: File) => void | Promise<void>;
 }
 
 interface SpecificationOption {
@@ -113,6 +107,7 @@ const createEmptyRateRow = (): RateCardRowInput => ({
 });
 
 const getDetectedRangeType = (entry: RateCardEntry | null | undefined): RangeType => {
+  if (entry?.range && (entry.range.min !== 0 || entry.range.max !== 0)) return 'range';
   if (entry?.standard_specification) {
     return 'specification';
   }
@@ -133,14 +128,11 @@ export const RateCardForm = ({
   onSaveMany,
   onCancel,
   saving = false,
-  priceList,
-  priceListUploading = false,
-  onPriceListUpload,
 }: RateCardFormProps) => {
   const gaugeMastersQuery = useGaugeMastersQuery();
   const threadRingPlugsQuery = useThreadRingPlugsQuery();
   const taperThreadReadingsQuery = useTaperThreadReadingsQuery();
-  const priceListInputRef = useRef<HTMLInputElement>(null);
+  const { contains } = useFilter({ sensitivity: 'base' });
 
   const gaugeMasterList = useMemo(() => gaugeMastersQuery.data ?? [], [gaugeMastersQuery.data]);
 
@@ -319,31 +311,6 @@ export const RateCardForm = ({
     }
   });
 
-  const handlePriceListFileChange = async (file?: File) => {
-    if (!file || !onPriceListUpload) {
-      return;
-    }
-
-    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-    if (!isPdf) {
-      toast.error('Please select a PDF file');
-      if (priceListInputRef.current) {
-        priceListInputRef.current.value = '';
-      }
-      return;
-    }
-
-    try {
-      await onPriceListUpload(file);
-    } catch {
-      // The mutation displays the error toast.
-    } finally {
-      if (priceListInputRef.current) {
-        priceListInputRef.current.value = '';
-      }
-    }
-  };
-
   return (
     <form onSubmit={onSubmit} className="space-y-4" aria-label="Rate card entry form">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mt-2">
@@ -352,22 +319,21 @@ export const RateCardForm = ({
             name="gauge_id"
             control={control}
             render={({ field, fieldState }) => (
-              <Autocomplete
+              <ComboBox
                 aria-label="Search and select gauge"
                 selectedKey={field.value || null}
                 onSelectionChange={(key) => {
                   field.onChange(key || '');
                 }}
                 isInvalid={fieldState.invalid}
+                defaultFilter={contains}
                 className="w-full"
               >
-                <Autocomplete.Trigger className={fieldState.invalid ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input}>
-                  <Autocomplete.Filter>
-                    <Input aria-label="Search gauge" placeholder="Search gauge..." />
-                  </Autocomplete.Filter>
-                  <Autocomplete.Indicator />
-                </Autocomplete.Trigger>
-                <Autocomplete.Popover>
+                <ComboBox.InputGroup className="w-full">
+                  <Input ref={field.ref} onBlur={field.onBlur} placeholder="Search gauge..." className={fieldState.invalid ? INVALID_INPUT_WRAPPER : INPUT_CLASS_NAMES.input} />
+                  <ComboBox.Trigger />
+                </ComboBox.InputGroup>
+                <ComboBox.Popover>
                   <ListBox>
                     {gaugeMastersQuery.isPending ? (
                       <ListBox.Item id="loading-gauges" isDisabled>Loading gauges...</ListBox.Item>
@@ -380,8 +346,8 @@ export const RateCardForm = ({
                       ))
                     )}
                   </ListBox>
-                </Autocomplete.Popover>
-              </Autocomplete>
+                </ComboBox.Popover>
+              </ComboBox>
             )}
           />
         </FormField>
@@ -602,20 +568,19 @@ export const RateCardForm = ({
                           name={`entries.${index}.standard_specification`}
                           control={control}
                           render={({ field: specField, fieldState }) => (
-                            <Autocomplete
+                            <ComboBox
                               aria-label={`Specification row ${index + 1}`}
                               selectedKey={specField.value || null}
                               onSelectionChange={(key) => specField.onChange(key || '')}
                               isInvalid={fieldState.invalid}
+                              defaultFilter={contains}
                               className="w-full"
                             >
-                              <Autocomplete.Trigger className={fieldState.invalid ? INVALID_COMPACT_INPUT_WRAPPER : COMPACT_INPUT_CLASS_NAMES.input}>
-                                <Autocomplete.Filter>
-                                  <Input aria-label={`Search specification row ${index + 1}`} placeholder="Search spec..." />
-                                </Autocomplete.Filter>
-                                <Autocomplete.Indicator />
-                              </Autocomplete.Trigger>
-                              <Autocomplete.Popover>
+                              <ComboBox.InputGroup className="w-full">
+                                <Input ref={specField.ref} onBlur={specField.onBlur} placeholder="Search spec..." className={fieldState.invalid ? INVALID_COMPACT_INPUT_WRAPPER : COMPACT_INPUT_CLASS_NAMES.input} />
+                                <ComboBox.Trigger />
+                              </ComboBox.InputGroup>
+                              <ComboBox.Popover>
                                 <ListBox>
                                   {threadRingPlugsQuery.isPending || taperThreadReadingsQuery.isPending ? (
                                     <ListBox.Item id="loading-specifications" isDisabled>Loading specifications...</ListBox.Item>
@@ -633,8 +598,8 @@ export const RateCardForm = ({
                                     ))
                                   )}
                                 </ListBox>
-                              </Autocomplete.Popover>
-                            </Autocomplete>
+                              </ComboBox.Popover>
+                            </ComboBox>
                           )}
                         />
                       </td>
@@ -709,35 +674,7 @@ export const RateCardForm = ({
         </div>
       </div>
 
-      <FormField label="Reference Price List PDF">
-        <input
-          ref={priceListInputRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          className="hidden"
-          onChange={(event) => {
-            void handlePriceListFileChange(event.target.files?.[0]);
-          }}
-        />
-        <div className="flex min-h-[42px] flex-col gap-3 rounded-md border border-gray-300 bg-white px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-2 text-sm text-slate-700">
-            <DocumentTextIcon className="h-5 w-5 shrink-0 text-slate-400" />
-            <span className="truncate">
-              {priceList || 'No reference PDF selected'}
-            </span>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            className="h-9 shrink-0 gap-2 px-4 text-sm"
-            onClick={() => priceListInputRef.current?.click()}
-            disabled={priceListUploading || !onPriceListUpload}
-          >
-            <ArrowUpTrayIcon className="h-4 w-4" />
-            {priceListUploading ? 'Uploading...' : 'Upload Reference PDF'}
-          </Button>
-        </div>
-      </FormField>
+
 
       <div className="flex justify-end gap-2 border-t border-slate-200 pt-3">
         {entry && (
@@ -753,7 +690,7 @@ export const RateCardForm = ({
         )}
         <Button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 px-6 h-9 text-sm"
+          className="bg-blue-600 hover:bg-blue-700 px-6 h-9 text-sm text-white disabled:bg-blue-300 disabled:text-white"
           disabled={isSubmitting || saving}
           aria-label={entry ? 'Update entry' : 'Add entries'}
         >

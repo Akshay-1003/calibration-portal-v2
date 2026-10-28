@@ -1,5 +1,7 @@
 import type { InvoiceTableGaugeItem } from "../components/billing/invoiceItemTableShared";
 import { normalizeRateCardDiscount } from "./rateCardDiscount";
+import { getStandardSpecificationId } from "./standardSpecificationResolver";
+import { RETURN_AS_IS_CODE } from "../components/billing/invoiceItemTableShared";
 
 type RateRangeLike = {
   min?: number | string | null;
@@ -7,6 +9,7 @@ type RateRangeLike = {
 };
 
 export type InvoiceRateCardEntry = {
+  price_list_item_id?: string | null;
   rate_type?: string | null;
   range?: RateRangeLike | number | string | null;
   basic_size?: number | string | null;
@@ -27,7 +30,7 @@ type MeasurementSpec = {
 };
 
 const toNumber = (value: unknown): number | undefined => {
-  if (value === null || value === undefined || typeof value === "boolean") return undefined;
+  if (typeof value !== "number" && typeof value !== "string") return undefined;
   if (typeof value === "number") return Number.isFinite(value) ? value : undefined;
   const text = String(value).trim().replace(/,/g, "");
   if (!text) return undefined;
@@ -39,12 +42,13 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 const normalizeText = (value: unknown) => String(value ?? "").trim().toLowerCase();
+const normalizeStandard = (value: string) => normalizeText(value).replace(/\s+/g, '').replace(/×/g, 'x');
 
 const parseTextMeasurement = (value: unknown): MeasurementSpec => {
   const text = String(value ?? "").trim();
   if (!text) return {};
 
-  const rangeMatch = text.match(/(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i);
+  const rangeMatch = text.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)\s*\)?\s*(?:[a-zµμ°]+|["″])?$/i);
   if (rangeMatch) {
     const min = toNumber(rangeMatch[1]);
     const max = toNumber(rangeMatch[2]);
@@ -53,14 +57,15 @@ const parseTextMeasurement = (value: unknown): MeasurementSpec => {
     }
   }
 
-  const firstNumber = text.match(/-?\d+(?:\.\d+)?/);
-  const basicSize = firstNumber ? toNumber(firstNumber[0]) : undefined;
-  return basicSize === undefined ? {} : { basicSize };
+  const firstNumber = text.match(/^(-?\d+(?:\.\d+)?)\s*(?:[a-zµμ°]+|["″])?$/i);
+  const basicSize = firstNumber ? toNumber(firstNumber[1]) : undefined;
+  return basicSize === undefined ? { standardSpecification: text } : { basicSize };
 };
 
 const extractMeasurementSpec = (
   specs: InvoiceTableGaugeItem["specifications"],
   displaySpecification?: string,
+  resolvedStandardSpecification?: string,
 ): MeasurementSpec => {
   const textFallback = displaySpecification || "";
 
@@ -68,12 +73,12 @@ const extractMeasurementSpec = (
     return parseTextMeasurement(specs || textFallback);
   }
 
-  const standardSpecification =
+  const standardSpecification = (
     typeof specs.standard_specification === "string"
       ? specs.standard_specification.trim()
       : typeof specs.standardSpecification === "string"
         ? specs.standardSpecification.trim()
-        : undefined;
+        : undefined) || resolvedStandardSpecification;
 
   const directBasicSize = toNumber(specs.basic_size ?? specs.basicSize);
   if (directBasicSize !== undefined) {
@@ -95,6 +100,17 @@ const extractMeasurementSpec = (
     }
   }
 
+  const sizes = specs.basic_size ?? specs.basicSize;
+  if (Array.isArray(sizes) && sizes.length) {
+    const values = sizes.map((size) => toNumber(isRecord(size) ? size.basic_size : size));
+    if (values.every((size): size is number => size !== undefined)) {
+      return values.length === 1
+        ? { standardSpecification, basicSize: values[0] }
+        : { standardSpecification, range: { min: Math.min(...values), max: Math.max(...values) } };
+    }
+    return { standardSpecification };
+  }
+
   const range = specs.range;
   if (isRecord(range)) {
     const min = toNumber(range.min);
@@ -107,16 +123,25 @@ const extractMeasurementSpec = (
     }
   }
 
+  const scalarRange = toNumber(range);
+  if (scalarRange !== undefined) return { standardSpecification, basicSize: scalarRange };
+
+  const go = toNumber(isRecord(specs.go) ? specs.go.basic_size : specs.go);
+  const noGo = toNumber(isRecord(specs.no_go) ? specs.no_go.basic_size : specs.no_go);
+  if (go !== undefined && noGo !== undefined) {
+    return { standardSpecification, range: { min: Math.min(go, noGo), max: Math.max(go, noGo) } };
+  }
+
   if (typeof specs.value === "string" || typeof specs.specification === "string") {
     return {
-      standardSpecification,
       ...parseTextMeasurement(specs.value ?? specs.specification),
+      ...(standardSpecification ? { standardSpecification } : {}),
     };
   }
 
   return {
-    standardSpecification,
     ...parseTextMeasurement(textFallback),
+    ...(standardSpecification ? { standardSpecification } : {}),
   };
 };
 
@@ -165,9 +190,17 @@ const rangesContain = (rateRange: RateRangeLike, measurement: MeasurementSpec) =
 
 const entryMatchesMeasurement = (entry: InvoiceRateCardEntry, measurement: MeasurementSpec) => {
   const entryStandard = String(entry.standard_specification ?? "").trim();
+  const entryRange = isRecord(entry.range) ? entry.range : undefined;
+  const rangeMin = toNumber(entryRange?.min);
+  const rangeMax = toNumber(entryRange?.max);
+  const hasRange = rangeMin !== undefined && rangeMax !== undefined && (rangeMin !== 0 || rangeMax !== 0);
   if (entryStandard && measurement.standardSpecification) {
-    return entryStandard === measurement.standardSpecification;
+    if (normalizeStandard(entryStandard) === normalizeStandard(measurement.standardSpecification)) return true;
   }
+
+  // Older Rate Card forms persisted basic_size: 0 alongside real range slabs.
+  if (hasRange && entryRange) return rangesContain(entryRange, measurement);
+  if (entryStandard) return false;
 
   const entryBasicSize = toNumber(entry.basic_size);
   if (entryBasicSize !== undefined) {
@@ -201,11 +234,23 @@ export const findInvoiceRateCardEntry = (
   rateCard: InvoiceRateCardEntriesByGauge | null | undefined,
   gaugeItem: InvoiceTableGaugeItem,
   hsnCode: string,
+  standardSpecifications: Readonly<Record<string, string>> = {},
 ): InvoiceRateCardEntry | null => {
+  if (hsnCode === RETURN_AS_IS_CODE) return null;
   const gaugeId = String(gaugeItem.master_gauge_id || gaugeItem.gauge_id || "").trim();
   if (!gaugeId || !rateCard?.[gaugeId]?.length) return null;
 
-  const measurement = extractMeasurementSpec(gaugeItem.specifications, gaugeItem.specification);
+  // A saved PO assignment identifies an exact customer price-list row.
+  if (gaugeItem.price_list_item_id) {
+    return rateCard[gaugeId].find((entry) =>
+      entry.price_list_item_id === gaugeItem.price_list_item_id && isEntryForProcess(entry, hsnCode)
+    ) ?? null;
+  }
+  const measurement = extractMeasurementSpec(
+    gaugeItem.specifications,
+    gaugeItem.specification,
+    standardSpecifications[getStandardSpecificationId(gaugeItem.specifications)],
+  );
   return selectBestRateMatch(
     rateCard[gaugeId].filter(
       (entry) =>
@@ -219,8 +264,9 @@ export const getInvoiceRateCardPricing = (
   rateCard: InvoiceRateCardEntriesByGauge | null | undefined,
   gaugeItem: InvoiceTableGaugeItem,
   hsnCode: string,
+  standardSpecifications: Readonly<Record<string, string>> = {},
 ) => {
-  const entry = findInvoiceRateCardEntry(rateCard, gaugeItem, hsnCode);
+  const entry = findInvoiceRateCardEntry(rateCard, gaugeItem, hsnCode, standardSpecifications);
   const listRate = toNumber(entry?.rate);
   if (listRate === undefined) return null;
 

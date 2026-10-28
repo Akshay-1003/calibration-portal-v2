@@ -6,6 +6,10 @@ export const INVOICE_HSN_OPTIONS = [
 ] as const;
 
 export const DEFAULT_INVOICE_HSN = "998346";
+export const RETURN_AS_IS_CODE = "__return_as_is__";
+export const RETURN_AS_IS_LABEL = "Return as is (no calibration or repair)";
+export const isReturnAsIsEntry = (entry: Pick<InvoiceItemHSN, "hsnCode" | "lineType">) =>
+  entry.hsnCode === RETURN_AS_IS_CODE || entry.lineType === "return_as_is";
 
 export const getInvoiceHsnOption = (hsnCode: string) =>
   INVOICE_HSN_OPTIONS.find((option) => option.code === hsnCode.trim());
@@ -40,7 +44,7 @@ export interface InvoiceItemHSN {
   quantity: number;
   discountType?: 'none' | 'percentage' | 'flat';
   discountValue?: string;
-  lineType?: 'calibration' | 'repair' | 'spare_part' | 'custom';
+  lineType?: 'calibration' | 'repair' | 'spare_part' | 'custom' | 'return_as_is';
   description?: string;
 }
 
@@ -65,7 +69,8 @@ export interface InvoiceTableGaugeItem {
   gauge_specification?: string;
   specifications?: Record<string, unknown> | string | null;
   master_gauge_id?: string;
-  source_type?: "outward" | "inward" | "manual";
+  price_list_item_id?: string;
+  source_type?: "outward" | "inward" | "manual" | "repair";
   unit?: string;
   instrument_quantity?: number;
 }
@@ -74,11 +79,15 @@ export interface InvoiceItemDataLocal {
   gaugeItem: InvoiceTableGaugeItem;
   hsnEntries: InvoiceItemHSN[];
   isManual?: boolean;
+  sourceItem?: import('../../types/types').InvoiceBillingItem;
 }
 
 export interface InvoiceBillingTableRow {
   gaugeIndex: number;
-  hsnEntry: InvoiceItemHSN;
   itemData: InvoiceItemDataLocal;
   amount: number;
+  quantity: number;
+  calibrationEntry?: InvoiceItemHSN;
+  repairEntry?: InvoiceItemHSN;
+  otherEntries: InvoiceItemHSN[];
 }

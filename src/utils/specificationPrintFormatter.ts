@@ -16,7 +16,19 @@ function formatNumber(value: unknown): string {
 }
 
 function normalizeUnit(unit: string): string {
-  return unit.trim() || 'mm';
+  const normalized = unit.trim();
+  return /^(mm|cm|m|inch|in|um|μm|µm)$/i.test(normalized) ? normalized : 'mm';
+}
+
+const isConcentricGauge = (gaugeType?: string | null) => /concentric/i.test(gaugeType || '');
+
+function formatConcentricSizes(values: unknown[], unit: string): string {
+  return values
+    .map((value) => hasValue(value)
+      ? appendUnitIfMeasurement(formatNumber(value), unit)
+      : '')
+    .filter(Boolean)
+    .join(' / ');
 }
 
 function hasPrintableUnit(value: string): boolean {
@@ -106,8 +118,13 @@ function extractNoGoValue(noGo: unknown): string | null {
  * @param unit - Unit for measurements (mm, inch, cm, m) - defaults to 'mm'
  * @returns Formatted string with key specification values
  */
-export function formatSpecificationForPrint(specifications: unknown, unit: string = 'mm'): string {
+export function formatSpecificationForPrint(
+  specifications: unknown,
+  unit: string = 'mm',
+  gaugeType?: string | null,
+): string {
   if (!specifications) return '-';
+  const resolvedUnit = normalizeUnit(unit);
   
   // Handle null or undefined
   if (specifications === null || specifications === undefined) {
@@ -116,13 +133,17 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
   
   // Handle string specifications
   if (typeof specifications === 'string') {
-    return appendUnitIfMeasurement(specifications, unit) || '-';
+    return appendUnitIfMeasurement(specifications, resolvedUnit) || '-';
   }
   
   // Handle array specifications (e.g., Master Piece)
   // Format: 100.00 mm, 200.00 mm (readable measurements)
   if (Array.isArray(specifications)) {
     if (specifications.length === 0) return '-';
+
+    if (isConcentricGauge(gaugeType)) {
+      return formatConcentricSizes(specifications, resolvedUnit) || '-';
+    }
     
     const values = specifications
       .map(v => formatNumber(v))
@@ -131,7 +152,7 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
     if (values.length === 0) return '-';
     
     // Format as readable measurements: 100.00 mm, 200.00 mm
-    const formattedValues = values.map(v => appendUnitIfMeasurement(v, unit));
+    const formattedValues = values.map(v => appendUnitIfMeasurement(v, resolvedUnit));
     if (formattedValues.length <= 4) {
       return formattedValues.join(', ');
     }
@@ -158,7 +179,7 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
           const upperTolStr = formatNumber(upperTolerance);
           const lowerTolStr = formatNumber(lowerTolerance);
           // Format: 10.00 (0.200/0.100) mm - readable measurement format
-          parts.push(`${basic_sizeStr} (${upperTolStr}/${lowerTolStr}) ${unit}`);
+          parts.push(`${basic_sizeStr} (${upperTolStr}/${lowerTolStr}) ${resolvedUnit}`);
           // Don't show go/no_go for tolerance method
           return parts.join('; ');
         }
@@ -171,11 +192,11 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
     const noGoValue = extractNoGoValue(specs.no_go);
     
     if (goValue && noGoValue) {
-      parts.push(`(${goValue} / ${noGoValue}) ${unit}`);
+      parts.push(`(${goValue} / ${noGoValue}) ${resolvedUnit}`);
     } else if (goValue) {
-      parts.push(`${goValue} ${unit}`);
+      parts.push(`${goValue} ${resolvedUnit}`);
     } else if (noGoValue) {
-      parts.push(`${noGoValue} ${unit}`);
+      parts.push(`${noGoValue} ${resolvedUnit}`);
     }
     
     // Extract Range (Fixed Range Gauges)
@@ -185,9 +206,9 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
       const min = formatNumber(range.min);
       const max = formatNumber(range.max);
       if (min && max) {
-        parts.push(`(${min} - ${max}) ${unit}`);
+        parts.push(`(${min} - ${max}) ${resolvedUnit}`);
       } else if (min || max) {
-        parts.push(`${min || max} ${unit}`);
+        parts.push(`${min || max} ${resolvedUnit}`);
       }
     }
     
@@ -197,16 +218,16 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
       const from = formatNumber(specs.from);
       const to = formatNumber(specs.to);
       if (from && to) {
-        parts.push(`(${from} - ${to}) ${unit}`);
+        parts.push(`(${from} - ${to}) ${resolvedUnit}`);
       } else if (from || to) {
-        parts.push(`${from || to} ${unit}`);
+        parts.push(`${from || to} ${resolvedUnit}`);
       }
     }
     
     // Extract Least Count - Format: LC: 0.01 mm (readable measurement)
     const lc = specs.least_count || specs.leastCount;
     if (hasValue(lc)) {
-      parts.push(`LC: ${formatNumber(lc)} ${unit}`);
+      parts.push(`LC: ${formatNumber(lc)} ${resolvedUnit}`);
     }
     
     // Extract Basic Size
@@ -217,10 +238,14 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
           .map(v => formatNumber(v))
           .filter(Boolean);
         if (values.length > 0) {
-          parts.push(values.map(v => `${v} ${unit}`).join(', '));
+          if (isConcentricGauge(gaugeType)) {
+            parts.push(formatConcentricSizes(specs.basic_size, resolvedUnit));
+          } else {
+            parts.push(values.map(v => `${v} ${resolvedUnit}`).join(', '));
+          }
         }
       } else if (hasValue(specs.basic_size)) {
-        parts.push(`${formatNumber(specs.basic_size)} ${unit}`);
+        parts.push(`${formatNumber(specs.basic_size)} ${resolvedUnit}`);
       }
     }
     
@@ -241,21 +266,21 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
     if (specs.pitch_dial && typeof specs.pitch_dial === 'object') {
       const pd = specs.pitch_dial as Record<string, unknown>;
       if (hasValue(pd.specified_limit_max)) {
-        parts.push(`PD: ${formatNumber(pd.specified_limit_max)} ${unit}`);
+          parts.push(`PD: ${formatNumber(pd.specified_limit_max)} ${resolvedUnit}`);
       }
     }
     
     // Extract Surface Plate dimensions - Format: L:100.00 mm × W:50.00 mm
     if (hasValue(specs.length) || hasValue(specs.width)) {
       const dims: string[] = [];
-      if (hasValue(specs.length)) dims.push(`L:${formatNumber(specs.length)} ${unit}`);
-      if (hasValue(specs.width)) dims.push(`W:${formatNumber(specs.width)} ${unit}`);
+      if (hasValue(specs.length)) dims.push(`L:${formatNumber(specs.length)} ${resolvedUnit}`);
+      if (hasValue(specs.width)) dims.push(`W:${formatNumber(specs.width)} ${resolvedUnit}`);
       if (dims.length > 0) parts.push(dims.join(' × '));
     }
     
     // Extract Spline Gauge specifics
     if (hasValue(specs.specification)) {
-      parts.push(appendUnitIfMeasurement(formatNumber(specs.specification), unit));
+      parts.push(appendUnitIfMeasurement(formatNumber(specs.specification), resolvedUnit));
     }
     
     if (hasValue(specs.numberOfSplines)) {
@@ -266,7 +291,7 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
       const min = formatNumber(specs.majorDiameterMin);
       const max = formatNumber(specs.majorDiameterMax);
       if (min || max) {
-        parts.push(`MD: ${min && max ? `${min}-${max} ${unit}` : `${min || max} ${unit}`}`);
+        parts.push(`MD: ${min && max ? `${min}-${max} ${resolvedUnit}` : `${min || max} ${resolvedUnit}`}`);
       }
     }
     
@@ -277,7 +302,7 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
       for (const key of keys) {
         const value = specs[key];
         if (hasValue(value) && typeof value !== 'object') {
-          return appendUnitIfMeasurement(formatNumber(value), unit);
+          return appendUnitIfMeasurement(formatNumber(value), resolvedUnit);
         }
       }
       return '-';
@@ -288,7 +313,7 @@ export function formatSpecificationForPrint(specifications: unknown, unit: strin
   }
   
   // Fallback for any other type
-  return appendUnitIfMeasurement(String(specifications), unit) || '-';
+  return appendUnitIfMeasurement(String(specifications), resolvedUnit) || '-';
 }
 
 /**

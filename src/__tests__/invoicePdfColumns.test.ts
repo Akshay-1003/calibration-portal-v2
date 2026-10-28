@@ -18,6 +18,15 @@ describe('invoice PDF service columns', () => {
     expect(columns.repair_new).toBe(true);
   });
 
+  it('hides an empty repair column and reallocates its width to gauge and identification', () => {
+    const columns = getInvoicePdfTableColumns(DEFAULT_INVOICE_PDF_COLUMNS, [{ repair_new: 0 }]);
+    const byKey = Object.fromEntries(columns.map((column) => [column.key, Number.parseFloat(column.width)]));
+
+    expect(columns.some((column) => column.key === 'repair_new')).toBe(false);
+    expect(byKey.gauge_name).toBeGreaterThan(11);
+    expect(byKey.identification_number).toBeGreaterThan(20);
+  });
+
   it('honors an explicit PDF column choice', () => {
     const columns = normalizeInvoicePdfColumns(
       { ...DEFAULT_INVOICE_PDF_COLUMNS, repair_new: false },
@@ -25,7 +34,7 @@ describe('invoice PDF service columns', () => {
       { autoEnableServiceColumns: false },
     );
 
-    expect(columns.repair_new).toBe(true);
+    expect(columns.repair_new).toBe(false);
   });
 
   it('renders one instrument parent with independent service children', () => {

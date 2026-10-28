@@ -14,6 +14,7 @@ import { normalizeInvoicePdfColumns } from '../../utils/invoicePdfColumns';
 import { preparePdfTableData } from '../../utils/pdfTableData';
 import { formatSpecificationForPrint } from '../../utils/specificationPrintFormatter';
 import { getCurrentIsoDate, getIsoDatePart } from '../../utils/dateAdapter';
+import { getStandardSpecificationId } from '../../utils/standardSpecificationResolver';
 
 const DEFAULT_COMPANY_INFO = {
   company_name: '',
@@ -246,6 +247,7 @@ export const transformInvoiceToInvoiceData = (
     const billingItemRecord = billingItem as unknown as UnknownRecord;
 
     billingItem.billing_components.forEach((component, componentIndex) => {
+      const returnAsIs = (component as any).return_as_is === true || component.line_type === 'return_as_is' || component.process === 'return_as_is';
       const rate = component.rate || 0;
       const qty = component.quantity || 1;
       const grossAmount = roundCurrency(component.amount || calculateLineAmount(rate, qty));
@@ -255,25 +257,26 @@ export const transformInvoiceToInvoiceData = (
       const formattedSpec = formatSpecificationForPrint(
         billingItem.specifications,
         firstText([billingItemRecord.unit], 'mm'),
+        billingItem.master_gauge_name,
       );
 
       // Determine repair_new and calibration_charge based on process
-      const isRepair = component.process?.toLowerCase() === 'repair';
+      const isRepair = !returnAsIs && component.process?.toLowerCase() === 'repair';
       const repairNew = isRepair ? rate : 0.0;
       const calibrationCharge = !isRepair ? rate : 0.0;
 
-      const serviceDescription = (component as any).description || (isRepair ? 'Repair / Servicing' : 'Calibration');
+      const serviceDescription = returnAsIs ? 'Returned as is - no calibration or repair' : (component as any).description || (isRepair ? 'Repair / Servicing' : 'Calibration');
       const isServiceChild = componentIndex > 0;
       const groupKey = `${billingItem.inward_id || ''}|${billingItem.gauge_id || ''}|${billingItem.master_gauge_name || ''}|${billingItem.identification_number || ''}|${formattedSpec}`;
       invoiceItems.push({
         sr_no: srNo++,
-        gauge_name: isServiceChild
-          ? `  ${serviceDescription}`
-          : `${billingItem.master_gauge_name || '-'}\n${serviceDescription}`,
+        gauge_name: returnAsIs
+          ? `${billingItem.master_gauge_name || '-'}\nReturned as is - no calibration or repair`
+          : billingItem.master_gauge_name || '-',
         identification_number: isServiceChild ? '' : billingItem.identification_number || '-',
         dc_no: firstText([billingItemRecord.client_dc_no, billingItemRecord.dc_no], '-'),
         specification: formattedSpec,
-        hsn: (component as any).hsn_sac || getProcessHsn(component.process),
+        hsn: returnAsIs ? '-' : (component as any).hsn_sac || getProcessHsn(component.process),
         repair_new: repairNew,
         calibration_charge: calibrationCharge,
         qty: qty,
@@ -281,6 +284,7 @@ export const transformInvoiceToInvoiceData = (
         discount_amount: discountAmount,
         service_description: serviceDescription,
         is_service_child: isServiceChild,
+        standard_specification_id: getStandardSpecificationId(billingItem.specifications),
         instrument_quantity: billingItem.instrument_quantity || 1,
         group_key: groupKey,
       });
@@ -415,6 +419,7 @@ export const transformInvoiceItemsToInvoiceData = (
     const gaugeRecord = itemData.gaugeItem as unknown as UnknownRecord;
 
     itemData.hsnEntries.forEach((hsnEntry, componentIndex) => {
+      const returnAsIs = hsnEntry.hsnCode === '__return_as_is__';
       const rate = parseFloat(hsnEntry.rate) || 0;
       const qty = hsnEntry.quantity || 1;
       const grossAmount = calculateLineAmount(rate, qty);
@@ -435,28 +440,29 @@ export const transformInvoiceItemsToInvoiceData = (
       const formattedSpec = formatSpecificationForPrint(
         specification,
         firstText([gaugeRecord.unit], 'mm'),
+        firstText([itemData.gaugeItem.master_gauge_name, gaugeRecord.gauge_name], ''),
       );
 
       // Get DC No
       const dcNo = firstText([gaugeRecord.client_dc_no, gaugeRecord.dc_no], '-');
 
       // Determine repair_new and calibration_charge based on HSN
-      const isRepair = hsnEntry.hsnCode === '998347' || hsnEntry.hsnName.toLowerCase().includes('repair');
+      const isRepair = !returnAsIs && (hsnEntry.hsnCode === '998347' || hsnEntry.hsnName.toLowerCase().includes('repair'));
       const repairNew = isRepair ? rate : 0.0;
       const calibrationCharge = !isRepair ? rate : 0.0;
-      const serviceDescription = hsnEntry.description || (isRepair ? 'Repair / Servicing' : 'Calibration');
+      const serviceDescription = returnAsIs ? 'Returned as is - no calibration or repair' : hsnEntry.description || (isRepair ? 'Repair / Servicing' : 'Calibration');
       const isServiceChild = componentIndex > 0;
       const groupKey = `${firstText([gaugeRecord.id, gaugeRecord.gauge_id], '')}|${firstText([itemData.gaugeItem.master_gauge_name, gaugeRecord.gauge_name], '')}|${itemData.gaugeItem.identification_number || ''}|${formattedSpec}`;
 
       invoiceItems.push({
         sr_no: srNo++,
-        gauge_name: isServiceChild
-          ? `  ${serviceDescription}`
-          : `${firstText([itemData.gaugeItem.master_gauge_name, gaugeRecord.gauge_name], '-')}\n${serviceDescription}`,
+        gauge_name: returnAsIs
+          ? `${firstText([itemData.gaugeItem.master_gauge_name, gaugeRecord.gauge_name], '-')}\nReturned as is - no calibration or repair`
+          : firstText([itemData.gaugeItem.master_gauge_name, gaugeRecord.gauge_name], '-'),
         identification_number: isServiceChild ? '' : itemData.gaugeItem.identification_number || itemData.gaugeItem.manf_serial_number || '-',
         dc_no: isServiceChild ? '' : dcNo,
         specification: isServiceChild ? '' : formattedSpec,
-        hsn: hsnEntry.hsnCode,
+        hsn: returnAsIs ? '-' : hsnEntry.hsnCode,
         repair_new: repairNew,
         calibration_charge: calibrationCharge,
         qty: qty,
@@ -464,6 +470,7 @@ export const transformInvoiceItemsToInvoiceData = (
         discount_amount: discountAmount,
         service_description: serviceDescription,
         is_service_child: isServiceChild,
+        standard_specification_id: getStandardSpecificationId(specification),
         instrument_quantity: itemData.gaugeItem.instrument_quantity || 1,
         group_key: groupKey,
       });
@@ -633,6 +640,7 @@ export const transformOutwardToInvoiceData = (
     const formattedSpec = formatSpecificationForPrint(
       specification,
       firstText([itemRecord.unit], 'mm'),
+      firstText([item.master_gauge_name, itemRecord.gauge_name], ''),
     );
 
     // Get DC No
