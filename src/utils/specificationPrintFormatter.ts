@@ -37,11 +37,18 @@ function hasPrintableUnit(value: string): boolean {
 
 function appendUnitIfMeasurement(value: string, unit: string): string {
   const text = value.trim();
-  if (!text || text === '-' || hasPrintableUnit(text)) return text;
+  if (!text || text === '-') return text;
 
   const resolvedUnit = normalizeUnit(unit);
+  // Direct repair items store measurements as free text. Normalize spacing
+  // without changing their precision or interpreting thread/tolerance labels.
+  const range = text.match(/^\(?\s*([+-]?\d+(?:\.\d+)?)\s*(?:-|–|−|to)\s*([+-]?\d+(?:\.\d+)?)\s*\)?\s*(mm|cm|m|inch|in|um|μm|µm)?$/i);
+  if (range) return `(${range[1]} - ${range[2]}) ${range[3] || resolvedUnit}`;
+  const measurement = text.match(/^([+-]?\d+(?:\.\d+)?)\s*(mm|cm|m|inch|in|um|μm|µm)$/i);
+  if (measurement) return `${measurement[1]} ${measurement[2]}`;
+  if (hasPrintableUnit(text)) return text;
+
   const numericPattern = /^[+-]?\d+(?:\.\d+)?$/;
-  const rangePattern = /^\(?\s*[+-]?\d+(?:\.\d+)?\s*(?:-|–|to)\s*[+-]?\d+(?:\.\d+)?\s*\)?$/i;
   const labelledNumericPattern = /^(Spec(?:ification)?|Basic Size|Size):\s*([+-]?\d+(?:\.\d+)?)$/i;
   const labelledMatch = text.match(labelledNumericPattern);
 
@@ -49,7 +56,7 @@ function appendUnitIfMeasurement(value: string, unit: string): string {
     return `${labelledMatch[1]}: ${labelledMatch[2]} ${resolvedUnit}`;
   }
 
-  if (numericPattern.test(text) || rangePattern.test(text)) {
+  if (numericPattern.test(text)) {
     return `${text} ${resolvedUnit}`;
   }
 

@@ -5,6 +5,15 @@ import type {
 } from "./types";
 
 export const notificationApi = {
+  getPlanningRequests(params?: { page?: number; search?: string; status?: string; due_date?: string; planned_date?: string }) {
+    return apiClient.get<{ requests: import("./planningTypes").PlanningRequest[]; total_count: number }>("/notifications/requests", params);
+  },
+  getPlanningRequest(id: string) {
+    return apiClient.get<import("./planningTypes").PlanningRequest>(`/notifications/requests/${id}`);
+  },
+  updatePlanningRequest(id: string, data: import("./planningTypes").PlanningRequestUpdate) {
+    return apiClient.patch<import("./planningTypes").PlanningRequest>(`/notifications/requests/${id}`, data);
+  },
   getOrganizationSettings(organizationId: string) {
     return apiClient.get<OrganizationNotificationSettings>(
       `/notifications/settings/${organizationId}`

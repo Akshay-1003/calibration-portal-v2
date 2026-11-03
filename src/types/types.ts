@@ -121,6 +121,7 @@ export interface InvoiceBillingItem {
   source_type?: string;
   gauge_inward_id?: string | null;
   repair_id?: string | null;
+  repair_item_id?: string | null;
   price_list_item_id?: string | null;
   po_line_id?: string | null;
   gauge_id: string | null;

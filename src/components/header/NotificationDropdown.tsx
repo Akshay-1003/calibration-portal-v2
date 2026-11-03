@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   BellAlertIcon,
   CheckCircleIcon,
@@ -130,6 +131,9 @@ function NotificationItem({
           <p className="text-sm font-semibold leading-5 text-gray-900 dark:text-white">
             {notification.title}
           </p>
+          {notification.response_label && <p className="text-xs text-gray-500">{notification.response_label}</p>}
+          {notification.planning_request_id && <Link to={`/settings/notifications?request=${notification.planning_request_id}#planning-requests`} className="mt-2 block text-xs text-blue-600">View planning request</Link>}
+          {notification.deliveries?.map((delivery, index) => <p key={index} className="text-xs text-gray-500">{delivery.channel}: {delivery.status} {delivery.reason}</p>)}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
             <span>{notification.channel}</span>
             <span className="h-1 w-1 rounded-full bg-gray-300" />

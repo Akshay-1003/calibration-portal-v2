@@ -6,7 +6,7 @@ import {
 } from '../../utils/invoicePdfColumns';
 import { formatDateStringForDisplay } from '../../utils/dateAdapter';
 import { buildInvoicePdfDisplayRows, getInvoicePdfServiceTotals } from '../../utils/invoicePdfRows';
-import { buildInvoiceSummaryRows } from '../../utils/invoiceSummaryRows';
+import { buildInvoiceSummaryRows, formatInvoiceSummaryAmount } from '../../utils/invoiceSummaryRows';
 
 // Type definitions for Invoice data
 export interface InvoiceItem {
@@ -475,7 +475,7 @@ export const InvoiceTemplate: React.FC<InvoiceTemplateProps> = ({ data, classNam
                       fontWeight: row.emphasis ? 700 : 500,
                     }}
                   >
-                    {money(Number(row.value))}
+                    {formatInvoiceSummaryAmount(Number(row.value))}
                   </td>
                 </tr>
               ))}

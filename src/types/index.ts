@@ -201,6 +201,7 @@ export interface LinkedGauge {
   status: 'inward_received' | 'calibration_completed'; // derived from gauge.status
   inward_date: string;
   gauge_id: string;
+  master_gauge_id?: string;
   inward_gauge_lab_id: string;   
   specifications: GaugeSpecifications; // gauge.specifications
   inward_no:number;

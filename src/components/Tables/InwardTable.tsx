@@ -11,6 +11,7 @@ import {
   DatePicker,
   DateField,
   Calendar,
+  Chip,
 } from '@heroui/react';
 import type { Key } from '@react-types/shared';
 import type { DateValue } from '@internationalized/date';
@@ -30,6 +31,7 @@ import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | 'sr_no'
+  | 'inward_no'
   | 'client_org_name'
   | 'client_dc_no'
   | 'client_dc_date'
@@ -82,6 +84,7 @@ function InwardDatePicker({
 
 const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
   { name: 'SR NO', uid: 'sr_no' },
+  { name: 'INWARD NO', uid: 'inward_no' },
   { name: 'ACTIONS', uid: 'actions' },
   { name: 'CLIENT ORGANIZATION', uid: 'client_org_name', sortable: true },
   { name: 'CLIENT DC NO', uid: 'client_dc_no', sortable: true },
@@ -92,7 +95,9 @@ const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
 ];
 
 const INITIAL_VISIBLE_COLUMNS: TableColumnKey[] = [
+
   'sr_no',
+  'inward_no',
   'client_org_name',
   'client_dc_no',
   'inward_date',
@@ -166,7 +171,6 @@ const ActionsCell = memo(
 );
 
 ActionsCell.displayName = 'ActionsCell';
-
 interface InwardTableViewProps {
   state: InwardTableState;
   handlers: InwardTableHandlers;
@@ -217,6 +221,7 @@ export const InwardTable = memo<InwardTableViewProps>(
     } = handlers;
     // Use searchValue from state prop (synced with URL via controller)
     const { searchValue } = state;
+    console.log(data);
 
     // Visible columns - could be made dynamic later
     const visibleColumns = useMemo(() => new Set(INITIAL_VISIBLE_COLUMNS), []);
@@ -287,7 +292,15 @@ export const InwardTable = memo<InwardTableViewProps>(
             </div>
           );
         }
-
+        if (columnKey === 'inward_no') {
+          return (
+            <div className="text-[13px] text-center font-medium text-gray-600">
+              <Chip color="accent" size="md" variant="soft">
+                <Chip.Label className="text-blue-600"> {item.inward_no}</Chip.Label>
+              </Chip>
+            </div>
+          );
+        }
         if (columnKey === 'actions') {
           return (
             <ActionsCell

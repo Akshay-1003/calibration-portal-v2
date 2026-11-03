@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { PlanningRequests } from "../../features/notifications/PlanningRequests";
+import { useAuth } from "../../features/auth";
 import type { ReactNode } from "react";
 import { Card as V3Card } from '@heroui/react';
 import { Button, Separator, Spinner, Switch as V3Switch } from '@heroui/react';
@@ -37,6 +39,8 @@ const splitRecipients = (value: string) =>
     .filter(Boolean);
 
 export const SettingsNotifications = () => {
+  const { user } = useAuth();
+  const canManageSettings = ["lab_admin", "org_admin", "super_admin", "superadmin"].includes(user?.role ?? "");
   const organizationsQuery = useOrganizationsQuery();
   const organizations = organizationsQuery.data?.organizations ?? [];
   const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
@@ -94,6 +98,7 @@ export const SettingsNotifications = () => {
 
   return (
     <div className="space-y-6">
+      <PlanningRequests />
       <V3Card className="border border-gray-200 shadow-sm">
         <V3Card.Header className="border-b border-gray-200 px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -178,6 +183,12 @@ export const SettingsNotifications = () => {
                   onChange={(value) => updateDraft("whatsapp_reminders_enabled", value)}
                 />
               </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="text-sm">Customer timezone<input className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2" value={draft.timezone ?? "Asia/Kolkata"} onChange={e => updateDraft("timezone", e.target.value)} /></label>
+                <label className="text-sm">Delivery time<input type="time" className="mt-1 w-full rounded-md border border-gray-200 px-3 py-2" value={draft.delivery_time ?? "09:00"} onChange={e => updateDraft("delivery_time", e.target.value)} /></label>
+              </div>
+              <p className="text-xs text-gray-500">Customer opt-outs take priority. WhatsApp consent is managed by the customer administrator for each destination number.</p>
+              {Boolean(draft.customer_opt_outs?.length) && <p className="text-sm text-amber-700">Customer opted out of: {draft.customer_opt_outs?.join(", ")}</p>}
 
               <Separator />
 
@@ -225,8 +236,8 @@ export const SettingsNotifications = () => {
 
               <div className="flex justify-end border-t border-gray-200 pt-5">
                 <Button
+                  isDisabled={!canManageSettings || updateSettings.isPending}
                   variant="primary"
-                  isDisabled={updateSettings.isPending}
                   onPress={handleSave}
                 >
                   Save Settings

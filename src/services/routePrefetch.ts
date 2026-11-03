@@ -25,7 +25,6 @@ const routeChunkLoaders: Record<string, () => Promise<unknown>> = {
   '/masters/reading-master': () => import('../pages/masters/ReadingMaster/page'),
   '/masters/dial-table-master': () => import('../pages/masters/DialTableMaster/page'),
   '/maintenance': () => import('../pages/maintenance/page'),
-  '/maintenance/repair-master': () => import('../pages/maintenance/repair-master/page'),
   '/billing/invoice': () => import('../pages/billing/invoice/page'),
   '/billing/quotation': () => import('../pages/billing/quotation/page'),
 };

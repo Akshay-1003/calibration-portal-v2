@@ -53,6 +53,28 @@ describe('specifications utils', () => {
     expect(formatSpecificationForPrint('18.00 mm')).toBe('18.00 mm');
   });
 
+  it.each([
+    ['0-600mm', '(0 - 600) mm'],
+    ['0.001- 1mm', '(0.001 - 1) mm'],
+    ['0.01- 10mm', '(0.01 - 10) mm'],
+    ['0.01-10mm', '(0.01 - 10) mm'],
+    ['-10--5mm', '(-10 - -5) mm'],
+    ['0.123456-1.123456mm', '(0.123456 - 1.123456) mm'],
+    ['0–10inch', '(0 - 10) inch'],
+    ['25mm', '25 mm'],
+  ])('formats direct repair specification %s consistently without changing measurements', (input, expected) => {
+    expect(formatSpecificationForPrint({ description: input })).toBe(expected);
+    expect(formatSpecificationForPrint({ value: input })).toBe(expected);
+    expect(formatSpecificationForPrint({ specification: input })).toBe(expected);
+    expect(formatSpecificationForPrint(input)).toBe(expected);
+    expect(formatSpecificationForPrint(expected)).toBe(expected);
+  });
+
+  it('preserves thread designations and signed tolerance specifications', () => {
+    expect(formatSpecificationForPrint({ description: 'M10 X 1.5 - 6H' })).toBe('M10 X 1.5 - 6H');
+    expect(formatSpecificationForPrint({ description: '10.00 (+0.002/-0.001) mm' })).toBe('10.00 (+0.002/-0.001) mm');
+  });
+
   it('prints concentric master-piece dimensions without size labels', () => {
     expect(formatSpecificationForPrint(
       { basic_size: [8.37, 50] },

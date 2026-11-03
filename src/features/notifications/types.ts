@@ -16,6 +16,11 @@ export interface ReminderTimingSettings {
 }
 
 export interface OrganizationNotificationSettings {
+  laboratory_id?: string | null;
+  timezone?: string;
+  delivery_time?: string;
+  customer_opt_outs?: NotificationChannel[];
+  whatsapp_consents?: Record<string, boolean>;
   id?: string | null;
   organization_id: string;
   in_app_enabled: boolean;
@@ -29,6 +34,9 @@ export interface OrganizationNotificationSettings {
 }
 
 export interface NotificationEvent {
+  planning_request_id?: string | null;
+  snapshots?: import("./planningTypes").ReminderSnapshot[];
+  deliveries?: Array<{ channel: string; destination: string; status: string; reason?: string }>;
   id: string;
   organization_id: string;
   organization_name: string;

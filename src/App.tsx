@@ -81,9 +81,6 @@ const StickerBrowserPrintPage = lazy(() => import("./pages/print/stickers"));
 const RepairPage = lazy(() => import("./pages/maintenance/page"));
 const RepairCreatePage = lazy(() => import("./pages/maintenance/create"));
 const RepairEditPage = lazy(() => import("./pages/maintenance/edit"));
-const RepairMasterPage = lazy(() => import("./pages/maintenance/repair-master/page"));
-const RepairMasterCreatePage = lazy(() => import("./pages/maintenance/repair-master/create"));
-const RepairMasterEditPage = lazy(() => import("./pages/maintenance/repair-master/edit"));
 export default function App() {
   const withModuleAccess = (
     module: PermissionModule,
@@ -610,22 +607,6 @@ export default function App() {
                 </Suspense>
               } />
 
-              {/* Repair Master Feature */}
-              <Route path="/maintenance/repair-master" element={
-                <Suspense fallback={<PageLoader />}>
-                  <RepairMasterPage />
-                </Suspense>
-              } />
-              <Route path="/maintenance/repair-master/create" element={
-                <Suspense fallback={<PageLoader />}>
-                  <RepairMasterCreatePage />
-                </Suspense>
-              } />
-              <Route path="/maintenance/repair-master/edit/:id" element={
-                <Suspense fallback={<PageLoader />}>
-                  <RepairMasterEditPage />
-                </Suspense>
-              } />
             </Route>
           </Routes>
           </NavigationProvider>

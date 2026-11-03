@@ -33,10 +33,6 @@ const RepairPage = () => {
     },
     searchValue: '',
     clientOrgId: '',
-    repairType: '',
-    repairStatus: '',
-    dateFrom: '',
-    dateTo: '',
   });
 
   const organizationNameMap = useMemo(() => {
@@ -131,39 +127,20 @@ const RepairPage = () => {
     setTableState((prev) => ({ ...prev, clientOrgId, page: 1 }));
   }, []);
 
-  const handleRepairTypeChange = useCallback((repairType: string) => {
-    setTableState((prev) => ({ ...prev, repairType, page: 1 }));
-  }, []);
-
-  const handleRepairStatusChange = useCallback((repairStatus: string) => {
-    setTableState((prev) => ({ ...prev, repairStatus, page: 1 }));
-  }, []);
-
-  const handleDateFromChange = useCallback((dateFrom: string) => {
-    setTableState((prev) => ({ ...prev, dateFrom, page: 1 }));
-  }, []);
-
-  const handleDateToChange = useCallback((dateTo: string) => {
-    setTableState((prev) => ({ ...prev, dateTo, page: 1 }));
-  }, []);
-
-  const handleApplyFilters = useCallback(() => {
-    toast.success('Filters applied');
-  }, []);
-
-  const handleClearFilters = useCallback(() => {
-    setTableState((prev) => ({
-      ...prev,
-      clientOrgId: '',
-      repairType: '',
-      repairStatus: '',
-      dateFrom: '',
-      dateTo: '',
-      page: 1,
-    }));
-  }, []);
-
-  const tableHandlers: RepairTableHandlers = {
+  const tableHandlers: Pick<
+    RepairTableHandlers,
+    | 'onPageChange'
+    | 'onRowsPerPageChange'
+    | 'onSearchChange'
+    | 'onSearchClear'
+    | 'onSortChange'
+    | 'onSelectionChange'
+    | 'onClientOrgChange'
+    | 'onEdit'
+    | 'onDelete'
+    | 'onView'
+    | 'onRefresh'
+  > = {
     onPageChange: handlePageChange,
     onRowsPerPageChange: handleRowsPerPageChange,
     onSearchChange: handleSearchChange,
@@ -171,13 +148,6 @@ const RepairPage = () => {
     onSortChange: handleSortChange,
     onSelectionChange: handleSelectionChange,
     onClientOrgChange: handleClientOrgChange,
-    onRepairTypeChange: handleRepairTypeChange,
-    onRepairStatusChange: handleRepairStatusChange,
-    onDateFromChange: handleDateFromChange,
-    onDateToChange: handleDateToChange,
-    onApplyFilters: handleApplyFilters,
-    onClearFilters: handleClearFilters,
-    onCreateRepair: handleCreateRepair,
     onEdit: handleEdit,
     onDelete: handleDelete,
     onView: handleView,
@@ -185,10 +155,9 @@ const RepairPage = () => {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white px-6 py-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-blue-600">Maintenance</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900">Repair Management</h1>
           <p className="mt-1 text-sm text-slate-500">Manage instrument repairs, servicing, and repair charges.</p>
         </div>
@@ -197,13 +166,15 @@ const RepairPage = () => {
           Create Repair
         </Button>
       </div>
+      <div className="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white px-2 py-2 shadow-sm">
+        <RepairTable
+          state={resolvedState}
+          handlers={tableHandlers}
+          organizations={organizations}
+          organizationsLoading={organizationsLoading}
+        />
+      </div>
 
-      <RepairTable
-        state={resolvedState}
-        handlers={tableHandlers}
-        organizations={organizations}
-        organizationsLoading={organizationsLoading}
-      />
     </div>
   );
 };

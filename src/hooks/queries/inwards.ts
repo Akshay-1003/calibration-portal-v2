@@ -237,6 +237,44 @@ export function useInwardEntriesListQuery(
   });
 }
 
+/** Loads the complete inward history for one customer for repair item selection. */
+export function useClientInwardEntriesQuery(
+  clientOrgId: string | null,
+  options?: { enabled?: boolean; staleTime?: number },
+) {
+  return useQuery({
+    queryKey: queryKeys.inwards.list({ client_org_id: clientOrgId || '', scope: 'repair-selector' }),
+    queryFn: async (): Promise<InwardEntry[]> => {
+      if (!clientOrgId) return [];
+
+      const limit = DEFAULT_BULK_FETCH_LIMIT;
+      const firstResponse = await apiService.getInwards({ client_org_id: clientOrgId, page: 0, limit });
+      const firstPage = normalizeInwardEntriesListResponse(firstResponse);
+      const pageCount = Math.ceil(firstPage.total / limit);
+
+      if (pageCount <= 1) return firstPage.items;
+
+      const remainingPages = await Promise.all(
+        Array.from({ length: pageCount - 1 }, (_, index) =>
+          apiService.getInwards({ client_org_id: clientOrgId, page: index + 1, limit }),
+        ),
+      );
+
+      return [
+        ...firstPage.items,
+        ...remainingPages.flatMap((response) => normalizeInwardEntriesListResponse(response).items),
+      ];
+    },
+    enabled: (options?.enabled ?? true) && Boolean(clientOrgId),
+    staleTime: options?.staleTime ?? 10 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    retry: 1,
+  });
+}
+
 /**
  * Query hook for fetching a single inward entry by ID
  */

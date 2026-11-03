@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { InvoiceData } from '../components/billing/InvoiceTemplate';
-import { buildInvoiceSummaryRows } from '../utils/invoiceSummaryRows';
+import { buildInvoiceSummaryRows, formatInvoiceSummaryAmount } from '../utils/invoiceSummaryRows';
 import type { InvoicePdfDisplayRow } from '../utils/invoicePdfRows';
 
 const baseData: InvoiceData = {
@@ -73,6 +73,9 @@ describe('invoice summary rows', () => {
       'Round Off Total',
     ]);
     expect(rows.find((row) => row.key === 'calibration-discount')?.value).toBe(-309.9);
+    expect(formatInvoiceSummaryAmount(-309.9)).toBe('-\u00a0309.90');
+    expect(formatInvoiceSummaryAmount(2789.1)).toBe('2789.10');
+    expect(formatInvoiceSummaryAmount(0)).toBe('0.00');
     expect(rows.find((row) => row.key === 'calibration-net')?.value).toBe(2789.1);
     expect(rows.find((row) => row.key === 'repair-servicing')?.value).toBe(1250);
   });

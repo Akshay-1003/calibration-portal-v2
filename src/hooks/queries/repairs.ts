@@ -1,10 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../../config/api';
 import { apiClient } from '../../services/api';
-import type { RepairEntry, RepairFormData, SparePart } from '../../types/repair';
+import type {
+  RepairDraftFormData,
+  RepairEntry,
+  RepairFormData,
+  RepairItem,
+  RepairStatus,
+  SparePart,
+} from '../../types/repair';
 import { queryKeys } from './queryKeys';
 
-type RepairStatus = RepairEntry['repair_status'];
 type RepairType = RepairEntry['repair_type'];
 
 export interface RepairApiRecord {
@@ -12,6 +18,8 @@ export interface RepairApiRecord {
   repair_id?: string;
   repair_no?: string;
   gauge_id?: string;
+  manual_item_name?: string;
+  inward_id?: string;
   repair_date?: string;
   repair_description?: string;
   repaired_by?: string;
@@ -23,15 +31,22 @@ export interface RepairApiRecord {
   estimated_date_of_completion?: string;
   estimated_completion_date?: string;
   estimated_cost?: number | string;
+  repair_charge?: number | string;
   technician_notes?: string;
   spare_parts_used?: string[];
   spare_parts?: Array<Partial<SparePart>>;
+  items?: RepairItem[];
+  item_count?: number;
   gauge_identification_number?: string;
   gauge_make?: string;
   gauge_manf_serial_number?: string;
   gauge_type?: string;
   gauge_specifications?: RepairEntry['gauge_specifications'];
   repair_type?: string;
+  work_performed?: string;
+  actual_completion_date?: string;
+  actual_cost?: number | string;
+  additional_service_charges?: number | string;
   archived?: boolean;
   created_at?: string;
   updated_at?: string;
@@ -40,7 +55,9 @@ export interface RepairApiRecord {
 }
 
 export interface CreateRepairPayload {
-  gauge_id: string;
+  gauge_id?: string;
+  manual_item_name?: string;
+  inward_id?: string;
   repair_date: string;
   repair_description: string;
   repaired_by: string;
@@ -48,8 +65,22 @@ export interface CreateRepairPayload {
   client_org_id: string;
   estimated_date_of_completion: string;
   estimated_cost: number;
+  repair_charge?: number;
   technician_notes: string;
   spare_parts_used: string[];
+  repair_type: 'repair_only' | 'repair_and_calibration';
+  work_performed?: string;
+  actual_completion_date?: string;
+  actual_cost?: number;
+  additional_service_charges?: number;
+}
+
+export interface CreateRepairDraftPayload {
+  repair_date: string;
+  client_org_id: string;
+  repaired_by: string;
+  estimated_date_of_completion?: string;
+  status: 'draft';
 }
 
 export type UpdateRepairPayload = Partial<CreateRepairPayload>;
@@ -63,8 +94,12 @@ const mapStatus = (value?: string): RepairStatus => {
 
   if (
     normalized === 'pending' ||
+    normalized === 'draft' ||
+    normalized === 'under_inspection' ||
     normalized === 'in_progress' ||
+    normalized === 'repair_in_progress' ||
     normalized === 'completed' ||
+    normalized === 'calibration_pending' ||
     normalized === 'on_hold' ||
     normalized === 'cancelled'
   ) {
@@ -75,18 +110,13 @@ const mapStatus = (value?: string): RepairStatus => {
 };
 
 const mapRepairType = (value?: string): RepairType => {
-  const normalized = (value || 'calibration').toLowerCase();
+  const normalized = (value || 'repair_only').toLowerCase();
 
-  if (
-    normalized === 'calibration' ||
-    normalized === 'maintenance' ||
-    normalized === 'replacement' ||
-    normalized === 'adjustment'
-  ) {
+  if (normalized === 'repair_only' || normalized === 'repair_and_calibration') {
     return normalized;
   }
 
-  return 'calibration';
+  return 'repair_only';
 };
 
 const asNumber = (value: unknown): number => {
@@ -183,33 +213,49 @@ export const mapRepairApiToRepairEntry = (
   const nowIso = new Date().toISOString();
   const status = mapStatus(record.repair_status || record.status);
   const spareParts = normalizeSpareParts(record);
+  const items = Array.isArray(record.items) ? record.items : [];
+  const primaryItem = items[0];
+  const legacyItemCount = record.gauge_id || record.manual_item_name ? 1 : 0;
 
   return {
     id: getRepairId(record),
-    repair_no: String(record.repair_no || record.id || record.repair_id || ''),
+    repair_no: String(record.repair_no || 'Pending number'),
     repair_date: String(record.repair_date || '').slice(0, 10),
     client_org_id: String(record.client_org_id || ''),
     client_org_name: String(record.client_org_name || clientOrgName || ''),
-    gauge_id: String(record.gauge_id || ''),
+    gauge_id: String(primaryItem?.gauge_id || record.gauge_id || ''),
+    manual_item_name: String(primaryItem?.manual_item_name || record.manual_item_name || ''),
+    inward_id: String(primaryItem?.inward_id || record.inward_id || ''),
     gauge_identification_number: String(
-      record.gauge_identification_number || record.gauge_id || ''
+      primaryItem?.identification_number ||
+      primaryItem?.manual_item_name ||
+      record.gauge_identification_number ||
+      record.manual_item_name ||
+      record.gauge_id || ''
     ),
-    gauge_make: String(record.gauge_make || ''),
-    gauge_manf_serial_number: String(record.gauge_manf_serial_number || ''),
-    gauge_type: String(record.gauge_type || ''),
-    gauge_specifications: (record.gauge_specifications ||
+    gauge_make: String(primaryItem?.make || record.gauge_make || ''),
+    gauge_manf_serial_number: String(primaryItem?.manf_serial_number || record.gauge_manf_serial_number || ''),
+    gauge_type: String(primaryItem?.gauge_type || record.gauge_type || ''),
+    gauge_specifications: (primaryItem?.specifications || record.gauge_specifications ||
       {}) as RepairEntry['gauge_specifications'],
-    repair_type: mapRepairType(record.repair_type),
+    repair_type: mapRepairType(primaryItem?.repair_type || record.repair_type),
     repair_description: String(record.repair_description || ''),
     repair_status: status,
     estimated_cost: asNumber(record.estimated_cost),
+    repair_charge: asNumber(record.repair_charge),
     estimated_completion_date: String(
       record.estimated_completion_date || record.estimated_date_of_completion || ''
     ).slice(0, 10),
     technician_name: String(record.technician_name || record.repaired_by || ''),
     technician_notes: record.technician_notes ? String(record.technician_notes) : undefined,
+    work_performed: record.work_performed ? String(record.work_performed) : undefined,
+    actual_completion_date: record.actual_completion_date ? String(record.actual_completion_date).slice(0, 10) : undefined,
+    actual_cost: asNumber(record.actual_cost),
+    additional_service_charges: asNumber(record.additional_service_charges),
     client_approval_required: false,
     spare_parts: spareParts,
+    items,
+    item_count: items.length || legacyItemCount,
     created_at: String(record.created_at || nowIso),
     updated_at: String(record.updated_at || nowIso),
   };
@@ -221,6 +267,8 @@ export const mapRepairApiToFormData = (record: RepairApiRecord): Partial<RepairF
     repair_date: entry.repair_date || new Date().toISOString().slice(0, 10),
     client_org_id: entry.client_org_id,
     gauge_id: entry.gauge_id,
+    manual_item_name: entry.manual_item_name,
+    inward_id: entry.inward_id,
     gauge_identification_number: entry.gauge_identification_number,
     gauge_make: entry.gauge_make,
     gauge_manf_serial_number: entry.gauge_manf_serial_number,
@@ -230,9 +278,14 @@ export const mapRepairApiToFormData = (record: RepairApiRecord): Partial<RepairF
     repair_description: entry.repair_description,
     repair_status: entry.repair_status,
     estimated_cost: entry.estimated_cost,
+    repair_charge: entry.repair_charge,
     estimated_completion_date: entry.estimated_completion_date,
     technician_name: entry.technician_name,
     technician_notes: entry.technician_notes,
+    work_performed: entry.work_performed,
+    actual_completion_date: entry.actual_completion_date,
+    actual_cost: entry.actual_cost,
+    additional_service_charges: entry.additional_service_charges,
     client_approval_required: false,
     spare_parts: entry.spare_parts,
   };
@@ -240,7 +293,9 @@ export const mapRepairApiToFormData = (record: RepairApiRecord): Partial<RepairF
 
 export const mapRepairFormToCreatePayload = (data: RepairFormData): CreateRepairPayload => {
   return {
-    gauge_id: data.gauge_id,
+    ...(data.gauge_id ? { gauge_id: data.gauge_id } : {}),
+    ...(data.manual_item_name?.trim() ? { manual_item_name: data.manual_item_name.trim() } : {}),
+    ...(data.inward_id ? { inward_id: data.inward_id } : {}),
     repair_date: data.repair_date,
     repair_description: data.repair_description,
     repaired_by: data.technician_name,
@@ -248,21 +303,37 @@ export const mapRepairFormToCreatePayload = (data: RepairFormData): CreateRepair
     client_org_id: data.client_org_id,
     estimated_date_of_completion: data.estimated_completion_date,
     estimated_cost: asNumber(data.estimated_cost),
+    repair_charge: asNumber(data.repair_charge),
     technician_notes: data.technician_notes || '',
     spare_parts_used: (data.spare_parts || [])
       .map((part) => part.part_name?.trim())
       .filter((partName): partName is string => Boolean(partName)),
+    repair_type: data.repair_type || 'repair_only',
+    work_performed: data.work_performed || '',
+    actual_completion_date: data.actual_completion_date || undefined,
+    actual_cost: asNumber(data.actual_cost),
+    additional_service_charges: asNumber(data.additional_service_charges),
   };
 };
 
 export const mapRepairFormToUpdatePayload = (data: RepairFormData): UpdateRepairPayload =>
   mapRepairFormToCreatePayload(data);
 
+export const mapRepairDraftToCreatePayload = (
+  data: RepairDraftFormData,
+): CreateRepairDraftPayload => ({
+  repair_date: data.repair_date,
+  client_org_id: data.client_org_id,
+  repaired_by: data.technician_name.trim(),
+  estimated_date_of_completion: data.estimated_completion_date || undefined,
+  status: 'draft',
+});
+
 export function useRepairsQuery(options?: { enabled?: boolean; staleTime?: number }) {
   return useQuery({
     queryKey: queryKeys.repairs.list(),
     queryFn: async (): Promise<RepairApiRecord[]> => {
-      const response = await apiClient.get(API_ENDPOINTS.REPAIRS.LIST);
+      const response = await apiClient.get(`${API_ENDPOINTS.REPAIRS.LIST}?page=0&limit=500`);
       return extractRepairList(response);
     },
     enabled: options?.enabled ?? true,
@@ -310,7 +381,7 @@ export function useCreateRepairMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: CreateRepairPayload): Promise<RepairApiRecord | null> => {
+    mutationFn: async (payload: CreateRepairPayload | CreateRepairDraftPayload): Promise<RepairApiRecord | null> => {
       const response = await apiClient.post(API_ENDPOINTS.REPAIRS.CREATE, payload);
       return extractRepairRecord(response);
     },
@@ -342,6 +413,59 @@ export function useUpdateRepairMutation() {
     onSuccess: (updatedRecord, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.repairs.lists() });
       queryClient.setQueryData(queryKeys.repairs.detail(variables.id), updatedRecord);
+    },
+  });
+}
+
+export function useAddRepairItemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ repairId, item }: { repairId: string; item: Omit<RepairItem, 'item_id'> }) => {
+      const response = await apiClient.post(API_ENDPOINTS.REPAIRS.ITEMS(repairId), item);
+      return extractRepairRecord(response);
+    },
+    onSuccess: (updatedRecord, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repairs.lists() });
+      queryClient.setQueryData(queryKeys.repairs.detail(variables.repairId), updatedRecord);
+    },
+  });
+}
+
+export function useUpdateRepairItemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      repairId,
+      itemId,
+      item,
+    }: {
+      repairId: string;
+      itemId: string;
+      item: Omit<RepairItem, 'item_id'>;
+    }) => {
+      const response = await apiClient.patch(API_ENDPOINTS.REPAIRS.ITEM(repairId, itemId), item);
+      return extractRepairRecord(response);
+    },
+    onSuccess: (updatedRecord, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repairs.lists() });
+      queryClient.setQueryData(queryKeys.repairs.detail(variables.repairId), updatedRecord);
+    },
+  });
+}
+
+export function useDeleteRepairItemMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ repairId, itemId }: { repairId: string; itemId: string }) => {
+      const response = await apiClient.delete(API_ENDPOINTS.REPAIRS.ITEM(repairId, itemId));
+      return extractRepairRecord(response);
+    },
+    onSuccess: (updatedRecord, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.repairs.lists() });
+      queryClient.setQueryData(queryKeys.repairs.detail(variables.repairId), updatedRecord);
     },
   });
 }

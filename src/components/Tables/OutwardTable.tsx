@@ -11,12 +11,13 @@ import {
   Select,
   Popover,
   Table,
+  Chip,
 } from "@heroui/react";
 import { TrashIcon } from "@heroicons/react/24/outline";
 import { OutwardEntry } from "../../types";
 import { getTableColumnKey } from './tableColumnKey';
 import { MagnifyingGlassIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
-import { 
+import {
   ArrowTopRightOnSquareIcon,
   PrinterIcon
 } from "@heroicons/react/24/outline";
@@ -26,16 +27,16 @@ import { dataTableClassName } from "./tableStyles";
 
 type TableColumnKey =
   | "sr_no"
+  | "outward_no"
   | "actions"
-  | "outward_id"
   | "client_org"
   | "outward_date"
   | "transport_by";
 
 const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
   { name: "SR NO", uid: "sr_no" },
+  { name: "OUTWARD NO", uid: "outward_no", sortable: true },
   { name: "ACTIONS", uid: "actions" },
-  { name: "OUTWARD ID", uid: "outward_id", sortable: true },
   { name: "CLIENT NAME", uid: "client_org", sortable: true },
   { name: "OUTWARD DATE", uid: "outward_date", sortable: true },
   { name: "TRANSPORT BY", uid: "transport_by", sortable: true },
@@ -43,7 +44,7 @@ const columns: { name: string; uid: TableColumnKey; sortable?: boolean }[] = [
 
 const INITIAL_VISIBLE_COLUMNS: TableColumnKey[] = [
   "sr_no",
-  "outward_id",
+  "outward_no",
   "client_org",
   "outward_date",
   "transport_by",
@@ -110,7 +111,7 @@ export function OutwardTable({
 
   const filteredItems = React.useMemo(() => {
     let filtered = [...data];
-    
+
     if (hasSearchFilter) {
       const lower = filterValue.toLowerCase();
       filtered = filtered.filter((item) => {
@@ -119,7 +120,7 @@ export function OutwardTable({
         return outwardNumber.includes(lower) || clientName.includes(lower);
       });
     }
-    
+
     return filtered;
   }, [data, filterValue, hasSearchFilter]);
 
@@ -149,8 +150,8 @@ export function OutwardTable({
 
   const getComparableValue = React.useCallback((item: OutwardEntry, columnKey: TableColumnKey) => {
     switch (columnKey) {
-      case "outward_id":
-        return item.id ?? "";
+      case "outward_no":
+        return item.outward_no ?? "";
       case "client_org":
         return item.client_org ?? "";
       case "outward_date":
@@ -173,7 +174,7 @@ export function OutwardTable({
       const second = getComparableValue(b, column as TableColumnKey);
 
       let comparison = 0;
-      
+
       if (column === "outward_date") {
         const dateA = first ? new Date(first).getTime() : 0;
         const dateB = second ? new Date(second).getTime() : 0;
@@ -198,10 +199,12 @@ export function OutwardTable({
               {srNo}
             </div>
           );
-        case "outward_id":
+        case "outward_no":
           return (
-            <div className="text-[13px] font-medium truncate max-w-[150px]" title={String(outward.outward_no ?? "-")}>
-              {outward.outward_no ?? "-"}
+            <div className="text-[13px] text-center font-medium text-gray-600" title={String(outward.outward_no ?? "-")}>
+              <Chip color="accent" size="md" variant="soft">
+                <Chip.Label className="text-blue-600">{outward.outward_no ?? "-"}</Chip.Label>
+              </Chip>
             </div>
           );
         case "client_org":
@@ -224,35 +227,43 @@ export function OutwardTable({
             </div>
           );
         case "actions":
+
           return (
             <div className="flex items-center justify-center gap-2">
-              {onDelete && (
-                <div className="flex items-center justify-center h-7 hover:bg-red-100 transition-colors duration-200 px-3 text-xs font-medium border cursor-pointer border-red-300 rounded-md"   onClick={() => onDelete(outward.id)} >
-                  <TrashIcon className="h-4 w-4 text-red-600" />
-                </div>
-              )}
-              {onOpen && (
+  {onOpen && (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  className="bg-green-600 hover:bg-green-700 text-white h-7 px-3 text-xs"
                   onPress={() => onOpen(outward.id)}
-                  className="h-7 px-3 text-xs font-medium"
+                  aria-label="Add gauges to inward entry"
                 >
                   <ArrowTopRightOnSquareIcon className="h-3 w-3" />
                   Open
                 </Button>
               )}
-              {onPrint && (
+
+               {onPrint && (
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 hover:bg-blue-700 text-white h-7 px-3 text-xs"
+                  onPress={() => onPrint(outward.id)}
+                    aria-label="Print Inward Chalan"
+                  >
+                    <PrinterIcon className="w-4 h-4" />
+                  </Button>
+                )}
+              {onDelete && (
                 <Button
                   size="sm"
-                  variant="outline"
-                  onPress={() => onPrint(outward.id)}
-                  className="h-7 px-3 text-xs font-medium"
+                  className="bg-white border border-red-600 text-red-600 hover:bg-red-100 h-7"
+                  onClick={() => onDelete(outward.id)}
+                  isIconOnly
+                  aria-label="Delete inward entry"
                 >
-                  <PrinterIcon className="h-3 w-3" />
-                  Print
+                  <TrashIcon className="w-4 h-4" />
                 </Button>
               )}
+
             </div>
           );
         default:
@@ -310,23 +321,23 @@ export function OutwardTable({
               </Popover.Trigger>
               <Popover.Content className="w-56 p-1">
                 <Popover.Dialog>
-                <ListBox
-                  aria-label="Table Columns"
-                  selectedKeys={visibleColumns}
-                  selectionMode="multiple"
-                  onSelectionChange={setVisibleColumns}
-                >
-                  {columns.map((column) => (
-                    <ListBox.Item
-                      key={column.uid}
-                      id={column.uid}
-                      textValue={capitalize(column.name)}
-                    >
-                      {capitalize(column.name)}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
+                  <ListBox
+                    aria-label="Table Columns"
+                    selectedKeys={visibleColumns}
+                    selectionMode="multiple"
+                    onSelectionChange={setVisibleColumns}
+                  >
+                    {columns.map((column) => (
+                      <ListBox.Item
+                        key={column.uid}
+                        id={column.uid}
+                        textValue={capitalize(column.name)}
+                      >
+                        {capitalize(column.name)}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
                 </Popover.Dialog>
               </Popover.Content>
             </Popover>
@@ -371,8 +382,8 @@ export function OutwardTable({
     );
   }, [items.length, page, pages, rowsPerPage, onRowsPerPageChange, setActivePage, totalRecords]);
 
-  const emptyContent = error 
-    ? `Error: ${error}` 
+  const emptyContent = error
+    ? `Error: ${error}`
     : "No outward entries found";
 
   return (
@@ -388,34 +399,39 @@ export function OutwardTable({
               onSelectionChange={setSelectedKeys}
               onSortChange={setSortDescriptor}
             >
-          <Table.Header columns={headerColumns}>
-            {(column) => (
-              <Table.Column id={column.uid} allowsSorting={column.sortable} isRowHeader={column.uid === columns[0]?.uid}>
-                {column.name}
-              </Table.Column>
-            )}
-          </Table.Header>
-          <Table.Body
-            items={sortedItems}
-            renderEmptyState={() => (
-              <div className="py-8 text-center text-sm text-default-500">
-                {loading ? "Loading..." : emptyContent}
-              </div>
-            )}
-          >
-            {(item) => {
-              const index = sortedItems.findIndex((entry) => entry.id === item.id);
-              return (
-                <Table.Row id={item.id} columns={headerColumns}>
-                  {(columnKey) => (
-                    <Table.Cell>
-                      {renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}
-                    </Table.Cell>
-                  )}
-                </Table.Row>
-              );
-            }}
-          </Table.Body>
+              <Table.Header columns={headerColumns}>
+                {(column) => (
+                  <Table.Column
+                    id={column.uid}
+                    allowsSorting={column.sortable}
+                    isRowHeader={column.uid === columns[0]?.uid}
+                    className={column.uid === "outward_no" ? "w-[132px] min-w-[132px] max-w-[132px] text-center" : undefined}
+                  >
+                    {column.name}
+                  </Table.Column>
+                )}
+              </Table.Header>
+              <Table.Body
+                items={sortedItems}
+                renderEmptyState={() => (
+                  <div className="py-8 text-center text-sm text-default-500">
+                    {loading ? "Loading..." : emptyContent}
+                  </div>
+                )}
+              >
+                {(item) => {
+                  const index = sortedItems.findIndex((entry) => entry.id === item.id);
+                  return (
+                    <Table.Row id={item.id} columns={headerColumns}>
+                      {(columnKey) => (
+                        <Table.Cell className={getTableColumnKey(columnKey) === "outward_no" ? "w-[132px] min-w-[132px] max-w-[132px]" : undefined}>
+                          {renderCell(item, getTableColumnKey(columnKey) as TableColumnKey, index)}
+                        </Table.Cell>
+                      )}
+                    </Table.Row>
+                  );
+                }}
+              </Table.Body>
             </Table.Content>
           </Table.ScrollContainer>
         </Table>

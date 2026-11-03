@@ -12,6 +12,9 @@ export interface InvoiceSummaryRow {
 
 const hasAmount = (value?: number | null) => Math.abs(Number(value || 0)) >= 0.005;
 
+export const formatInvoiceSummaryAmount = (value: number): string =>
+  value < 0 ? `-\u00a0${Math.abs(value).toFixed(2)}` : value.toFixed(2);
+
 const formatPercentage = (value: number) => {
   const rounded = roundCurrency(value);
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2);

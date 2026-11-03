@@ -1207,11 +1207,16 @@ export function InvoiceEditor({ invoiceId: invoiceIdOverride, controlRef, onSave
       return {
         ...itemData.sourceItem,
         source_type: sourceType,
+        // Direct repair rows may have only a table ID; it is not a database gauge/master ID.
         gauge_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.gauge_id : isManualItem
           ? null
-          : itemData.gaugeItem.gauge_id || itemData.gaugeItem.id || '',
-        inward_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.inward_id : isManualItem ? null : itemData.gaugeItem.inward_id || '',
-        master_gauge_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.master_gauge_id : isManualItem
+          : sourceType === 'repair'
+            ? itemData.gaugeItem.gauge_id || null
+            : itemData.gaugeItem.gauge_id || itemData.gaugeItem.id || '',
+        inward_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.inward_id : isManualItem
+          ? null
+          : itemData.gaugeItem.inward_id || (sourceType === 'repair' ? null : ''),
+        master_gauge_id: invoiceData?.batch_id && itemData.sourceItem ? itemData.sourceItem.master_gauge_id : isManualItem || sourceType === 'repair'
           ? itemData.gaugeItem.master_gauge_id || null
           : String(
               itemData.gaugeItem.master_gauge_id ||

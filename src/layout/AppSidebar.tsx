@@ -258,9 +258,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                     isActive={itemIsActive}
                                                     tooltip={item.title}
                                                     className={cn(
-                                                        "text-[15px] font-medium transition-all duration-200",
+                                                        "text-[15px] font-medium transition-all duration-200 ease-out",
                                                         itemIsActive
-                                                            ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                                                            ? "bg-primary text-primary-foreground! shadow-sm hover:bg-primary/90 hover:text-primary-foreground! [&_svg]:text-primary-foreground!"
                                                             : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                                                     )}
                                                 >
@@ -306,9 +306,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                             expandSidebarFromCollapsed(event, item.title);
                                                         }}
                                                         className={cn(
-                                                            "text-[15px] font-medium transition-all duration-200",
+                                                            "text-[15px] font-medium transition-all duration-200 ease-out",
                                                             hasActiveSubItem
-                                                                ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
+                                                                ? "bg-primary text-primary-foreground! shadow-sm hover:bg-primary/90 hover:text-primary-foreground! [&_svg]:text-primary-foreground!"
                                                                 : "text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                                                         )}
                                                     >
@@ -329,7 +329,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                         {item.badge}
                                                     </SidebarMenuBadge>
                                                 )}
-                                                <CollapsibleContent className="overflow-hidden transition-all duration-300 data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down">
+                                                <CollapsibleContent className="overflow-hidden data-open:animate-accordion-down data-closed:animate-accordion-up motion-reduce:animate-none">
                                                     <SidebarMenuSub className="ml-4 border-none border-primary/20 mx-0 pr-0 mt-1 space-y-0.5">
                                                         {item.items?.map((subItem) => {
                                                             const subItemIsActive = isActive(
@@ -342,9 +342,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                                                         asChild
                                                                         isActive={subItemIsActive}
                                                                         className={cn(
-                                                                            "text-[14px] py-2 transition-all duration-200 whitespace-normal",
+                                                                            "text-[14px] py-2 whitespace-normal transition-all duration-200 ease-out",
                                                                             subItemIsActive
-                                                                                ? "bg-primary/10 text-primary font-semibold border-l-2 border-primary -ml-0.5 pl-3 shadow-sm"
+                                                                                ? "bg-sidebar-accent text-sidebar-foreground! font-semibold border-l-2 border-primary -ml-0.5 pl-3 shadow-sm hover:text-sidebar-foreground! [&_svg]:text-sidebar-foreground!"
                                                                                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                                                                         )}
                                                                     >

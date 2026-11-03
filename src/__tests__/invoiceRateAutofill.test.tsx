@@ -6,16 +6,18 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InvoiceEditor } from '../pages/billing/invoice/edit';
 import type { InvoiceBillingTableRow } from '../components/billing/invoiceItemTableShared';
 import type { InvoiceRateCardEntriesByGauge } from '../utils/rateCardLookup';
+import type { InvoiceBillingItem } from '../types/types';
 
 const state = vi.hoisted(() => ({
   invoice: undefined as ReturnType<typeof makeInvoice> | undefined,
   rates: {} as InvoiceRateCardEntriesByGauge,
   fetchSpecification: vi.fn(),
+  updateInvoice: vi.fn(),
 }));
 
 vi.mock('../hooks/queries/invoices', () => ({
   useInvoiceDetailQuery: () => ({ data: state.invoice, isLoading: !state.invoice }),
-  useUpdateInvoiceMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateInvoiceMutation: () => ({ mutateAsync: state.updateInvoice, isPending: false }),
   useGenerateInvoiceMutation: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 vi.mock('../hooks/queries/organizations', () => ({
@@ -39,15 +41,18 @@ vi.mock('../components/billing/InvoiceItemsBillingTable', () => ({
   </div>)}</div>,
 }));
 
-function makeInvoice(status = 'draft', rate = 0, specifications: Record<string, unknown> = { basic_size: 68.0175 }) {
+function makeInvoice(status = 'draft', rate = 0, specifications: Record<string, unknown> = { basic_size: 68.0175 }, itemOverrides: Partial<InvoiceBillingItem> = {}) {
   return {
     id: 'invoice-1', status, client_org_id: 'customer-1', billing_date: '2026-10-28',
+    invoice_number: '26-27/0044',
+    billing_firm_id: '64b0c2f4f1a2b3c4d5e6f700', billing_firm_name: 'Trading Services',
     invoice_details: {
       billing_items: [{
         gauge_id: 'physical-gauge', master_gauge_id: 'ring-master', inward_id: 'inward-1',
         price_list_item_id: undefined as string | undefined,
         master_gauge_name: 'Ring Gauge', specifications,
         billing_components: [{ process: 'calibration', rate, quantity: 3 }],
+        ...itemOverrides,
       }],
     },
   };
@@ -75,9 +80,27 @@ beforeEach(() => {
   state.invoice = undefined;
   state.rates = {};
   state.fetchSpecification.mockReset();
+  state.updateInvoice.mockReset();
 });
 
 describe('invoice Rate Card autofill', () => {
+  it.each([null, '64b0c2f4f1a2b3c4d5e6f703'])('saves repair drafts without converting a table ID into a gauge ID (%s)', async (gaugeId) => {
+    state.invoice = makeInvoice('draft', 250, { description: '0.001-1mm' }, {
+      source_type: 'repair', gauge_id: gaugeId, inward_id: null, master_gauge_id: null,
+      repair_id: '64b0c2f4f1a2b3c4d5e6f704', repair_item_id: 'repair-item-1',
+      master_gauge_name: 'Plunger Dial', identification_number: 'HFC548',
+    });
+    mountEditor();
+    await screen.findByLabelText('Rate 0');
+    fireEvent.click(screen.getByRole('button', { name: 'Save Draft' }));
+    await waitFor(() => expect(state.updateInvoice).toHaveBeenCalledTimes(1));
+    expect(state.updateInvoice.mock.calls[0][0].data.invoice_details.billing_items[0]).toMatchObject({
+      source_type: 'repair', gauge_id: gaugeId, inward_id: null, master_gauge_id: null,
+      repair_id: '64b0c2f4f1a2b3c4d5e6f704', repair_item_id: 'repair-item-1',
+      identification_number: 'HFC548', specifications: { description: '0.001-1mm' },
+    });
+  });
+
   it('retains the assigned PO price-list ID when hydrating invoice items', async () => {
     state.invoice = makeInvoice();
     state.invoice.invoice_details.billing_items[0].price_list_item_id = 'assigned-rate';

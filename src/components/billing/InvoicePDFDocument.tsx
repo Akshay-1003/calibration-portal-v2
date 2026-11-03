@@ -15,7 +15,7 @@ import {
 } from '../../utils/invoicePdfColumns';
 import { formatDateStringForDisplay } from '../../utils/dateAdapter';
 import { buildInvoicePdfDisplayRows, getInvoicePdfServiceTotals } from '../../utils/invoicePdfRows';
-import { buildInvoiceSummaryRows } from '../../utils/invoiceSummaryRows';
+import { buildInvoiceSummaryRows, formatInvoiceSummaryAmount } from '../../utils/invoiceSummaryRows';
 
 const TABLE_BORDER_COLOR = '#374151';
 const TABLE_BORDER_WIDTH = 0.8;
@@ -539,7 +539,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                       item.row_kind === 'service' && column.key === 'gauge_name' ? styles.serviceRow : undefined,
                     ]}
                   >
-                    {column.key === 'identification_number'
+                    {column.key === 'identification_number' || column.key === 'specification'
                       ? getItemCellValue(item, column, index + 1).trim()
                       : wrapPdfCellText(getItemCellValue(item, column, index + 1))}
                   </Text>
@@ -630,7 +630,7 @@ export const InvoicePDFDocument: React.FC<{ data: InvoiceData }> = ({ data }) =>
                           row.emphasis === 'total' ? styles.totalsGrandText : undefined,
                         ]}
                       >
-                        {formatCurrency(Number(row.value))}
+                        {formatInvoiceSummaryAmount(Number(row.value))}
                       </Text>
                     </View>
                   ))}

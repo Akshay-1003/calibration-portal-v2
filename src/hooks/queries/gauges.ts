@@ -33,7 +33,10 @@ export function useGaugesByInwardQuery(
     queryFn: async (): Promise<LinkedGauge[]> => {
       if (!inwardId) throw new Error('Inward ID is required');
       const response = await apiService.getGaugesByInward(inwardId);
-      return response?.data || [];
+      return extractPaginatedList<LinkedGauge>(response, {
+        arrayKeys: ['data', 'items'],
+        fallbackLimit: DEFAULT_BULK_FETCH_LIMIT,
+      }).items;
     },
     staleTime: options?.staleTime ?? 5 * 60 * 1000, // 5 minutes default
     enabled: (options?.enabled ?? true) && !!inwardId,

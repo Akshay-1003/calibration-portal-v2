@@ -5,3 +5,16 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
 @source "../node_modules/@heroui/**/dist";
+
+@theme inline {
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-sidebar: var(--surface);
+  --color-sidebar-foreground: var(--foreground);
+  --color-sidebar-primary: var(--accent);
+  --color-sidebar-primary-foreground: var(--accent-foreground);
+  --color-sidebar-accent: var(--default);
+  --color-sidebar-accent-foreground: var(--foreground);
+  --color-sidebar-border: var(--border);
+  --color-sidebar-ring: var(--focus);
+}

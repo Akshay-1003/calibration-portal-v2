@@ -147,6 +147,8 @@ export const API_ENDPOINTS = {
     GET: (repairId: string) => `/gauge/repair/${repairId}`,
     UPDATE: (repairId: string) => `/gauge/repair/${repairId}`,
     DELETE: (repairId: string) => `/gauge/repair/${repairId}`,
+    ITEMS: (repairId: string) => `/gauge/repair/${repairId}/items`,
+    ITEM: (repairId: string, itemId: string) => `/gauge/repair/${repairId}/items/${itemId}`,
   },
   
   // Health Check

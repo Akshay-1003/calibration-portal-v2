@@ -1,22 +1,20 @@
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@heroui/react';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-import RepairForm from '../../components/form/RepairForm';
-import { useGaugeMastersWithQuery } from '../../hooks/useGaugeMastersWithQuery';
+import { RepairDraftForm } from '../../components/form/RepairDraftForm';
 import { useOrganizations } from '../../hooks/useOrganizations';
 import {
-  mapRepairFormToCreatePayload,
+  mapRepairDraftToCreatePayload,
   useCreateRepairMutation,
 } from '../../hooks/queries/repairs';
 import { toast } from 'sonner';
-import type { RepairFormData } from '../../types/repair';
+import type { RepairDraftFormData } from '../../types/repair';
 
 const RepairCreatePage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const { organizations } = useOrganizations('customers');
-  const { gaugeMasters } = useGaugeMastersWithQuery();
   const createRepairMutation = useCreateRepairMutation();
 
   const handleCancel = () => {
@@ -24,13 +22,13 @@ const RepairCreatePage = () => {
     navigate(returnTo || '/maintenance');
   };
 
-  const handleSubmit = async (data: RepairFormData) => {
+  const handleSubmit = async (data: RepairDraftFormData) => {
     try {
-      await createRepairMutation.mutateAsync(mapRepairFormToCreatePayload(data));
-      toast.success('Repair created successfully!');
-
-      const returnTo = searchParams.get('returnTo');
-      navigate(returnTo || '/maintenance');
+      const repair = await createRepairMutation.mutateAsync(mapRepairDraftToCreatePayload(data));
+      const repairId = repair?.id || repair?.repair_id;
+      if (!repairId) throw new Error('Repair draft was created without an ID.');
+      toast.success('Repair draft created. Add repair items next.');
+      navigate(`/maintenance/edit/${repairId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to create repair. Please try again.';
       toast.error(message);
@@ -47,11 +45,9 @@ const RepairCreatePage = () => {
         </Button>
       </div>
 
-      <RepairForm
-        isEditing={false}
+      <RepairDraftForm
         onSubmit={handleSubmit}
         onCancel={handleCancel}
-        gaugeMasterList={gaugeMasters || []}
         organizations={organizations || []}
         isSubmitting={createRepairMutation.isPending}
       />

@@ -170,12 +170,6 @@ export const sidebarConfig: NavGroup[] = [
             matchPattern: "^/maintenance(/|$)",
 
           },
-          {
-            title: "Instrument Master",
-            url: "/maintenance/repair-master",
-            icon: <WrenchScrewdriverIcon className="w-4 h-4" />,
-            matchPattern: "^/maintenance/repair-master(/|$)",
-          },
         ],
       },
       {
